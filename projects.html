@@ -159,6 +159,8 @@
     <a href="index.html" class="nav-btn">Dashboard</a>
     <a href="projects.html" class="nav-btn active">Projects</a>
     <a href="payments.html" class="nav-btn">Payments</a>
+    <a href="clients.html" class="nav-btn">Clients</a>
+    <a href="reports.html" class="nav-btn">Reports</a>
     <a href="performance.html" class="nav-btn">Performance</a>
     <a href="finance.html" class="nav-btn">Finance</a>
   </nav>
@@ -218,12 +220,12 @@
     <div class="modal-body">
       <input type="hidden" id="projId" />
       <div class="form-group">
-        <label class="form-label">Project Name</label>
+        <label class="form-label">Project Name *</label>
         <input class="form-input" id="projName" placeholder="e.g. Inventory Management System" />
       </div>
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Client Name</label>
+          <label class="form-label">Client Name *</label>
           <input class="form-input" id="projClient" placeholder="Client / Company name" />
         </div>
         <div class="form-group">
@@ -312,7 +314,6 @@
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhuYnplcmhvcXFzbXpxeGNibnh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDg1MjksImV4cCI6MjA5NDYyNDUyOX0.a4rM51DQGih9SXMr71PREngZ_pT6dJFgv_fG9j5jAGc';
     const USD_RATE = 0.00027;
 
-    // Wait for DOM & SDK
     document.addEventListener('DOMContentLoaded', async function() {
       if (!window.supabase) {
         showToast('Database SDK failed to load', 'error');
@@ -330,6 +331,7 @@
       function formatUGX(n) { if (!n) return 'UGX 0'; return 'UGX ' + Number(n).toLocaleString(); }
       function formatUSD(n) { if (!n) return '$0.00'; return '$' + (n * USD_RATE).toFixed(2); }
       function priceHTML(ugx) { return `<span class="price-main">${formatUGX(ugx)}</span><span class="price-sub">${formatUSD(ugx)}</span>`; }
+      
       function showToast(msg, type = 'success') {
         const c = document.getElementById('toastContainer');
         const t = document.createElement('div');
@@ -353,70 +355,79 @@
 
       // === LOAD PROJECTS ===
       async function loadProjects() {
-        const filter = document.getElementById('projectFilter').value;
-        let query = supabase.from('projects').select('*').order('created_at', { ascending: false });
-        if (filter !== 'all') query = query.eq('status', filter);
-        const { data, error } = await query;
-        
-        const tbody = document.getElementById('projectsTable');
-        if (error) {
-          console.error('Load error:', error);
-          tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">⚠️</div><p>Failed to load: ${error.message}</p></div></td></tr>`;
-          return;
-        }
-        
-        if (!data || data.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📁</div><p>No projects found.</p></div></td></tr>`;
-          return;
-        }
-        
-        tbody.innerHTML = data.map(p => {
-          const startDate = new Date(p.start_date);
-          const endDate = new Date(startDate);
-          endDate.setMonth(endDate.getMonth() + (p.plan_months || 1));
-          const now = new Date();
-          const totalMonths = p.plan_months || 1;
-          const elapsed = Math.max(0, Math.floor((now - startDate) / (1000*60*60*24*30)));
-          const progress = Math.min(100, Math.max(0, Math.round((elapsed / totalMonths) * 100)));
-          const statusBadge = p.status === 'active' ? 'badge-green' : p.status === 'completed' ? 'badge-blue' : 'badge-yellow';
-          const progressColor = progress > 90 ? 'var(--danger)' : progress > 60 ? 'var(--warning)' : 'var(--accent)';
+        try {
+          const filter = document.getElementById('projectFilter').value;
+          let query = supabase.from('projects').select('*').order('created_at', { ascending: false });
+          if (filter !== 'all') query = query.eq('status', filter);
+          const { data, error } = await query;
           
-          return `<tr>
-            <td><strong>${p.name || 'Untitled'}</strong></td>
-            <td>${p.client || '—'}</td>
-            <td>${priceHTML(p.monthly_rate)}</td>
-            <td><span class="badge badge-gray">${totalMonths} month${totalMonths > 1 ? 's' : ''}</span></td>
-            <td style="min-width:140px">
-              <div class="progress-track"><div class="progress-fill" style="width:${progress}%; background:${progressColor}"></div></div>
-              <div class="progress-info"><span>${progress}% complete</span><span>${elapsed}/${totalMonths} mo</span></div>
-            </td>
-            <td><span class="badge ${statusBadge}"><span class="badge-dot"></span>${p.status || 'unknown'}</span></td>
-            <td style="font-size:.8rem; color:var(--text-muted)">${endDate.toLocaleDateString()}</td>
-            <td>
-              <div class="flex gap-1">
-                <button class="btn btn-sm btn-outline edit-btn" data-id="${p.id}">Edit</button>
-                <button class="btn btn-sm btn-outline extend-btn" data-id="${p.id}" data-end="${endDate.toISOString()}" data-rate="${p.monthly_rate || 0}">Extend</button>
-              </div>
-            </td>
-          </tr>`;
-        }).join('');
+          const tbody = document.getElementById('projectsTable');
+          if (error) {
+            console.error('Load error:', error);
+            tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">⚠️</div><p>Failed to load: ${error.message}</p></div></td></tr>`;
+            return;
+          }
+          
+          if (!data || data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📁</div><p>No projects found.</p></div></td></tr>`;
+            return;
+          }
+          
+          tbody.innerHTML = data.map(p => {
+            const startDate = new Date(p.start_date);
+            const endDate = new Date(startDate);
+            endDate.setMonth(endDate.getMonth() + (p.plan_months || 1));
+            const now = new Date();
+            const totalMonths = p.plan_months || 1;
+            const elapsed = Math.max(0, Math.floor((now - startDate) / (1000*60*60*24*30)));
+            const progress = Math.min(100, Math.max(0, Math.round((elapsed / totalMonths) * 100)));
+            const statusBadge = p.status === 'active' ? 'badge-green' : p.status === 'completed' ? 'badge-blue' : 'badge-yellow';
+            const progressColor = progress > 90 ? 'var(--danger)' : progress > 60 ? 'var(--warning)' : 'var(--accent)';
+            
+            return `<tr>
+              <td><strong>${p.name || 'Untitled'}</strong></td>
+              <td>${p.client || '—'}</td>
+              <td>${priceHTML(p.monthly_rate)}</td>
+              <td><span class="badge badge-gray">${totalMonths} month${totalMonths > 1 ? 's' : ''}</span></td>
+              <td style="min-width:140px">
+                <div class="progress-track"><div class="progress-fill" style="width:${progress}%; background:${progressColor}"></div></div>
+                <div class="progress-info"><span>${progress}% complete</span><span>${elapsed}/${totalMonths} mo</span></div>
+              </td>
+              <td><span class="badge ${statusBadge}"><span class="badge-dot"></span>${p.status || 'unknown'}</span></td>
+              <td style="font-size:.8rem; color:var(--text-muted)">${endDate.toLocaleDateString()}</td>
+              <td>
+                <div class="flex gap-1">
+                  <button class="btn btn-sm btn-outline edit-btn" data-id="${p.id}">Edit</button>
+                  <button class="btn btn-sm btn-outline extend-btn" data-id="${p.id}" data-end="${endDate.toISOString()}" data-rate="${p.monthly_rate || 0}">Extend</button>
+                </div>
+              </td>
+            </tr>`;
+          }).join('');
+        } catch (err) {
+          console.error('Projects load error:', err);
+          showToast('Failed to load projects', 'error');
+        }
       }
 
       // === EDIT PROJECT ===
       async function editProject(id) {
-        const { data, error } = await supabase.from('projects').select('*').eq('id', id).single();
-        if (error) { showToast('Failed to load project', 'error'); return; }
-        
-        document.getElementById('projId').value = data.id;
-        document.getElementById('projName').value = data.name || '';
-        document.getElementById('projClient').value = data.client || '';
-        document.getElementById('projRate').value = data.monthly_rate || '';
-        document.getElementById('projPlan').value = data.plan_months || '1';
-        document.getElementById('projStartDate').value = data.start_date || '';
-        document.getElementById('projStatus').value = data.status || 'active';
-        document.getElementById('projNotes').value = data.notes || '';
-        document.getElementById('projectModalTitle').textContent = 'Edit Project';
-        openModal('projectModal');
+        try {
+          const { data, error } = await supabase.from('projects').select('*').eq('id', id).single();
+          if (error) { showToast('Failed to load project', 'error'); return; }
+          
+          document.getElementById('projId').value = data.id;
+          document.getElementById('projName').value = data.name || '';
+          document.getElementById('projClient').value = data.client || '';
+          document.getElementById('projRate').value = data.monthly_rate || '';
+          document.getElementById('projPlan').value = data.plan_months || '1';
+          document.getElementById('projStartDate').value = data.start_date || '';
+          document.getElementById('projStatus').value = data.status || 'active';
+          document.getElementById('projNotes').value = data.notes || '';
+          document.getElementById('projectModalTitle').textContent = 'Edit Project';
+          openModal('projectModal');
+        } catch (err) {
+          showToast('Error loading project: ' + err.message, 'error');
+        }
       }
 
       // === OPEN EXTEND ===
