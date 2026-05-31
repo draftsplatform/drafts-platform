@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Employees — Drafts</title>
+  
+  <!-- Google Fonts + QR Code Library -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  
+  <!-- Supabase JS (v2) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  
+  <style>
+    :root {
+      --bg: #f8fafc; --surface: #ffffff; --card: #ffffff; --card-hover: #f1f5f9;
+      --border: #e2e8f0; --primary: #2563eb; --primary-glow: rgba(37,99,235,.1);
+      --accent: #059669; --accent-glow: rgba(5,150,105,.1);
+      --warning: #d97706; --danger: #dc2626;
+      --text: #1e293b; --text-secondary: #475569; --text-muted: #64748b;
+      --radius: 12px; --radius-sm: 8px;
+      --shadow: 0 4px 24px rgba(0,0,0,.08); --shadow-hover: 0 8px 32px rgba(0,0,0,.12);
+      --transition: .2s cubic-bezier(.4,0,.2,1);
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.5;
+    }
+    ::-webkit-scrollbar { width:6px; }
+    ::-webkit-scrollbar-track { background:transparent; }
+    ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+    
+    /* === HEADER STYLES === */
+    .header {
+      position: sticky; top: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 2rem; height: 88px;
+      background: rgba(255,255,255,.95); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      box-shadow: 0 1px 0 rgba(0,0,0,.02);
+    }
+    .logo { display: flex; align-items: center; gap: 16px; cursor: pointer; user-select: none; }
+    .logo-img { height: 64px; width: auto; object-fit: contain; }
+    .logo-text { font-size: 1.6rem; font-weight: 800; letter-spacing: -.3px; color: var(--text); }
+    .logo-subtitle { font-size: .65rem; color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase; margin-top: -4px; }
+    .nav { display: flex; gap: 4px; }
+    .nav-btn {
+      position: relative; padding: 10px 18px; border: none; background: transparent;
+      color: var(--text-secondary); font-size: .88rem; font-weight: 500;
+      border-radius: var(--radius-sm); cursor: pointer; transition: var(--transition);
+    }
+    .nav-btn:hover { background: var(--primary-glow); color: var(--primary); }
+    .nav-btn.active { background: var(--primary-glow); color: var(--primary); font-weight: 600; }
+    .nav-btn.active::after {
+      content: ''; position: absolute; bottom: -1px; left: 50%;
+      transform: translateX(-50%); width: 60%; height: 2px;
+      background: var(--primary); border-radius: 1px;
+    }
+    .header-right { display: flex; align-items: center; gap: 12px; }
+    .status-dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 8px rgba(5,150,105,.4); }
+    .status-text { font-size: .75rem; color: var(--accent); font-weight: 600; }
+    
+    /* === PAGE STYLES === */
+    .main { padding: 2rem; max-width: 1440px; margin: 0 auto; }
+    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
+    .page-title { font-size: 1.5rem; font-weight: 700; letter-spacing: -.3px; color: var(--text); }
+    .page-desc { font-size: .85rem; color: var(--text-muted); margin-top: 2px; }
+    
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border: none; border-radius: var(--radius-sm); font-size: .85rem; font-weight: 600; cursor: pointer; transition: var(--transition); pointer-events: auto; }
+    .btn-primary { background: var(--primary); color: #fff; box-shadow: 0 2px 8px rgba(37,99,235,.2); }
+    .btn-primary:hover { background: #1d4ed8; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37,99,235,.3); }
+    .btn-outline { background: transparent; color: var(--text-secondary); border: 1px solid var(--border); }
+    .btn-outline:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-glow); }
+    .btn-sm { padding: 6px 14px; font-size: .78rem; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important; }
+    
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; transition: var(--transition); box-shadow: var(--shadow); }
+    .badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; font-size: .72rem; font-weight: 600; letter-spacing: .3px; }
+    .badge-green { background: var(--accent-glow); color: var(--accent); }
+    .badge-yellow { background: rgba(217,119,6,.12); color: var(--warning); }
+    .badge-red { background: rgba(220,38,38,.12); color: var(--danger); }
+    .badge-blue { background: var(--primary-glow); color: var(--primary); }
+    .badge-gray { background: rgba(100,116,139,.12); color: var(--text-muted); }
+    .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+    
+    .price-main { font-weight: 700; font-size: .88rem; color: var(--text); }
+    .price-sub { font-size: .7rem; color: var(--text-muted); margin-left: 4px; }
+    
+    .table-wrapper { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
+    table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    thead { background: var(--card-hover); }
+    th { text-align: left; padding: 12px 16px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; font-size: .72rem; letter-spacing: .8px; border-bottom: 1px solid var(--border); }
+    td { padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; color: var(--text); }
+    tr:last-child td { border-bottom: none; }
+    tbody tr { transition: var(--transition); cursor: default; }
+    tbody tr:hover { background: var(--card-hover); }
+    
+    .empty-state { text-align: center; padding: 3rem 1rem; color: var(--text-muted); }
+    .empty-icon { font-size: 3rem; margin-bottom: .75rem; opacity: .4; }
+    
+    .toast-container { position: fixed; top: 100px; right: 16px; z-index: 300; display: flex; flex-direction: column; gap: 8px; }
+    .toast { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: var(--radius-sm); padding: 12px 16px; font-size: .82rem; box-shadow: var(--shadow-hover); animation: slideIn .3s ease; max-width: 320px; color: var(--text); }
+    .toast.success { border-left-color: var(--accent); }
+    .toast.error { border-left-color: var(--danger); }
+    @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
+    
+    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); backdrop-filter: blur(4px); z-index: 200; place-items: center; pointer-events: none; opacity: 0; transition: opacity .2s ease; }
+    .modal-overlay.open { display: grid; pointer-events: auto; opacity: 1; }
+    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); width: 90%; max-width: 720px; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-hover); animation: fadeUp .2s ease; pointer-events: auto; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--surface); z-index: 1; }
+    .modal-title { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+    .modal-close { width: 32px; height: 32px; display: grid; place-items: center; border: none; background: transparent; color: var(--text-muted); cursor: pointer; border-radius: 6px; font-size: 1.2rem; transition: var(--transition); }
+    .modal-close:hover { background: var(--card-hover); color: var(--text); }
+    .modal-body { padding: 1.5rem; }
+    .modal-footer { padding: 1rem 1.5rem; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; position: sticky; bottom: 0; background: var(--surface); }
+    
+    .form-group { margin-bottom: 1rem; }
+    .form-label { display: block; font-size: .78rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
+    .form-input, .form-select, .form-textarea { width: 100%; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: .85rem; font-family: inherit; transition: var(--transition); }
+    .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-glow); }
+    .form-textarea { resize: vertical; min-height: 80px; }
+    .form-select { cursor: pointer; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    @media (max-width: 500px) { .form-row { grid-template-columns: 1fr; } }
+    
+    /* === EMPLOYEE-SPECIFIC STYLES === */
+    .employee-card { display: flex; gap: 1rem; padding: 1rem; border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 1rem; background: var(--surface); }
+    .employee-avatar { width: 64px; height: 64px; border-radius: 50%; background: var(--primary-glow); display: grid; place-items: center; font-weight: 700; color: var(--primary); flex-shrink: 0; }
+    .employee-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+    .employee-info { flex: 1; }
+    .employee-name { font-weight: 700; font-size: 1rem; margin-bottom: 2px; }
+    .employee-title { font-size: .8rem; color: var(--text-muted); margin-bottom: 4px; }
+    .employee-code { font-family: monospace; font-size: .75rem; background: var(--card-hover); padding: 2px 6px; border-radius: 4px; }
+    .employee-balance { font-weight: 700; color: var(--accent); margin-top: 4px; }
+    .qr-container { text-align: center; padding: 1rem; background: var(--card-hover); border-radius: var(--radius-sm); }
+    .qr-code { width: 120px; height: 120px; margin: 0 auto 8px; }
+    .qr-label { font-size: .75rem; color: var(--text-muted); }
+    
+    .text-green { color: var(--accent); }
+    .flex { display: flex; }
+    .items-center { align-items: center; }
+    .justify-between { justify-content: space-between; }
+    .gap-1 { gap: .5rem; }
+    .wrap { flex-wrap: wrap; }
+    
+    @media (max-width: 1024px) {
+      .header { padding: 0 1rem; height: 80px; }
+      .logo-img { height: 52px; }
+      .nav { gap: 0; flex-wrap: wrap; }
+      .nav-btn { padding: 8px 12px; font-size: .78rem; }
+      .logo-text { font-size: 1.2rem; }
+      .logo-subtitle { display: none; }
+      .main { padding: 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo" id="logoBtn">
+    <img src="https://i.ibb.co/p6GCfY1x/Screenshot-2026-05-30-at-17-06-41.png" alt="Drafts Dashboard Logo" class="logo-img" loading="lazy">
+  </div>
+  <nav class="nav">
+    <a href="index.html" class="nav-btn">Dashboard</a>
+    <a href="projects.html" class="nav-btn">Projects</a>
+    <a href="payments.html" class="nav-btn">Payments</a>
+    <a href="clients.html" class="nav-btn">Clients</a>
+    <a href="reports.html" class="nav-btn">Reports</a>
+    <a href="performance.html" class="nav-btn">Performance</a>
+    <a href="finance.html" class="nav-btn">Finance</a>
+    <a href="employees.html" class="nav-btn active">Employees</a>
+  </nav>
+  <div class="header-right">
+    <div class="status-dot"></div>
+    <span class="status-text">Online</span>
+  </div>
+</header>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<main class="main">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">Employee Management</h1>
+      <p class="page-desc">Manage team members, referrals, and commissions</p>
+    </div>
+    <button class="btn btn-primary" id="newEmployeeBtn">＋ Add Employee</button>
+  </div>
+
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Employee</th>
+          <th>Title</th>
+          <th>Code</th>
+          <th>Balance</th>
+          <th>Commission Rate</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="employeesTable">
+        <tr><td colspan="7"><div class="empty-state"><div class="empty-icon">👥</div><p>Loading employees...</p></div></td></tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<!-- Employee Modal -->
+<div class="modal-overlay" id="employeeModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title" id="employeeModalTitle">Add Employee</h3>
+      <button class="modal-close" id="closeEmployeeModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="empId" />
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Full Name *</label>
+          <input class="form-input" id="empName" placeholder="e.g. John Doe" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Title/Role</label>
+          <input class="form-input" id="empTitle" placeholder="e.g. Sales Agent" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-input" id="empEmail" type="email" placeholder="john@example.com" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Phone</label>
+          <input class="form-input" id="empPhone" placeholder="+256 700 000 000" />
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Monthly Salary (UGX)</label>
+          <input class="form-input" id="empSalary" type="number" placeholder="0" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Commission Rate (%)</label>
+          <input class="form-input" id="empCommission" type="number" min="0" max="100" step="0.1" placeholder="10" value="10" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select class="form-select" id="empStatus">
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+          <option value="suspended">Suspended</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Profile Photo URL (optional)</label>
+        <input class="form-input" id="empPhoto" placeholder="https://..." />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="cancelEmployee">Cancel</button>
+      <button class="btn btn-primary" id="saveEmployee">Save Employee</button>
+    </div>
+  </div>
+</div>
+
+<!-- Credentials Modal (shown after employee created) -->
+<div class="modal-overlay" id="credentialsModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 class="modal-title">Employee Credentials</h3>
+      <button class="modal-close" id="closeCredentialsModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="margin-bottom:1rem; color:var(--text-muted)">
+        Share these credentials securely with the employee. They will use this to log in to their dashboard.
+      </p>
+      <div class="card" style="margin-bottom:1rem">
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <div class="flex justify-between items-center">
+            <code id="credUsername" style="font-weight:600; font-size:1.1rem"></code>
+            <button class="btn btn-sm btn-outline" id="copyUsername">Copy</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Temporary Password</label>
+          <div class="flex justify-between items-center">
+            <code id="credPassword" style="font-weight:600; font-size:1.1rem; color:var(--danger)"></code>
+            <button class="btn btn-sm btn-outline" id="copyPassword">Copy</button>
+          </div>
+        </div>
+      </div>
+      <div class="qr-container">
+        <div id="qrCode" class="qr-code"></div>
+        <div class="qr-label">Scan to access employee dashboard</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" id="doneCredentials">Done</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    'use strict';
+    
+    // === CONFIG ===
+    const SUPABASE_URL = 'https://hnbzerhoqqsmzqxcbnxv.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhuYnplcmhvcXFzbXpxeGNibnh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDg1MjksImV4cCI6MjA5NDYyNDUyOX0.a4rM51DQGih9SXMr71PREngZ_pT6dJFgv_fG9j5jAGc';
+    const USD_RATE = 0.00027;
+
+    document.addEventListener('DOMContentLoaded', async function() {
+      if (!window.supabase) {
+        showToast('Database SDK failed to load', 'error');
+        return;
+      }
+
+      const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      let isSaving = false;
+      let currentEmployeeId = null;
+
+      // === UTILS ===
+      function generateId() {
+        if (crypto?.randomUUID) return crypto.randomUUID();
+        return 'id-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+      }
+      function formatUGX(n) { if (!n) return 'UGX 0'; return 'UGX ' + Number(n).toLocaleString(); }
+      function formatUSD(n) { if (!n) return '$0.00'; return '$' + (n * USD_RATE).toFixed(2); }
+      
+      function showToast(msg, type = 'success') {
+        const c = document.getElementById('toastContainer');
+        const t = document.createElement('div');
+        t.className = `toast ${type}`;
+        t.textContent = msg;
+        c.appendChild(t);
+        setTimeout(() => t.remove(), 3500);
+      }
+      function openModal(id) { document.getElementById(id).classList.add('open'); }
+      function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+      
+      // Generate random password
+      function generatePassword(length = 12) {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+        let result = '';
+        for (let i = 0; i < length; i++) {
+          result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
+      }
+      
+      // Generate employee code (EMP-001, EMP-002...)
+      async function generateEmployeeCode() {
+        try {
+          const { data } = await supabase.rpc('generate_employee_code');
+          return data || 'EMP-001';
+        } catch (e) {
+          // Fallback if function doesn't exist yet
+          return 'EMP-' + String(Math.floor(Math.random() * 900) + 100);
+        }
+      }
+
+      // === LOAD EMPLOYEES TABLE ===
+      async function loadEmployees() {
+        try {
+          const { data, error } = await supabase.from('employees').select('*').order('created_at', { ascending: false });
+          const tbody = document.getElementById('employeesTable');
+          
+          if (error) {
+            console.error('Load error:', error);
+            tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">⚠️</div><p>Failed to load: ${error.message}</p></div></td></tr>`;
+            return;
+          }
+          
+          if (!data || data.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">👥</div><p>No employees found. Add your first employee.</p></div></td></tr>`;
+            return;
+          }
+          
+          tbody.innerHTML = data.map(e => {
+            const statusBadge = e.status === 'active' ? 'badge-green' : e.status === 'inactive' ? 'badge-gray' : 'badge-red';
+            const initials = e.name?.split(' ').map(n => n[0]).join('').toUpperCase() || 'E';
+            const avatar = e.profile_photo_url 
+              ? `<img src="${e.profile_photo_url}" alt="${e.name}" />` 
+              : `<span>${initials}</span>`;
+            
+            return `<tr>
+              <td>
+                <div class="employee-card">
+                  <div class="employee-avatar">${avatar}</div>
+                  <div class="employee-info">
+                    <div class="employee-name">${e.name || 'Untitled'}</div>
+                    <div class="employee-title">${e.title || '—'}</div>
+                    <div class="employee-code">${e.employee_code}</div>
+                    <div class="employee-balance">${formatUGX(e.account_balance)}</div>
+                  </div>
+                </div>
+              </td>
+              <td>${e.title || '—'}</td>
+              <td><code>${e.employee_code}</code></td>
+              <td><strong>${formatUGX(e.account_balance)}</strong><br><span class="text-muted" style="font-size:.75rem">${formatUSD(e.account_balance)}</span></td>
+              <td><span class="badge badge-blue">${(e.commission_rate * 100).toFixed(1)}%</span></td>
+              <td><span class="badge ${statusBadge}"><span class="badge-dot"></span>${e.status}</span></td>
+              <td>
+                <div class="flex gap-1">
+                  <button class="btn btn-sm btn-outline edit-btn" data-id="${e.id}">Edit</button>
+                  <button class="btn btn-sm btn-outline creds-btn" data-id="${e.id}">Credentials</button>
+                </div>
+              </td>
+            </tr>`;
+          }).join('');
+          
+        } catch (err) {
+          console.error('Employees load error:', err);
+          showToast('Failed to load employees', 'error');
+        }
+      }
+
+      // === EDIT EMPLOYEE ===
+      async function editEmployee(id) {
+        try {
+          const { data, error } = await supabase.from('employees').select('*').eq('id', id).single();
+          if (error) { showToast('Failed to load employee', 'error'); return; }
+          
+          document.getElementById('empId').value = data.id;
+          document.getElementById('empName').value = data.name || '';
+          document.getElementById('empTitle').value = data.title || '';
+          document.getElementById('empEmail').value = data.email || '';
+          document.getElementById('empPhone').value = data.phone || '';
+          document.getElementById('empSalary').value = data.salary_rate || '';
+          document.getElementById('empCommission').value = (data.commission_rate * 100) || 10;
+          document.getElementById('empStatus').value = data.status || 'active';
+          document.getElementById('empPhoto').value = data.profile_photo_url || '';
+          document.getElementById('employeeModalTitle').textContent = 'Edit Employee';
+          openModal('employeeModal');
+        } catch (err) {
+          showToast('Error loading employee: ' + err.message, 'error');
+        }
+      }
+
+      // === SHOW CREDENTIALS ===
+      async function showCredentials(employeeId) {
+        try {
+          // Fetch employee and credentials
+          const { data: emp } = await supabase.from('employees').select('*').eq('id', employeeId).single();
+          const { data: creds } = await supabase.from('employee_credentials').select('*').eq('employee_id', employeeId).single();
+          
+          if (!creds) {
+            // Generate new credentials
+            const username = emp.employee_code.toLowerCase().replace('-', '');
+            const password = generatePassword();
+            
+            const { error } = await supabase.from('employee_credentials').upsert({
+              employee_id: employeeId,
+              username: username,
+              password_hash: password, // In production, hash this with bcrypt
+              created_at: new Date().toISOString()
+            });
+            if (error) throw error;
+            
+            creds = { username, password_hash: password };
+          }
+          
+          // Populate modal
+          document.getElementById('credUsername').textContent = creds.username;
+          document.getElementById('credPassword').textContent = creds.password_hash;
+          
+          // Generate QR code with login URL
+          const loginUrl = `${window.location.origin}/employee-dashboard.html?user=${creds.username}`;
+          document.getElementById('qrCode').innerHTML = '';
+          new QRCode(document.getElementById('qrCode'), {
+            text: loginUrl,
+            width: 120,
+            height: 120,
+            correctLevel: QRCode.CorrectLevel.M
+          });
+          
+          currentEmployeeId = employeeId;
+          openModal('credentialsModal');
+          
+        } catch (err) {
+          showToast('Error: ' + err.message, 'error');
+        }
+      }
+
+      // === COPY TO CLIPBOARD ===
+      function setupCopyButtons() {
+        document.getElementById('copyUsername').onclick = async function() {
+          await navigator.clipboard.writeText(document.getElementById('credUsername').textContent);
+          showToast('Username copied!');
+        };
+        document.getElementById('copyPassword').onclick = async function() {
+          await navigator.clipboard.writeText(document.getElementById('credPassword').textContent);
+          showToast('Password copied!');
+        };
+      }
+
+      // === EVENT LISTENERS ===
+      document.getElementById('logoBtn').addEventListener('click', () => window.location.href = 'index.html');
+      document.getElementById('newEmployeeBtn').addEventListener('click', () => {
+        ['empId','empName','empTitle','empEmail','empPhone','empSalary','empPhoto'].forEach(id => 
+          document.getElementById(id).value = ''
+        );
+        document.getElementById('empCommission').value = '10';
+        document.getElementById('empStatus').value = 'active';
+        document.getElementById('employeeModalTitle').textContent = 'Add Employee';
+        openModal('employeeModal');
+      });
+      
+      document.getElementById('closeEmployeeModal').addEventListener('click', () => closeModal('employeeModal'));
+      document.getElementById('cancelEmployee').addEventListener('click', () => closeModal('employeeModal'));
+      document.getElementById('closeCredentialsModal').addEventListener('click', () => closeModal('credentialsModal'));
+      document.getElementById('doneCredentials').addEventListener('click', () => {
+        closeModal('credentialsModal');
+        loadEmployees();
+      });
+      
+      document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', (e) => {
+          if (e.target === overlay) overlay.classList.remove('open');
+        });
+      });
+
+      // Table button delegation
+      document.getElementById('employeesTable').addEventListener('click', (e) => {
+        const editBtn = e.target.closest('.edit-btn');
+        const credsBtn = e.target.closest('.creds-btn');
+        if (editBtn) editEmployee(editBtn.dataset.id);
+        if (credsBtn) showCredentials(credsBtn.dataset.id);
+      });
+
+      setupCopyButtons();
+
+      // === SAVE EMPLOYEE ===
+      document.getElementById('saveEmployee').addEventListener('click', async function() {
+        if (isSaving) return;
+        isSaving = true;
+        const btn = this;
+        const originalText = btn.textContent;
+        btn.textContent = 'Saving...';
+        btn.disabled = true;
+
+        try {
+          const id = document.getElementById('empId').value || generateId();
+          const commissionRate = parseFloat(document.getElementById('empCommission').value) / 100 || 0.1;
+          
+          const data = {
+            id,
+            employee_code: document.getElementById('empId').value ? undefined : await generateEmployeeCode(),
+            name: document.getElementById('empName').value.trim(),
+            title: document.getElementById('empTitle').value.trim(),
+            email: document.getElementById('empEmail').value.trim() || null,
+            phone: document.getElementById('empPhone').value.trim() || null,
+            profile_photo_url: document.getElementById('empPhoto').value.trim() || null,
+            salary_rate: parseFloat(document.getElementById('empSalary').value) || 0,
+            commission_rate: commissionRate,
+            status: document.getElementById('empStatus').value,
+            updated_at: new Date().toISOString()
+          };
+          
+          if (!data.name) {
+            showToast('Please enter employee name', 'error');
+            return;
+          }
+          
+          const { error } = await supabase.from('employees').upsert(data, { onConflict: 'id' });
+          if (error) throw new Error(error.message);
+          
+          showToast('Employee saved successfully!');
+          closeModal('employeeModal');
+          
+          // If new employee, show credentials
+          if (!document.getElementById('empId').value) {
+            const { data: newEmp } = await supabase.from('employees').select('id').eq('employee_code', data.employee_code).single();
+            if (newEmp) showCredentials(newEmp.id);
+          }
+          
+          await loadEmployees();
+        } catch (err) {
+          showToast('Error: ' + err.message, 'error');
+        } finally {
+          btn.textContent = originalText;
+          btn.disabled = false;
+          isSaving = false;
+        }
+      });
+
+      // === INIT ===
+      await loadEmployees();
+    });
+  })();
+</script>
+</body>
+</html>
