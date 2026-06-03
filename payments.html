@@ -147,6 +147,7 @@
       .logo-subtitle { display: none; }
       .main { padding: 1rem; }
     }
+    .calc-hint { font-size: 0.75rem; color: var(--primary); font-weight: 600; margin-top: 4px; }
   </style>
 </head>
 <body>
@@ -214,7 +215,7 @@
   </div>
 </main>
 
-<!-- Payment Modal (Schema Compliant + Editable) -->
+<!-- Payment Modal (Fully Auto-Updating) -->
 <div class="modal-overlay" id="paymentModal">
   <div class="modal">
     <div class="modal-header">
@@ -222,7 +223,7 @@
       <button class="modal-close" id="closePaymentModal">✕</button>
     </div>
     <div class="modal-body">
-      <input type="hidden" id="payId" /> <!-- Tracks if we are editing -->
+      <input type="hidden" id="payId" />
       
       <div class="form-row">
         <div class="form-group">
@@ -242,30 +243,32 @@
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Period Name</label>
-          <input class="form-input" id="payPeriod" placeholder="e.g. Month 1" />
+          <input class="form-input" id="payPeriod" placeholder="e.g. Month 1" readonly style="background: var(--card-hover); cursor: not-allowed;" />
         </div>
         <div class="form-group">
-          <label class="form-label">Period Number</label>
-          <input class="form-input" id="payPeriodNum" type="number" min="1" value="1" />
+          <label class="form-label">Months Covered *</label>
+          <input class="form-input" id="payMonths" type="number" min="1" value="1" />
         </div>
       </div>
       
+      <div class="form-group">
+        <label class="form-label">Total Amount (UGX) *</label>
+        <input class="form-input" id="payAmount" type="number" placeholder="0" readonly style="background: var(--card-hover); cursor: not-allowed;" />
+        <div class="calc-hint" id="amountCalcHint"></div>
+      </div>
+      
       <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Amount (UGX) *</label>
-          <input class="form-input" id="payAmount" type="number" placeholder="500,000" />
-        </div>
         <div class="form-group">
           <label class="form-label">Payment Date</label>
           <input class="form-input" id="payPaymentDate" type="date" />
         </div>
-      </div>
-      
-      <div class="form-row">
         <div class="form-group">
           <label class="form-label">Due Date</label>
           <input class="form-input" id="payDueDate" type="date" />
         </div>
+      </div>
+      
+      <div class="form-row">
         <div class="form-group">
           <label class="form-label">Status</label>
           <select class="form-select" id="payStatus">
@@ -274,11 +277,10 @@
             <option value="overdue">Overdue</option>
           </select>
         </div>
-      </div>
-      
-      <div class="form-group">
-        <label class="form-label">Notes</label>
-        <textarea class="form-textarea" id="payNotes" placeholder="Payment reference, method, etc..."></textarea>
+        <div class="form-group">
+          <label class="form-label">Notes</label>
+          <textarea class="form-textarea" id="payNotes" placeholder="Payment reference, method, etc..."></textarea>
+        </div>
       </div>
     </div>
     <div class="modal-footer">
@@ -305,6 +307,11 @@
       const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
       let isSaving = false;
       let allProjects = []; 
+      
+      // State for auto-calculations
+      window.currentProjectRate = 0;
+      window.baseDueDateForCalc = null;
+      window.startPeriodNum = 1;
 
       // === UTILS ===
       function getLocalDateString(date = new Date()) {
@@ -316,8 +323,8 @@
         if (crypto?.randomUUID) return crypto.randomUUID();
         return 'id-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
       }
-      function formatUGX(n) { if (!n) return 'UGX 0'; return 'UGX ' + Number(n).toLocaleString(); }
-      function formatUSD(n) { if (!n) return '$0.00'; return '$' + (n * USD_RATE).toFixed(2); }
+      function formatUGX(n) { if (!n && n !== 0) return 'UGX 0'; return 'UGX ' + Number(n).toLocaleString(); }
+      function formatUSD(n) { if (!n && n !== 0) return '$0.00'; return '$' + (n * USD_RATE).toFixed(2); }
       
       function showToast(msg, type = 'success') {
         const c = document.getElementById('toastContainer');
@@ -386,41 +393,63 @@
         }
       }
 
+      // 🚀 SMART CALCULATION: Auto-fills period, due date, and calculates total amount
       async function onProjectSelect(projectId) {
-        // Don't auto-fill if we are editing an existing payment
-        if (document.getElementById('payId').value) return;
+        if (document.getElementById('payId').value) return; // Don't auto-fill if editing
 
         const project = allProjects.find(p => p.id === projectId);
         if (!project) return;
         
+        window.currentProjectRate = project.monthly_rate || 0;
+        document.getElementById('payMonths').value = 1;
+        
         try {
-          const { data: pays } = await supabase.from('payments')
-            .select('period_number, due_date')
+          const { data: lastPay } = await supabase.from('payments')
+            .select('due_date, period_number')
             .eq('project_id', projectId)
             .order('period_number', { ascending: false })
             .limit(1);
-            
-          const lastPay = pays && pays.length > 0 ? pays[0] : null;
           
-          const nextPeriodNum = lastPay ? (lastPay.period_number || 0) + 1 : 1;
-          document.getElementById('payPeriodNum').value = nextPeriodNum;
-          document.getElementById('payPeriod').value = `Month ${nextPeriodNum}`;
+          const lastPayData = lastPay && lastPay.length > 0 ? lastPay[0] : null;
+          window.startPeriodNum = lastPayData ? (lastPayData.period_number || 0) + 1 : 1;
           
-          let nextDueDate = getLocalDateString();
-          if (lastPay && lastPay.due_date) {
-            const d = new Date(lastPay.due_date + 'T00:00:00');
-            d.setMonth(d.getMonth() + 1);
-            nextDueDate = getLocalDateString(d);
+          if (lastPayData && lastPayData.due_date) {
+            window.baseDueDateForCalc = lastPayData.due_date;
           } else if (project.start_date) {
-            const d = new Date(project.start_date + 'T00:00:00');
-            d.setMonth(d.getMonth() + 1);
-            nextDueDate = getLocalDateString(d);
+            window.baseDueDateForCalc = project.start_date;
+          } else {
+            window.baseDueDateForCalc = getLocalDateString();
           }
-          document.getElementById('payDueDate').value = nextDueDate;
-          document.getElementById('payAmount').value = project.monthly_rate || 0;
+          
+          // Trigger all auto-updates
+          updateAllCalculations();
           
         } catch (err) {
           console.error('Error auto-filling:', err);
+        }
+      }
+
+      // 🚀 REAL-TIME UPDATER: Amount, Due Date, and Period Name
+      function updateAllCalculations() {
+        const rate = window.currentProjectRate || 0;
+        const months = parseInt(document.getElementById('payMonths').value) || 1;
+        const total = rate * months;
+        
+        // 1. Update Amount
+        document.getElementById('payAmount').value = total;
+        document.getElementById('amountCalcHint').textContent = 
+          rate > 0 ? `${formatUGX(rate)} × ${months} month(s) = ${formatUGX(total)}` : '';
+        
+        // 2. Update Period Name
+        const startNum = window.startPeriodNum || 1;
+        const endNum = startNum + months - 1;
+        document.getElementById('payPeriod').value = months > 1 ? `Months ${startNum}-${endNum}` : `Month ${startNum}`;
+        
+        // 3. Update Due Date
+        if (window.baseDueDateForCalc) {
+          const d = new Date(window.baseDueDateForCalc + 'T00:00:00');
+          d.setMonth(d.getMonth() + months);
+          document.getElementById('payDueDate').value = getLocalDateString(d);
         }
       }
 
@@ -461,7 +490,7 @@
             return `<tr data-status="${p.status}">
               <td>${new Date(p.payment_date).toLocaleDateString()}</td>
               <td><strong>${proj.name || 'Unknown'}</strong><br><span class="text-muted" style="font-size:.75rem">${proj.client || ''}</span></td>
-              <td style="font-size:.82rem">${p.period || '—'} <span class="text-muted">(Period ${p.period_number || 1})</span></td>
+              <td style="font-size:.82rem">${p.period || '—'}</td>
               <td style="font-size:.82rem">${p.due_date ? new Date(p.due_date).toLocaleDateString() : '—'}</td>
               <td><strong>${formatUGX(p.amount)}</strong></td>
               <td><strong style="font-size:.82rem">${formatUSD(p.amount)}</strong></td>
@@ -479,7 +508,6 @@
         }
       }
 
-      // 🚀 NEW: EDIT PAYMENT FUNCTION
       async function editPayment(id) {
         try {
           const { data: payment, error } = await supabase.from('payments').select('*').eq('id', id).single();
@@ -488,31 +516,46 @@
             return;
           }
 
-          // Fetch project to get the client name
-          const { data: project } = await supabase.from('projects').select('client').eq('id', payment.project_id).single();
+          const { data: project } = await supabase.from('projects').select('client, monthly_rate, start_date').eq('id', payment.project_id).single();
           const clientName = project?.client || '';
+          const rate = project?.monthly_rate || 0;
 
-          // Open modal and set to "Edit" mode
           openModal('paymentModal');
           document.getElementById('modalTitle').textContent = 'Edit Payment';
           document.getElementById('savePayment').textContent = 'Update Payment';
           document.getElementById('payId').value = payment.id;
 
-          // Load dropdowns and set values
           await loadClientsDropdown();
           document.getElementById('payClient').value = clientName;
-          
           await loadClientProjects(clientName);
           document.getElementById('payProject').value = payment.project_id;
 
-          // Fill in the rest of the details
+          window.currentProjectRate = rate;
           document.getElementById('payPeriod').value = payment.period || '';
-          document.getElementById('payPeriodNum').value = payment.period_number || 1;
-          document.getElementById('payAmount').value = payment.amount || 0;
+          
+          const inferredMonths = rate > 0 ? Math.round(payment.amount / rate) : 1;
+          document.getElementById('payMonths').value = inferredMonths > 0 ? inferredMonths : 1;
+          
           document.getElementById('payPaymentDate').value = payment.payment_date || '';
           document.getElementById('payDueDate').value = payment.due_date || '';
           document.getElementById('payStatus').value = payment.status || 'paid';
           document.getElementById('payNotes').value = payment.notes || '';
+
+          // Set up base date for editing (the due date of the PREVIOUS period, or start date)
+          window.startPeriodNum = payment.period_number || 1;
+          if (window.startPeriodNum > 1) {
+            const { data: prevPay } = await supabase.from('payments')
+              .select('due_date')
+              .eq('project_id', payment.project_id)
+              .eq('period_number', window.startPeriodNum - 1)
+              .single();
+            window.baseDueDateForCalc = (prevPay && prevPay.due_date) ? prevPay.due_date : (project.start_date || getLocalDateString());
+          } else {
+            window.baseDueDateForCalc = project.start_date || getLocalDateString();
+          }
+          
+          // Run calculations so the hint and readonly fields are accurate
+          updateAllCalculations();
 
         } catch (err) {
           console.error('Edit error:', err);
@@ -534,7 +577,7 @@
 
       document.getElementById('logoBtn').addEventListener('click', () => window.location.href = 'index.html');
       document.getElementById('newPaymentBtn').addEventListener('click', async () => {
-        resetPaymentForm(); // Ensure clean state
+        resetPaymentForm();
         await loadClientsDropdown();
         openModal('paymentModal');
         document.getElementById('payClient').focus();
@@ -566,7 +609,6 @@
         });
       });
 
-      // Handle Edit and Delete clicks
       document.getElementById('paymentsTable').addEventListener('click', (e) => {
         const editBtn = e.target.closest('.edit-btn');
         if (editBtn) {
@@ -585,24 +627,30 @@
         onProjectSelect(this.value);
       });
 
+      // 🚀 MAGIC: Listen for ANY change to "Months Covered" and auto-update everything instantly
+      document.getElementById('payMonths').addEventListener('input', updateAllCalculations);
+
       function resetPaymentForm() {
-        document.getElementById('payId').value = ''; // Clear edit ID
+        document.getElementById('payId').value = '';
         document.getElementById('modalTitle').textContent = 'Record Payment';
         document.getElementById('savePayment').textContent = 'Record Payment';
         document.getElementById('payClient').value = '';
         document.getElementById('payProject').innerHTML = '<option value="">Select client first...</option>';
         document.getElementById('payProject').disabled = true;
         document.getElementById('payPeriod').value = '';
-        document.getElementById('payPeriodNum').value = 1;
+        document.getElementById('payMonths').value = 1;
         document.getElementById('payAmount').value = '';
+        document.getElementById('amountCalcHint').textContent = '';
         document.getElementById('payPaymentDate').value = getLocalDateString();
         document.getElementById('payDueDate').value = '';
         document.getElementById('payStatus').value = 'paid';
         document.getElementById('payNotes').value = '';
+        window.currentProjectRate = 0;
+        window.baseDueDateForCalc = null;
+        window.startPeriodNum = 1;
         allProjects = [];
       }
 
-      // 🚀 UPDATED: SAVE/UPDATE PAYMENT
       document.getElementById('savePayment').addEventListener('click', async function() {
         if (isSaving) return;
         isSaving = true;
@@ -619,10 +667,18 @@
           const projectId = document.getElementById('payProject').value;
           if (!projectId) throw new Error('Please select a project');
           
+          // Auto-calculate the next period number in the background to keep DB happy
+          const { data: pays } = await supabase.from('payments')
+            .select('period_number')
+            .eq('project_id', projectId)
+            .order('period_number', { ascending: false })
+            .limit(1);
+          const nextPeriodNum = (pays && pays.length > 0) ? (pays[0].period_number || 0) + 1 : 1;
+
           const paymentData = {
             project_id: projectId,
             period: document.getElementById('payPeriod').value.trim(),
-            period_number: parseInt(document.getElementById('payPeriodNum').value) || 1,
+            period_number: nextPeriodNum, // Saved silently in the background
             amount: parseInt(document.getElementById('payAmount').value) || 0,
             payment_date: document.getElementById('payPaymentDate').value,
             due_date: document.getElementById('payDueDate').value,
@@ -635,11 +691,11 @@
           
           let error;
           if (isEdit) {
-            // Update existing record (preserves created_at)
+            // When editing, we keep the original period_number to avoid messing up the timeline sequence
+            delete paymentData.period_number; 
             const { error: updateErr } = await supabase.from('payments').update(paymentData).eq('id', payId);
             error = updateErr;
           } else {
-            // Insert new record
             paymentData.id = generateId();
             paymentData.created_at = new Date().toISOString();
             const { error: insertErr } = await supabase.from('payments').insert(paymentData);
