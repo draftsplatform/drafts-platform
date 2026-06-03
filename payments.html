@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   
   <style>
@@ -36,15 +37,17 @@
       padding: 0 2rem; height: 88px;
       background: rgba(255,255,255,.95); backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border);
+      box-shadow: 0 1px 0 rgba(0,0,0,.02);
     }
     .logo { display: flex; align-items: center; gap: 16px; cursor: pointer; user-select: none; }
     .logo-img { height: 64px; width: auto; object-fit: contain; }
+    .logo-text { font-size: 1.6rem; font-weight: 800; letter-spacing: -.3px; color: var(--text); }
+    .logo-subtitle { font-size: .65rem; color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase; margin-top: -4px; }
     .nav { display: flex; gap: 4px; }
     .nav-btn {
       position: relative; padding: 10px 18px; border: none; background: transparent;
       color: var(--text-secondary); font-size: .88rem; font-weight: 500;
       border-radius: var(--radius-sm); cursor: pointer; transition: var(--transition);
-      text-decoration: none;
     }
     .nav-btn:hover { background: var(--primary-glow); color: var(--primary); }
     .nav-btn.active { background: var(--primary-glow); color: var(--primary); font-weight: 600; }
@@ -62,19 +65,20 @@
     .page-title { font-size: 1.5rem; font-weight: 700; letter-spacing: -.3px; color: var(--text); }
     .page-desc { font-size: .85rem; color: var(--text-muted); margin-top: 2px; }
     
-    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border: none; border-radius: var(--radius-sm); font-size: .85rem; font-weight: 600; cursor: pointer; transition: var(--transition); }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border: none; border-radius: var(--radius-sm); font-size: .85rem; font-weight: 600; cursor: pointer; transition: var(--transition); pointer-events: auto; }
     .btn-primary { background: var(--primary); color: #fff; box-shadow: 0 2px 8px rgba(37,99,235,.2); }
-    .btn-primary:hover { background: #1d4ed8; transform: translateY(-1px); }
+    .btn-primary:hover { background: #1d4ed8; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37,99,235,.3); }
     .btn-outline { background: transparent; color: var(--text-secondary); border: 1px solid var(--border); }
     .btn-outline:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-glow); }
     .btn-sm { padding: 6px 14px; font-size: .78rem; }
-    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important; }
     
-    .badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; font-size: .72rem; font-weight: 600; }
+    .badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; font-size: .72rem; font-weight: 600; letter-spacing: .3px; }
     .badge-green { background: var(--accent-glow); color: var(--accent); }
     .badge-yellow { background: rgba(217,119,6,.12); color: var(--warning); }
     .badge-red { background: rgba(220,38,38,.12); color: var(--danger); }
     .badge-blue { background: var(--primary-glow); color: var(--primary); }
+    .badge-gray { background: rgba(100,116,139,.12); color: var(--text-muted); }
     .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
     
     .price-main { font-weight: 700; font-size: .88rem; color: var(--text); }
@@ -84,9 +88,9 @@
     table { width: 100%; border-collapse: collapse; font-size: .85rem; }
     thead { background: var(--card-hover); }
     th { text-align: left; padding: 12px 16px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; font-size: .72rem; letter-spacing: .8px; border-bottom: 1px solid var(--border); }
-    td { padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    td { padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; color: var(--text); }
     tr:last-child td { border-bottom: none; }
-    tbody tr { transition: var(--transition); }
+    tbody tr { transition: var(--transition); cursor: default; }
     tbody tr:hover { background: var(--card-hover); }
     
     .empty-state { text-align: center; padding: 3rem 1rem; color: var(--text-muted); }
@@ -98,97 +102,30 @@
     .tab-btn.active { background: var(--primary); color: #fff; }
     
     .toast-container { position: fixed; top: 100px; right: 16px; z-index: 300; display: flex; flex-direction: column; gap: 8px; }
-    .toast { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: var(--radius-sm); padding: 12px 16px; font-size: .82rem; box-shadow: var(--shadow-hover); animation: slideIn .3s ease; max-width: 320px; }
+    .toast { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: var(--radius-sm); padding: 12px 16px; font-size: .82rem; box-shadow: var(--shadow-hover); animation: slideIn .3s ease; max-width: 320px; color: var(--text); }
     .toast.success { border-left-color: var(--accent); }
     .toast.error { border-left-color: var(--danger); }
-    .toast.info { border-left-color: var(--primary); }
     @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
     
     .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); backdrop-filter: blur(4px); z-index: 200; place-items: center; pointer-events: none; opacity: 0; transition: opacity .2s ease; }
     .modal-overlay.open { display: grid; pointer-events: auto; opacity: 1; }
-    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); width: 90%; max-width: 720px; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-hover); animation: fadeUp .2s ease; }
+    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); width: 90%; max-width: 640px; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-hover); animation: fadeUp .2s ease; pointer-events: auto; }
     @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--surface); z-index: 1; }
-    .modal-title { font-size: 1.1rem; font-weight: 700; }
-    .modal-close { width: 32px; height: 32px; display: grid; place-items: center; border: none; background: transparent; color: var(--text-muted); cursor: pointer; border-radius: 6px; font-size: 1.2rem; }
+    .modal-title { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+    .modal-close { width: 32px; height: 32px; display: grid; place-items: center; border: none; background: transparent; color: var(--text-muted); cursor: pointer; border-radius: 6px; font-size: 1.2rem; transition: var(--transition); }
     .modal-close:hover { background: var(--card-hover); color: var(--text); }
     .modal-body { padding: 1.5rem; }
     .modal-footer { padding: 1rem 1.5rem; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; position: sticky; bottom: 0; background: var(--surface); }
     
     .form-group { margin-bottom: 1rem; }
     .form-label { display: block; font-size: .78rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
-    .form-input, .form-select, .form-textarea { width: 100%; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: .85rem; font-family: inherit; }
+    .form-input, .form-select, .form-textarea { width: 100%; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: .85rem; font-family: inherit; transition: var(--transition); }
     .form-input:focus, .form-select:focus, .form-textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-glow); }
     .form-textarea { resize: vertical; min-height: 80px; }
+    .form-select { cursor: pointer; }
     .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
     @media (max-width: 500px) { .form-row { grid-template-columns: 1fr; } }
-    
-    .client-project-selector {
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      padding: 1rem;
-      background: var(--card-hover);
-      margin-bottom: 1rem;
-    }
-    .projects-list {
-      max-height: 300px;
-      overflow-y: auto;
-      border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
-      background: var(--surface);
-      margin-top: 0.5rem;
-    }
-    .project-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 12px 14px;
-      border-bottom: 1px solid var(--border);
-      transition: var(--transition);
-    }
-    .project-item:hover { background: var(--primary-glow); }
-    .project-item:last-child { border-bottom: none; }
-    .project-item input[type="checkbox"] {
-      width: 18px;
-      height: 18px;
-      cursor: pointer;
-    }
-    .project-info { flex: 1; }
-    .project-name { font-weight: 600; font-size: 0.9rem; }
-    .project-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
-    .project-rate { font-weight: 700; color: var(--text); }
-    
-    /* Period selector */
-    .period-selector {
-      margin-top: 8px;
-      padding: 8px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-    }
-    .period-option {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 8px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 0.8rem;
-      transition: var(--transition);
-    }
-    .period-option:hover { background: var(--primary-glow); }
-    .period-option input { cursor: pointer; }
-    .period-option.selected { background: var(--primary-glow); font-weight: 600; color: var(--primary); }
-    .period-option.overdue { color: var(--danger); }
-    .period-option.paid { color: var(--text-muted); text-decoration: line-through; opacity: 0.6; }
-    .period-due { font-size: 0.7rem; color: var(--text-muted); margin-left: auto; }
-    
-    .selected-count {
-      font-size: 0.8rem;
-      color: var(--text-muted);
-      margin-top: 0.5rem;
-      text-align: right;
-    }
     
     .text-green { color: var(--accent); }
     .text-yellow { color: var(--warning); }
@@ -206,6 +143,8 @@
       .logo-img { height: 52px; }
       .nav { gap: 0; flex-wrap: wrap; }
       .nav-btn { padding: 8px 12px; font-size: .78rem; }
+      .logo-text { font-size: 1.2rem; }
+      .logo-subtitle { display: none; }
       .main { padding: 1rem; }
     }
   </style>
@@ -237,7 +176,7 @@
   <div class="page-header">
     <div>
       <h1 class="page-title">Payment Records</h1>
-      <p class="page-desc">Track payments by period — updates projects in real-time</p>
+      <p class="page-desc">Complete payment history and transaction log</p>
     </div>
     <div class="flex gap-1 wrap">
       <select class="form-select" style="width:auto" id="paymentFilter">
@@ -260,8 +199,8 @@
         <tr>
           <th>Date</th>
           <th>Project</th>
-          <th>Client</th>
           <th>Period</th>
+          <th>Due Date</th>
           <th>Amount (UGX)</th>
           <th>Amount (USD)</th>
           <th>Status</th>
@@ -275,36 +214,65 @@
   </div>
 </main>
 
-<!-- Payment Modal -->
+<!-- Payment Modal (Schema Compliant + Editable) -->
 <div class="modal-overlay" id="paymentModal">
   <div class="modal">
     <div class="modal-header">
-      <h3 class="modal-title">Record Payment</h3>
+      <h3 class="modal-title" id="modalTitle">Record Payment</h3>
       <button class="modal-close" id="closePaymentModal">✕</button>
     </div>
     <div class="modal-body">
-      <div class="form-group">
-        <label class="form-label">Client *</label>
-        <select class="form-select" id="payClient">
-          <option value="">Select a client...</option>
-        </select>
-      </div>
+      <input type="hidden" id="payId" /> <!-- Tracks if we are editing -->
       
-      <div id="projectSelector" class="client-project-selector" style="display:none">
-        <label class="form-label">Select Projects & Periods to Pay</label>
-        <div class="projects-list" id="projectsList"></div>
-        <div class="selected-count" id="selectedCount">0 periods selected</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Client *</label>
+          <select class="form-select" id="payClient">
+            <option value="">Select a client...</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Project *</label>
+          <select class="form-select" id="payProject" disabled>
+            <option value="">Select client first...</option>
+          </select>
+        </div>
       </div>
       
       <div class="form-row">
         <div class="form-group">
-          <label class="form-label">Payment Date</label>
-          <input class="form-input" id="payDate" type="date" />
+          <label class="form-label">Period Name</label>
+          <input class="form-input" id="payPeriod" placeholder="e.g. Month 1" />
         </div>
         <div class="form-group">
-          <label class="form-label">Total Amount (UGX) *</label>
-          <input class="form-input" id="payAmount" type="number" placeholder="500,000" disabled />
-          <div id="amountHint" class="text-muted" style="font-size:0.75rem; margin-top:4px"></div>
+          <label class="form-label">Period Number</label>
+          <input class="form-input" id="payPeriodNum" type="number" min="1" value="1" />
+        </div>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Amount (UGX) *</label>
+          <input class="form-input" id="payAmount" type="number" placeholder="500,000" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Payment Date</label>
+          <input class="form-input" id="payPaymentDate" type="date" />
+        </div>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Due Date</label>
+          <input class="form-input" id="payDueDate" type="date" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="form-select" id="payStatus">
+            <option value="paid">Paid</option>
+            <option value="pending">Pending</option>
+            <option value="overdue">Overdue</option>
+          </select>
         </div>
       </div>
       
@@ -321,418 +289,383 @@
 </div>
 
 <script>
-(function() {
-  'use strict';
-  
-  const SUPABASE_URL = 'https://hnbzerhoqqsmzqxcbnxv.supabase.co';
-  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhuYnplcmhvcXFzbXpxeGNibnh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDg1MjksImV4cCI6MjA5NDYyNDUyOX0.a4rM51DQGih9SXMr71PREngZ_pT6dJFgv_fG9j5jAGc';
-  const USD_RATE = 0.00027;
-
-  let supabase, isSaving = false;
-  let selectedPayments = new Map(); // Map<paymentId, {projectId, periodNumber, amount}>
-
-  document.addEventListener('DOMContentLoaded', async function() {
-    if (!window.supabase) {
-      showToast('Database SDK failed to load', 'error');
-      return;
-    }
-
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  (function() {
+    'use strict';
     
-    setupEventListeners();
-    document.getElementById('payDate').value = new Date().toISOString().split('T')[0];
-    await loadPayments();
-    
-    // Realtime subscription
-    supabase.channel('payments-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, async () => {
-        console.log('🔔 Payment updated, refreshing...');
-        await loadPayments();
-      })
-      .subscribe();
-  });
+    const SUPABASE_URL = 'https://hnbzerhoqqsmzqxcbnxv.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhuYnplcmhvcXFzbXpxeGNibnh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDg1MjksImV4cCI6MjA5NDYyNDUyOX0.a4rM51DQGih9SXMr71PREngZ_pT6dJFgv_fG9j5jAGc';
+    const USD_RATE = 0.00027;
 
-  function generateUUID() {
-    if (crypto?.randomUUID) return crypto.randomUUID();
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-      const r = Math.random() * 16 | 0;
-      return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-    });
-  }
-  
-  function formatUGX(n) { if (!n && n !== 0) return 'UGX 0'; return 'UGX ' + Number(n).toLocaleString(); }
-  function formatUSD(n) { if (!n && n !== 0) return '$0.00'; return '$' + (n * USD_RATE).toFixed(2); }
-  
-  function showToast(msg, type = 'success') {
-    const c = document.getElementById('toastContainer');
-    const t = document.createElement('div');
-    t.className = `toast ${type}`;
-    t.textContent = msg;
-    c.appendChild(t);
-    setTimeout(() => t.remove(), 3500);
-  }
-  
-  function openModal(id) { document.getElementById(id).classList.add('open'); }
-  function closeModal(id) { document.getElementById(id).classList.remove('open'); }
-
-  function filterPaymentTab(tab) {
-    const rows = document.querySelectorAll('#paymentsTable tr[data-status]');
-    rows.forEach(row => {
-      const status = row.dataset.status;
-      if (tab === 'all-payments') { row.style.display = ''; return; }
-      const statusMap = { 'paid-payments': 'paid', 'pending-payments': 'pending', 'overdue-payments': 'overdue' };
-      row.style.display = status === statusMap[tab] ? '' : 'none';
-    });
-  }
-
-  async function loadClientsDropdown() {
-    try {
-      const { data: projects, error } = await supabase.from('projects').select('client').not('client', 'is', null);
-      if (error) throw error;
-      const clients = [...new Set((projects || []).map(p => p.client).filter(c => c && c.trim()))].sort();
-      const sel = document.getElementById('payClient');
-      sel.innerHTML = '<option value="">Select a client...</option>' + 
-        clients.map(c => `<option value="${c}">${c}</option>`).join('');
-    } catch (err) {
-      console.error('Failed to load clients:', err);
-    }
-  }
-
-  async function loadClientProjects(clientName) {
-    const selector = document.getElementById('projectSelector');
-    const list = document.getElementById('projectsList');
-    
-    if (!clientName) {
-      selector.style.display = 'none';
-      return;
-    }
-    
-    try {
-      // Get projects for this client
-      const { data: projects, error } = await supabase.from('projects')
-        .select('id, name, client, monthly_rate, plan_months, status, start_date')
-        .eq('client', clientName)
-        .order('name');
-      
-      if (error) throw error;
-      if (!projects || projects.length === 0) {
-        list.innerHTML = '<div class="project-item" style="color:var(--text-muted)">No projects for this client</div>';
-        selector.style.display = 'block';
+    document.addEventListener('DOMContentLoaded', async function() {
+      if (!window.supabase) {
+        showToast('Database SDK failed to load', 'error');
         return;
       }
+
+      const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      let isSaving = false;
+      let allProjects = []; 
+
+      // === UTILS ===
+      function getLocalDateString(date = new Date()) {
+        const offset = date.getTimezoneOffset();
+        return new Date(date.getTime() - offset * 60000).toISOString().split('T')[0];
+      }
+
+      function generateId() {
+        if (crypto?.randomUUID) return crypto.randomUUID();
+        return 'id-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+      }
+      function formatUGX(n) { if (!n) return 'UGX 0'; return 'UGX ' + Number(n).toLocaleString(); }
+      function formatUSD(n) { if (!n) return '$0.00'; return '$' + (n * USD_RATE).toFixed(2); }
       
-      // Get all payment records for these projects
-      const projectIds = projects.map(p => p.id);
-      const { data: payments } = await supabase.from('payments')
-        .select('id, project_id, period_number, status, amount, due_date')
-        .in('project_id', projectIds);
-      
-      // Build UI
-      selectedPayments.clear();
-      list.innerHTML = projects.map(proj => {
-        const projPayments = (payments || []).filter(p => p.project_id === proj.id);
-        
-        let periodsHTML = '';
-        for (let i = 1; i <= (proj.plan_months || 1); i++) {
-          const payment = projPayments.find(p => parseInt(p.period_number) === i);
-          const isPaid = payment && payment.status === 'paid';
-          const isOverdue = payment && payment.status !== 'paid' && new Date(payment.due_date) < new Date();
-          
-          let cls = '';
-          if (isPaid) cls = 'paid';
-          else if (isOverdue) cls = 'overdue';
-          
-          const dueDate = payment ? new Date(payment.due_date).toLocaleDateString() : 'N/A';
-          const paymentId = payment ? payment.id : null;
-          
-          periodsHTML += `
-            <label class="period-option ${cls}" data-payment-id="${paymentId}" data-project-id="${proj.id}" data-period="${i}" data-amount="${proj.monthly_rate || 0}">
-              <input type="checkbox" ${isPaid ? 'disabled' : ''} ${isPaid ? 'checked' : ''} />
-              <span>Period ${i}</span>
-              <span class="period-due">${isPaid ? '✓ Paid' : `Due: ${dueDate}`}</span>
-            </label>`;
+      function showToast(msg, type = 'success') {
+        const c = document.getElementById('toastContainer');
+        const t = document.createElement('div');
+        t.className = `toast ${type}`;
+        t.textContent = msg;
+        c.appendChild(t);
+        setTimeout(() => t.remove(), 3500);
+      }
+      function openModal(id) { document.getElementById(id).classList.add('open'); }
+      function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+      function filterPaymentTab(tab) {
+        const rows = document.querySelectorAll('#paymentsTable tr[data-status]');
+        rows.forEach(row => {
+          const status = row.dataset.status;
+          if (tab === 'all-payments') { row.style.display = ''; return; }
+          const statusMap = { 'paid-payments': 'paid', 'pending-payments': 'pending', 'overdue-payments': 'overdue' };
+          const target = statusMap[tab];
+          row.style.display = status === target ? '' : 'none';
+        });
+      }
+
+      async function loadClientsDropdown() {
+        try {
+          const { data: projects, error } = await supabase.from('projects').select('client').not('client', 'is', null);
+          if (error) throw error;
+          const clients = [...new Set((projects || []).map(p => p.client).filter(c => c && c.trim()))].sort();
+          const sel = document.getElementById('payClient');
+          sel.innerHTML = '<option value="">Select a client...</option>' + 
+            clients.map(c => `<option value="${c}">${c}</option>`).join('');
+        } catch (err) {
+          console.error('Failed to load clients:', err);
+        }
+      }
+
+      async function loadClientProjects(clientName) {
+        const projSelect = document.getElementById('payProject');
+        if (!clientName) {
+          projSelect.innerHTML = '<option value="">Select client first...</option>';
+          projSelect.disabled = true;
+          return;
         }
         
-        return `
-          <div class="project-item" style="flex-direction:column; align-items:stretch;">
-            <div style="display:flex; align-items:center; gap:10px; width:100%;">
-              <div class="project-info">
-                <div class="project-name">${proj.name}</div>
-                <div class="project-meta">${proj.plan_months} months • ${proj.status}</div>
-              </div>
-              <div class="project-rate">${formatUGX(proj.monthly_rate)}/mo</div>
-            </div>
-            <div class="period-selector">${periodsHTML}</div>
-          </div>`;
-      }).join('');
-      
-      // Add event listeners to period options
-      list.querySelectorAll('.period-option:not(.paid)').forEach(opt => {
-        opt.addEventListener('click', function(e) {
-          if (e.target.tagName === 'INPUT') return;
-          const checkbox = this.querySelector('input');
-          checkbox.checked = !checkbox.checked;
-          checkbox.dispatchEvent(new Event('change'));
-        });
-        
-        opt.querySelector('input').addEventListener('change', function() {
-          const opt = this.closest('.period-option');
-          const paymentId = opt.dataset.paymentId;
-          const projectId = opt.dataset.projectId;
-          const period = parseInt(opt.dataset.period);
-          const amount = parseInt(opt.dataset.amount);
+        try {
+          const { data, error } = await supabase.from('projects')
+            .select('id, name, monthly_rate, start_date')
+            .eq('client', clientName)
+            .order('name');
           
-          if (this.checked) {
-            selectedPayments.set(paymentId || `new-${projectId}-${period}`, {
-              paymentId,
-              projectId,
-              periodNumber: period,
-              amount
-            });
-            opt.classList.add('selected');
-          } else {
-            selectedPayments.delete(paymentId || `new-${projectId}-${period}`);
-            opt.classList.remove('selected');
+          if (error) throw error;
+          allProjects = data || [];
+          
+          if (!allProjects.length) {
+            projSelect.innerHTML = '<option value="">No projects for this client</option>';
+            projSelect.disabled = true;
+            return;
           }
           
-          updatePaymentUI();
-        });
-      });
-      
-      selector.style.display = 'block';
-      updatePaymentUI();
-      
-    } catch (err) {
-      console.error('Failed to load projects:', err);
-      list.innerHTML = '<div class="project-item" style="color:var(--danger)">Error loading projects</div>';
-      selector.style.display = 'block';
-    }
-  }
-
-  function updatePaymentUI() {
-    const count = selectedPayments.size;
-    document.getElementById('selectedCount').textContent = 
-      `${count} period${count !== 1 ? 's' : ''} selected`;
-    
-    let total = 0;
-    selectedPayments.forEach(p => total += p.amount);
-    
-    const amountInput = document.getElementById('payAmount');
-    const amountHint = document.getElementById('amountHint');
-    
-    if (count === 0) {
-      amountInput.value = '';
-      amountHint.textContent = 'Select at least one period to pay';
-      amountInput.disabled = true;
-    } else {
-      amountInput.value = total;
-      amountHint.textContent = `Total for ${count} period${count > 1 ? 's' : ''}`;
-      amountInput.disabled = false;
-    }
-  }
-
-  async function loadPayments() {
-    try {
-      const filter = document.getElementById('paymentFilter').value;
-      let query = supabase.from('payments').select('*').order('payment_date', { ascending: false });
-      if (filter !== 'all') query = query.eq('project_id', filter);
-      
-      const { data: payments, error } = await query;
-      const tbody = document.getElementById('paymentsTable');
-      
-      if (error) {
-        tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">⚠️</div><p>Failed to load: ${error.message}</p></div></td></tr>`;
-        return;
-      }
-      
-      // Refresh project filter
-      try {
-        const { data: projects } = await supabase.from('projects').select('id, name');
-        const sel = document.getElementById('paymentFilter');
-        const currentVal = sel.value;
-        sel.innerHTML = '<option value="all">All Projects</option>' + 
-          (projects || []).map(p => `<option value="${p.id}" ${currentVal === p.id ? 'selected' : ''}>${p.name}</option>`).join('');
-      } catch (e) {}
-
-      const { data: projects } = await supabase.from('projects').select('id, name, client');
-      const pMap = {};
-      (projects || []).forEach(p => { pMap[p.id] = p; });
-
-      if (!payments || payments.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">💳</div><p>No payment records found.</p></div></td></tr>`;
-        return;
-      }
-      
-      tbody.innerHTML = payments.map(p => {
-        const proj = pMap[p.project_id] || {};
-        const statusBadge = p.status === 'paid' ? 'badge-green' : p.status === 'pending' ? 'badge-yellow' : 'badge-red';
-        return `<tr data-status="${p.status}">
-          <td>${p.payment_date ? new Date(p.payment_date).toLocaleDateString() : '—'}</td>
-          <td><strong>${proj.name || 'Unknown'}</strong></td>
-          <td>${proj.client || '—'}</td>
-          <td style="font-size:.82rem">${p.period || `Period ${p.period_number}`}</td>
-          <td><strong>${formatUGX(p.amount)}</strong></td>
-          <td><strong style="font-size:.82rem">${formatUSD(p.amount)}</strong></td>
-          <td><span class="badge ${statusBadge}"><span class="badge-dot"></span>${p.status}</span></td>
-          <td><button class="btn btn-sm btn-outline text-red delete-btn" data-id="${p.id}">Delete</button></td>
-        </tr>`;
-      }).join('');
-      
-    } catch (err) {
-      console.error('Payments load error:', err);
-      showToast('Failed to load payments', 'error');
-    }
-  }
-
-  async function deletePayment(id) {
-    if (!confirm('Delete this payment record? This will mark the period as unpaid again.')) return;
-    try {
-      const { error } = await supabase.from('payments').delete().eq('id', id);
-      if (error) throw error;
-      showToast('Payment deleted');
-      await loadPayments();
-    } catch (err) {
-      showToast('Failed to delete: ' + err.message, 'error');
-    }
-  }
-
-  function resetPaymentForm() {
-    document.getElementById('payClient').value = '';
-    document.getElementById('projectSelector').style.display = 'none';
-    document.getElementById('projectsList').innerHTML = '';
-    document.getElementById('selectedCount').textContent = '0 periods selected';
-    document.getElementById('payDate').value = new Date().toISOString().split('T')[0];
-    document.getElementById('payAmount').value = '';
-    document.getElementById('payNotes').value = '';
-    document.getElementById('amountHint').textContent = '';
-    document.getElementById('payAmount').disabled = true;
-    selectedPayments.clear();
-  }
-
-  function setupEventListeners() {
-    document.getElementById('logoBtn').addEventListener('click', () => window.location.href = 'index.html');
-    
-    document.getElementById('newPaymentBtn').addEventListener('click', async () => {
-      await loadClientsDropdown();
-      openModal('paymentModal');
-      document.getElementById('payClient').focus();
-    });
-    
-    document.getElementById('closePaymentModal').addEventListener('click', () => {
-      closeModal('paymentModal');
-      resetPaymentForm();
-    });
-    
-    document.getElementById('cancelPayment').addEventListener('click', () => {
-      closeModal('paymentModal');
-      resetPaymentForm();
-    });
-    
-    document.getElementById('paymentFilter').addEventListener('change', loadPayments);
-    
-    document.querySelectorAll('.modal-overlay').forEach(overlay => {
-      overlay.addEventListener('click', (e) => {
-        if (e.target === overlay) {
-          overlay.classList.remove('open');
-          resetPaymentForm();
-        }
-      });
-    });
-
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-      btn.addEventListener('click', function() {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-        filterPaymentTab(this.dataset.tab);
-      });
-    });
-
-    document.getElementById('paymentsTable').addEventListener('click', (e) => {
-      const deleteBtn = e.target.closest('.delete-btn');
-      if (deleteBtn) deletePayment(deleteBtn.dataset.id);
-    });
-
-    document.getElementById('payClient').addEventListener('change', function() {
-      loadClientProjects(this.value);
-    });
-
-    document.getElementById('savePayment').addEventListener('click', async function() {
-      if (isSaving) return;
-      if (selectedPayments.size === 0) {
-        showToast('Please select at least one period', 'error');
-        return;
-      }
-      
-      isSaving = true;
-      const btn = this;
-      const originalText = btn.textContent;
-      btn.textContent = 'Recording...';
-      btn.disabled = true;
-
-      try {
-        const paymentDate = document.getElementById('payDate').value || new Date().toISOString().split('T')[0];
-        const notes = document.getElementById('payNotes').value.trim();
-        const customAmount = parseInt(document.getElementById('payAmount').value) || 0;
-        
-        // Calculate total from selections
-        let totalFromSelections = 0;
-        selectedPayments.forEach(p => totalFromSelections += p.amount);
-        
-        // If user changed amount, distribute proportionally
-        const amountMultiplier = customAmount && customAmount !== totalFromSelections 
-          ? customAmount / totalFromSelections 
-          : 1;
-        
-        let processedCount = 0;
-        
-        for (const [key, selection] of selectedPayments) {
-          const amount = Math.round(selection.amount * amountMultiplier);
+          projSelect.innerHTML = '<option value="">Select a project...</option>' + 
+            allProjects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+          projSelect.disabled = false;
           
-          if (selection.paymentId) {
-            // Update existing payment record
-            const { error } = await supabase.from('payments').update({
-              status: 'paid',
-              payment_date: paymentDate,
-              amount: amount,
-              notes: notes
-            }).eq('id', selection.paymentId);
-            
-            if (error) throw new Error(`Period ${selection.periodNumber}: ${error.message}`);
-          } else {
-            // Create new payment record
-            const { error } = await supabase.from('payments').insert({
-              id: generateUUID(),
-              project_id: selection.projectId,
-              period_number: selection.periodNumber,
-              period: `Period ${selection.periodNumber}`,
-              amount: amount,
-              payment_date: paymentDate,
-              due_date: paymentDate,
-              status: 'paid',
-              notes: notes,
-              created_at: new Date().toISOString()
-            });
-            
-            if (error) throw new Error(`Period ${selection.periodNumber}: ${error.message}`);
-          }
-          processedCount++;
+        } catch (err) {
+          console.error('Failed to load projects:', err);
         }
+      }
+
+      async function onProjectSelect(projectId) {
+        // Don't auto-fill if we are editing an existing payment
+        if (document.getElementById('payId').value) return;
+
+        const project = allProjects.find(p => p.id === projectId);
+        if (!project) return;
         
-        showToast(`${processedCount} payment${processedCount > 1 ? 's' : ''} recorded! Projects updated.`);
+        try {
+          const { data: pays } = await supabase.from('payments')
+            .select('period_number, due_date')
+            .eq('project_id', projectId)
+            .order('period_number', { ascending: false })
+            .limit(1);
+            
+          const lastPay = pays && pays.length > 0 ? pays[0] : null;
+          
+          const nextPeriodNum = lastPay ? (lastPay.period_number || 0) + 1 : 1;
+          document.getElementById('payPeriodNum').value = nextPeriodNum;
+          document.getElementById('payPeriod').value = `Month ${nextPeriodNum}`;
+          
+          let nextDueDate = getLocalDateString();
+          if (lastPay && lastPay.due_date) {
+            const d = new Date(lastPay.due_date + 'T00:00:00');
+            d.setMonth(d.getMonth() + 1);
+            nextDueDate = getLocalDateString(d);
+          } else if (project.start_date) {
+            const d = new Date(project.start_date + 'T00:00:00');
+            d.setMonth(d.getMonth() + 1);
+            nextDueDate = getLocalDateString(d);
+          }
+          document.getElementById('payDueDate').value = nextDueDate;
+          document.getElementById('payAmount').value = project.monthly_rate || 0;
+          
+        } catch (err) {
+          console.error('Error auto-filling:', err);
+        }
+      }
+
+      async function loadPayments() {
+        try {
+          const filter = document.getElementById('paymentFilter').value;
+          let query = supabase.from('payments').select('*').order('payment_date', { ascending: false });
+          if (filter !== 'all') query = query.eq('project_id', filter);
+          
+          const { data: payments, error } = await query;
+          const tbody = document.getElementById('paymentsTable');
+          
+          if (error) {
+            tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">⚠️</div><p>Failed to load</p></div></td></tr>`;
+            return;
+          }
+          
+          try {
+            const { data: projects } = await supabase.from('projects').select('id, name');
+            const sel = document.getElementById('paymentFilter');
+            const currentVal = sel.value;
+            sel.innerHTML = '<option value="all">All Projects</option>' + 
+              (projects || []).map(p => `<option value="${p.id}" ${currentVal === p.id ? 'selected' : ''}>${p.name}</option>`).join('');
+          } catch (e) { }
+
+          const { data: projects } = await supabase.from('projects').select('id, name, client');
+          const pMap = {};
+          (projects || []).forEach(p => { pMap[p.id] = p; });
+
+          if (!payments || payments.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">💳</div><p>No payment records found.</p></div></td></tr>`;
+            return;
+          }
+          
+          tbody.innerHTML = payments.map(p => {
+            const proj = pMap[p.project_id] || {};
+            const statusBadge = p.status === 'paid' ? 'badge-green' : p.status === 'pending' ? 'badge-yellow' : 'badge-red';
+            return `<tr data-status="${p.status}">
+              <td>${new Date(p.payment_date).toLocaleDateString()}</td>
+              <td><strong>${proj.name || 'Unknown'}</strong><br><span class="text-muted" style="font-size:.75rem">${proj.client || ''}</span></td>
+              <td style="font-size:.82rem">${p.period || '—'} <span class="text-muted">(Period ${p.period_number || 1})</span></td>
+              <td style="font-size:.82rem">${p.due_date ? new Date(p.due_date).toLocaleDateString() : '—'}</td>
+              <td><strong>${formatUGX(p.amount)}</strong></td>
+              <td><strong style="font-size:.82rem">${formatUSD(p.amount)}</strong></td>
+              <td><span class="badge ${statusBadge}"><span class="badge-dot"></span>${p.status}</span></td>
+              <td class="flex gap-1">
+                <button class="btn btn-sm btn-outline edit-btn" data-id="${p.id}">Edit</button>
+                <button class="btn btn-sm btn-outline text-red delete-btn" data-id="${p.id}">Delete</button>
+              </td>
+            </tr>`;
+          }).join('');
+          
+        } catch (err) {
+          console.error('Payments load error:', err);
+          showToast('Failed to load payments', 'error');
+        }
+      }
+
+      // 🚀 NEW: EDIT PAYMENT FUNCTION
+      async function editPayment(id) {
+        try {
+          const { data: payment, error } = await supabase.from('payments').select('*').eq('id', id).single();
+          if (error || !payment) {
+            showToast('Payment not found', 'error');
+            return;
+          }
+
+          // Fetch project to get the client name
+          const { data: project } = await supabase.from('projects').select('client').eq('id', payment.project_id).single();
+          const clientName = project?.client || '';
+
+          // Open modal and set to "Edit" mode
+          openModal('paymentModal');
+          document.getElementById('modalTitle').textContent = 'Edit Payment';
+          document.getElementById('savePayment').textContent = 'Update Payment';
+          document.getElementById('payId').value = payment.id;
+
+          // Load dropdowns and set values
+          await loadClientsDropdown();
+          document.getElementById('payClient').value = clientName;
+          
+          await loadClientProjects(clientName);
+          document.getElementById('payProject').value = payment.project_id;
+
+          // Fill in the rest of the details
+          document.getElementById('payPeriod').value = payment.period || '';
+          document.getElementById('payPeriodNum').value = payment.period_number || 1;
+          document.getElementById('payAmount').value = payment.amount || 0;
+          document.getElementById('payPaymentDate').value = payment.payment_date || '';
+          document.getElementById('payDueDate').value = payment.due_date || '';
+          document.getElementById('payStatus').value = payment.status || 'paid';
+          document.getElementById('payNotes').value = payment.notes || '';
+
+        } catch (err) {
+          console.error('Edit error:', err);
+          showToast('Failed to load payment: ' + err.message, 'error');
+        }
+      }
+
+      async function deletePayment(id) {
+        if (!confirm('Delete this payment record? This cannot be undone.')) return;
+        try {
+          const { error } = await supabase.from('payments').delete().eq('id', id);
+          if (error) throw error;
+          showToast('Payment deleted');
+          await loadPayments();
+        } catch (err) {
+          showToast('Failed to delete: ' + err.message, 'error');
+        }
+      }
+
+      document.getElementById('logoBtn').addEventListener('click', () => window.location.href = 'index.html');
+      document.getElementById('newPaymentBtn').addEventListener('click', async () => {
+        resetPaymentForm(); // Ensure clean state
+        await loadClientsDropdown();
+        openModal('paymentModal');
+        document.getElementById('payClient').focus();
+      });
+      document.getElementById('closePaymentModal').addEventListener('click', () => {
         closeModal('paymentModal');
         resetPaymentForm();
-        await loadPayments();
-        
-      } catch (err) {
-        showToast('Error: ' + err.message, 'error');
-      } finally {
-        btn.textContent = originalText;
-        btn.disabled = false;
-        isSaving = false;
+      });
+      document.getElementById('cancelPayment').addEventListener('click', () => {
+        closeModal('paymentModal');
+        resetPaymentForm();
+      });
+      document.getElementById('paymentFilter').addEventListener('change', loadPayments);
+      
+      document.querySelectorAll('.modal-overlay').forEach(overlay => {
+        overlay.addEventListener('click', (e) => {
+          if (e.target === overlay) {
+            overlay.classList.remove('open');
+            resetPaymentForm();
+          }
+        });
+      });
+
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+          document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+          this.classList.add('active');
+          filterPaymentTab(this.dataset.tab);
+        });
+      });
+
+      // Handle Edit and Delete clicks
+      document.getElementById('paymentsTable').addEventListener('click', (e) => {
+        const editBtn = e.target.closest('.edit-btn');
+        if (editBtn) {
+          editPayment(editBtn.dataset.id);
+          return;
+        }
+        const deleteBtn = e.target.closest('.delete-btn');
+        if (deleteBtn) deletePayment(deleteBtn.dataset.id);
+      });
+
+      document.getElementById('payClient').addEventListener('change', function() {
+        loadClientProjects(this.value);
+      });
+
+      document.getElementById('payProject').addEventListener('change', function() {
+        onProjectSelect(this.value);
+      });
+
+      function resetPaymentForm() {
+        document.getElementById('payId').value = ''; // Clear edit ID
+        document.getElementById('modalTitle').textContent = 'Record Payment';
+        document.getElementById('savePayment').textContent = 'Record Payment';
+        document.getElementById('payClient').value = '';
+        document.getElementById('payProject').innerHTML = '<option value="">Select client first...</option>';
+        document.getElementById('payProject').disabled = true;
+        document.getElementById('payPeriod').value = '';
+        document.getElementById('payPeriodNum').value = 1;
+        document.getElementById('payAmount').value = '';
+        document.getElementById('payPaymentDate').value = getLocalDateString();
+        document.getElementById('payDueDate').value = '';
+        document.getElementById('payStatus').value = 'paid';
+        document.getElementById('payNotes').value = '';
+        allProjects = [];
       }
+
+      // 🚀 UPDATED: SAVE/UPDATE PAYMENT
+      document.getElementById('savePayment').addEventListener('click', async function() {
+        if (isSaving) return;
+        isSaving = true;
+        const btn = this;
+        const originalText = btn.textContent;
+        
+        const payId = document.getElementById('payId').value;
+        const isEdit = !!payId;
+        
+        btn.textContent = isEdit ? 'Updating...' : 'Recording...';
+        btn.disabled = true;
+
+        try {
+          const projectId = document.getElementById('payProject').value;
+          if (!projectId) throw new Error('Please select a project');
+          
+          const paymentData = {
+            project_id: projectId,
+            period: document.getElementById('payPeriod').value.trim(),
+            period_number: parseInt(document.getElementById('payPeriodNum').value) || 1,
+            amount: parseInt(document.getElementById('payAmount').value) || 0,
+            payment_date: document.getElementById('payPaymentDate').value,
+            due_date: document.getElementById('payDueDate').value,
+            status: document.getElementById('payStatus').value,
+            notes: document.getElementById('payNotes').value.trim()
+          };
+          
+          if (!paymentData.amount || paymentData.amount <= 0) throw new Error('Invalid amount');
+          if (!paymentData.due_date) throw new Error('Due date is required');
+          
+          let error;
+          if (isEdit) {
+            // Update existing record (preserves created_at)
+            const { error: updateErr } = await supabase.from('payments').update(paymentData).eq('id', payId);
+            error = updateErr;
+          } else {
+            // Insert new record
+            paymentData.id = generateId();
+            paymentData.created_at = new Date().toISOString();
+            const { error: insertErr } = await supabase.from('payments').insert(paymentData);
+            error = insertErr;
+          }
+          
+          if (error) throw new Error(error.message);
+          
+          showToast(isEdit ? 'Payment updated successfully!' : 'Payment recorded successfully!');
+          closeModal('paymentModal');
+          resetPaymentForm();
+          await loadPayments();
+          
+        } catch (err) {
+          showToast('Error: ' + err.message, 'error');
+        } finally {
+          btn.textContent = originalText;
+          btn.disabled = false;
+          isSaving = false;
+        }
+      });
+
+      document.getElementById('payPaymentDate').value = getLocalDateString();
+      await loadPayments();
     });
-  }
-})();
+  })();
 </script>
 </body>
 </html>
