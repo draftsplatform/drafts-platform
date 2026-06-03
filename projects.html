@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Projects — Drafts</title>
+  <title>Projects — Drafts | Green→Red Payment Meter</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -70,17 +70,8 @@
     .btn-outline:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-glow); }
     .btn-sm { padding: 6px 12px; font-size: .75rem; }
     
-    .badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; font-size: .72rem; font-weight: 600; letter-spacing: .3px; }
-    .badge-green { background: var(--accent-glow); color: var(--accent); }
-    .badge-yellow { background: rgba(217,119,6,.12); color: var(--warning); }
-    .badge-red { background: rgba(220,38,38,.12); color: var(--danger); }
-    .badge-blue { background: var(--primary-glow); color: var(--primary); }
-    .badge-gray { background: rgba(100,116,139,.12); color: var(--text-muted); }
-    .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-    
     .live-status { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; font-size: .75rem; font-weight: 700; font-variant-numeric: tabular-nums; }
-    .live-status.paid { background: rgba(5,150,105,.12); color: var(--accent); border: 1px solid rgba(5,150,105,.2); }
-    .live-status.warning { background: rgba(217,119,6,.12); color: var(--warning); border: 1px solid rgba(217,119,6,.2); }
+    .live-status.paid { background: rgba(5,150,105,.08); border: 1px solid rgba(5,150,105,.2); transition: all 0.5s ease; }
     .live-status.overdue { background: rgba(220,38,38,.12); color: var(--danger); border: 1px solid rgba(220,38,38,.2); animation: overduePulse 2s infinite; }
     .live-status.completed { background: rgba(100,116,139,.12); color: var(--text-muted); border: 1px solid var(--border); }
     
@@ -91,17 +82,57 @@
     
     .live-status-icon { font-size: .9rem; }
     
-    .project-row { transition: background .5s ease, border-color .5s ease; border-left: 3px solid transparent; }
-    .project-row.health-excellent { border-left-color: var(--accent); background: rgba(5,150,105,.02); }
-    .project-row.health-good { border-left-color: #84cc16; background: rgba(132,204,22,.02); }
-    .project-row.health-warning { border-left-color: var(--warning); background: rgba(217,119,6,.03); }
-    .project-row.health-danger { border-left-color: var(--danger); background: rgba(220,38,38,.03); }
-    .project-row.health-overdue { border-left-color: var(--danger); background: rgba(220,38,38,.06); }
+    .live-countdown {
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: .78rem;
+      font-variant-numeric: tabular-nums;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+    .live-countdown.expired {
+      color: var(--danger);
+      animation: pulseRed 1.8s infinite;
+    }
+    @keyframes pulseRed {
+      0%,100% { opacity: 1; text-shadow: 0 0 0px rgba(220,38,38,0); }
+      50% { opacity: 0.85; text-shadow: 0 0 2px rgba(220,38,38,0.5); }
+    }
+    
+    /* ENHANCED: Green-to-Red transition rows */
+    .project-row { transition: background .5s ease, border-left-color .3s; border-left: 3px solid transparent; }
+    .project-row.health-green { border-left-color: var(--accent); background: rgba(5,150,105,.04); }
+    .project-row.health-red { border-left-color: var(--danger); background: rgba(220,38,38,.06); }
     .project-row.health-completed { border-left-color: var(--text-muted); opacity: .75; }
     
-    .progress-track { width: 100%; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; }
-    .progress-fill { height: 100%; border-radius: 3px; transition: width .6s ease; }
-    .progress-info { display: flex; justify-content: space-between; font-size: .72rem; color: var(--text-muted); margin-top: 4px; font-variant-numeric: tabular-nums; }
+    /* PROGRESS BAR with gradient from green → red based on percentage */
+    .progress-meter {
+      width: 100%;
+      height: 8px;
+      background: #e2e8f0;
+      border-radius: 20px;
+      overflow: hidden;
+      margin-top: 8px;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+    }
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 20px;
+      transition: width 0.8s cubic-bezier(0.2, 0.9, 0.4, 1.1), background 0.3s ease;
+    }
+    
+    .meter-stats {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.7rem;
+      margin-top: 6px;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+    .meter-percent {
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
     
     .table-wrapper { 
       overflow: auto; 
@@ -111,11 +142,7 @@
       background: var(--surface); 
     }
     table { width: 100%; border-collapse: collapse; font-size: .85rem; }
-    thead { 
-      position: sticky; 
-      top: 0; 
-      z-index: 10; 
-    }
+    thead { position: sticky; top: 0; z-index: 10; }
     th { text-align: left; padding: 14px 16px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; font-size: .72rem; letter-spacing: .8px; border-bottom: 2px solid var(--border); background: var(--card-hover); }
     td { padding: 14px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; color: var(--text); }
     tr:last-child td { border-bottom: none; }
@@ -174,14 +201,6 @@
       width: 6px; height: 6px; background: var(--accent);
       border-radius: 50%; animation: pulse 2s infinite;
     }
-    
-    @media (max-width: 1024px) {
-      .header { padding: 0 1rem; height: 80px; }
-      .logo-img { height: 52px; }
-      .nav { gap: 0; flex-wrap: wrap; }
-      .nav-btn { padding: 8px 12px; font-size: .78rem; }
-      .main { padding: 1rem; }
-    }
   </style>
 </head>
 <body>
@@ -215,10 +234,10 @@
         Project Tracking
         <span class="realtime-indicator">
           <span class="realtime-dot"></span>
-          Real-time
+          Green→Red payment meter
         </span>
       </h1>
-      <p class="page-desc">Live monitoring based on payment coverage duration</p>
+      <p class="page-desc">0% = Green active / 100% = Red overdue — real-time transition</p>
     </div>
     <div class="flex gap-1 wrap">
       <select class="form-select" style="width:auto" id="projectFilter">
@@ -240,14 +259,13 @@
           <th>Project</th>
           <th>Client</th>
           <th>Rate</th>
-          <th>Live Status</th>
-          <th>Coverage Progress</th>
+          <th>Payment Status & Meter</th>
           <th>Referred By</th>
           <th>Actions</th>
         </tr>
       </thead>
       <tbody id="projectsTable">
-        <tr><td colspan="7"><div class="empty-state"><div class="empty-icon">📁</div><p>Loading projects...</p></div></td></tr>
+        <tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📁</div><p>Loading projects...</p></div></td></tr>
       </tbody>
     </table>
   </div>
@@ -269,38 +287,21 @@
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Client *</label>
-          <!-- 🚀 REPLACED: Standard dropdown linked to clients table -->
           <select class="form-select" id="projClientSelect" required>
             <option value="">Select a registered client...</option>
           </select>
-          <div style="font-size: 0.75rem; color: var(--primary); margin-top: 6px; font-weight: 600;">
-            Don't see the client? <a href="clients.html" class="text-blue" target="_blank">Add them in the Clients directory</a>.
-          </div>
         </div>
         <div class="form-group">
           <label class="form-label">Monthly Rate (UGX)</label>
           <input class="form-input" id="projRate" type="number" placeholder="500,000" />
         </div>
       </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Expected Duration</label>
-          <select class="form-select" id="projPlan">
-            <option value="1">1 Month</option>
-            <option value="3">3 Months</option>
-            <option value="6">6 Months</option>
-            <option value="8">8 Months</option>
-            <option value="12">1 Year</option>
-            <option value="24">2 Years</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Start Date</label>
-          <input class="form-input" id="projStart" type="date" />
-        </div>
+      <div class="form-group">
+        <label class="form-label">Start Date</label>
+        <input class="form-input" id="projStart" type="date" />
       </div>
       <div class="form-group">
-        <label class="form-label">Referred By (Optional)</label>
+        <label class="form-label">Referred By</label>
         <select class="form-select" id="projEmployee">
           <option value="">None</option>
         </select>
@@ -327,274 +328,248 @@
 
 <script>
 (function() {
-  'use strict';
-  
   const SUPABASE_URL = 'https://hnbzerhoqqsmzqxcbnxv.supabase.co';
   const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhuYnplcmhvcXFzbXpxeGNibnh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDg1MjksImV4cCI6MjA5NDYyNDUyOX0.a4rM51DQGih9SXMr71PREngZ_pT6dJFgv_fG9j5jAGc';
   
   let supabase, employeesCache = [], clientsCache = [], projectsCache = [], paymentsCache = [];
   let isSaving = false;
+  let intervalId = null;
 
   document.addEventListener('DOMContentLoaded', async () => {
-    if (!window.supabase) {
-      showToast('Database SDK failed to load', 'error');
-      return;
-    }
+    if (!window.supabase) return showToast('SDK error', 'error');
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    await Promise.all([loadEmployees(), loadClients()]);
+    await loadAllData();
+    setupEventListeners();
+    document.getElementById('projStart').value = new Date().toISOString().split('T')[0];
     
-    try {
-      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-      await Promise.all([loadEmployees(), loadClients()]);
-      await loadAllData();
-      setupEventListeners();
-      document.getElementById('projStart').value = new Date().toISOString().split('T')[0];
-      
-      // Realtime subscription for instant updates
-      supabase.channel('projects-live')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, async () => {
-          showToast('Payment updated - refreshing...', 'info');
-          await loadAllData();
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, async () => {
-          await loadAllData();
-        })
-        .subscribe();
-      
-    } catch (err) {
-      console.error('Init error:', err);
-      showToast('Failed to initialize: ' + err.message, 'error');
-    }
+    supabase.channel('projects-live')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => loadAllData())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => loadAllData())
+      .subscribe();
+    
+    if (intervalId) clearInterval(intervalId);
+    intervalId = setInterval(() => updateAllMetersAndTimers(), 900);
   });
 
-  function generateUUID() {
-    if (crypto?.randomUUID) return crypto.randomUUID();
-    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
-      const r = Math.random() * 16 | 0;
-      return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
-    });
-  }
+  function generateUUID() { return crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => (c === 'x' ? (Math.random()*16|0) : (Math.random()*4|8)).toString(16)); }
+  function formatUGX(n) { return 'UGX ' + (Number(n)||0).toLocaleString(); }
   
-  function formatUGX(n) { 
-    if (!n && n !== 0) return 'UGX 0'; 
-    return 'UGX ' + Number(n).toLocaleString(); 
-  }
-  
-  function formatUSD(n) { 
-    if (!n && n !== 0) return '$0.00'; 
-    return '$' + (n * 0.00027).toFixed(2); 
-  }
-  
-  function showToast(msg, type = 'success') {
-    const c = document.getElementById('toastContainer');
-    const t = document.createElement('div');
-    t.className = `toast ${type}`;
-    t.textContent = msg;
-    c.appendChild(t);
-    setTimeout(() => t.remove(), 3500);
-  }
-
-  // === CORE LOGIC: Calculate status based on total paid months ===
-  function computeProjectStatus(project, payments) {
+  function computeProgress(project, payments) {
     const now = new Date();
-    const start = new Date(project.start_date);
-    const totalMonths = project.plan_months || 1;
+    const start = new Date(project.start_date + 'T00:00:00');
+    if (project.status === 'completed') return { percent: 100, state: 'completed', label: 'Completed', fillColor: '#64748b' };
+    if (project.status === 'on-hold') return { percent: 0, state: 'on-hold', label: 'On Hold', fillColor: '#94a3b8' };
     
-    if (project.status === 'completed') return { state: 'completed', label: 'Completed', health: 'completed' };
-    if (project.status === 'on-hold') return { state: 'on-hold', label: 'On Hold', health: 'completed' };
-
     const projectPayments = payments.filter(p => p.project_id === project.id && p.status === 'paid');
-    
     let totalMonthsPaid = 0;
-    projectPayments.forEach(p => {
-      totalMonthsPaid += (parseInt(p.period_number) || 1); 
-    });
-
+    projectPayments.forEach(p => totalMonthsPaid += (parseInt(p.months_covered) || parseInt(p.period_number) || 1));
     const coveredUntil = new Date(start);
     coveredUntil.setMonth(coveredUntil.getMonth() + totalMonthsPaid);
-
+    
     if (now <= coveredUntil) {
-      const daysRemaining = Math.ceil((coveredUntil - now) / (1000 * 60 * 60 * 24));
-      const pctOfTotal = Math.min(100, Math.round((totalMonthsPaid / totalMonths) * 100));
-      
-      let health = 'excellent';
-      if (daysRemaining <= 7) health = 'warning';
-      else if (daysRemaining <= 30) health = 'good';
-
-      return {
-        state: 'paid',
-        label: totalMonthsPaid >= totalMonths ? 'Fully Paid' : `Paid (${daysRemaining}d left)`,
-        health: health,
-        daysRemaining,
-        coveredUntil,
-        pctOfTotal,
-        totalMonthsPaid,
-        totalMonths
-      };
+      const totalMs = coveredUntil - start;
+      const elapsedMs = now - start;
+      let percent = 0;
+      if (totalMs > 0) percent = Math.min(99.99, Math.max(0, (elapsedMs / totalMs) * 100));
+      return { percent, state: 'paid', label: 'Active Payment', coveredUntil, totalMonthsPaid, start };
     } else {
-      const daysOverdue = Math.floor((now - coveredUntil) / (1000 * 60 * 60 * 24));
-      return {
-        state: 'overdue',
-        label: `Overdue by ${daysOverdue}d`,
-        health: 'overdue',
-        daysOverdue,
-        amount: project.monthly_rate || 0,
-        coveredUntil,
-        totalMonthsPaid,
-        totalMonths,
-        pctOfTotal: Math.min(100, Math.round((totalMonthsPaid / totalMonths) * 100))
-      };
+      return { percent: 100, state: 'overdue', label: 'Overdue', coveredUntil, totalMonthsPaid, start };
     }
   }
 
-  async function loadEmployees() {
-    try {
-      const { data, error } = await supabase.from('employees').select('id, name').eq('status', 'active').order('name');
-      if (error) throw error;
-      employeesCache = data || [];
-      const sel = document.getElementById('projEmployee');
-      sel.innerHTML = '<option value="">None</option>' + 
-        employeesCache.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
-    } catch (err) { console.warn('Failed to load employees:', err); }
+  function getColorFromPercent(percent) {
+    if (percent >= 100) return '#dc2626'; // red full
+    if (percent <= 0) return '#059669'; // fresh green
+    const r = Math.min(255, Math.floor(255 * (percent / 100)));
+    const g = Math.min(255, Math.floor(150 * (1 - percent / 100) + 100));
+    return `rgb(${r}, ${g}, 70)`;
   }
-
-  // 🚀 UPDATED: Fetches actual registered clients from the clients table
-  async function loadClients() {
-    try {
-      const { data, error } = await supabase
-        .from('clients')
-        .select('id, name, status')
-        .in('status', ['active', 'prospect']) // Only show active/prospect clients
-        .order('name', { ascending: true });
-        
-      if (error) throw error;
-      clientsCache = data || [];
-    } catch (err) { 
-      console.warn('Failed to load clients:', err); 
-      clientsCache = []; 
-    }
-  }
-
-  async function loadAllData() {
-    try {
-      const filter = document.getElementById('projectFilter').value;
-      let query = supabase.from('projects').select('*').order('created_at', { ascending: false });
-      
-      if (filter !== 'all' && filter !== 'overdue') {
-        query = query.eq('status', filter);
-      }
-      
-      const [projRes, payRes] = await Promise.all([
-        query,
-        supabase.from('payments').select('id, project_id, period, period_number, status, amount, payment_date')
-      ]);
-      
-      if (projRes.error) throw projRes.error;
-      projectsCache = projRes.data || [];
-      paymentsCache = payRes.data || [];
-      renderProjects();
-    } catch (err) {
-      console.error('Load error:', err);
-      showToast('Failed to load: ' + err.message, 'error');
-    }
-  }
-
+  
   function renderProjects() {
-    const tb = document.getElementById('projectsTable');
     const filter = document.getElementById('projectFilter').value;
+    let projects = projectsCache.map(p => ({ ...p, progress: computeProgress(p, paymentsCache) }));
+    if (filter === 'overdue') projects = projects.filter(p => p.progress.state === 'overdue');
+    else if (filter !== 'all') projects = projects.filter(p => p.status === filter);
     
-    let projects = projectsCache.map(p => {
-      return { ...p, liveStatus: computeProjectStatus(p, paymentsCache) };
-    });
-    
-    if (filter === 'overdue') {
-      projects = projects.filter(p => p.liveStatus.state === 'overdue');
-    }
-    
+    const tb = document.getElementById('projectsTable');
     if (projects.length === 0) {
-      tb.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">📁</div><p>No projects found</p></div></td></tr>`;
+      tb.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📁</div><p>No projects match</p></div></td></tr>`;
       return;
     }
     
     tb.innerHTML = projects.map(p => {
-      const s = p.liveStatus;
-      const emp = employeesCache.find(e => e.id === p.referred_by_id);
+      const prog = p.progress;
+      const percentRaw = prog.percent;
+      const percentDisplay = prog.state === 'overdue' ? 100 : Math.floor(percentRaw);
+      const fillColor = getColorFromPercent(percentDisplay);
+      const employee = employeesCache.find(e => e.id === p.referred_by_id);
       
-      let statusBadge = '';
-      if (s.state === 'paid') {
-        const badgeClass = s.health === 'warning' ? 'warning' : 'paid';
-        statusBadge = `
-          <div class="live-status ${badgeClass}">
-            <span class="live-status-icon">${s.health === 'warning' ? '⚠' : '✓'}</span>
-            <span>${s.label}</span>
+      let statusSection = '';
+      if (prog.state === 'paid') {
+        const endDate = prog.coveredUntil;
+        const diffDays = Math.max(0, Math.floor((endDate - new Date()) / (1000*3600*24)));
+        statusSection = `
+          <div class="live-status paid" style="border-color: ${fillColor}; color: ${fillColor};">
+            <span class="live-status-icon">💳</span>
+            <span class="fw-700">Active</span>
+            <span style="margin:0 6px">•</span>
+            <span class="live-countdown" data-end="${endDate.toISOString()}" data-start="${prog.start.toISOString()}"></span>
           </div>
-          <div style="font-size:.7rem; color:var(--text-muted); margin-top:4px;">
-            Covered until: ${s.coveredUntil.toLocaleDateString()}
-          </div>`;
-      } else if (s.state === 'overdue') {
-        statusBadge = `
+          <div class="progress-meter">
+            <div class="progress-fill" style="width: ${percentDisplay}%; background: ${fillColor};"></div>
+          </div>
+          <div class="meter-stats">
+            <span class="meter-percent" style="color: ${fillColor};">${percentDisplay}% consumed</span>
+            <span>valid until ${endDate.toLocaleDateString()}</span>
+          </div>
+        `;
+      } else if (prog.state === 'overdue') {
+        statusSection = `
           <div class="live-status overdue">
-            <span class="live-status-icon">⚠</span>
-            <span>${s.label}</span>
+            <span class="live-status-icon">⚠️</span>
+            <span class="fw-700">OVERDUE</span>
+            <span style="margin:0 6px">•</span>
+            <span>payment required</span>
           </div>
-          <div style="font-size:.7rem; color:var(--danger); margin-top:4px; font-weight:600;">
-            ${formatUGX(s.amount)} due
-          </div>`;
-      } else if (s.state === 'completed') {
-        statusBadge = `<div class="live-status completed"><span class="live-status-icon">✓</span><span>Completed</span></div>`;
+          <div class="progress-meter">
+            <div class="progress-fill" style="width:100%; background: #dc2626;"></div>
+          </div>
+          <div class="meter-stats">
+            <span class="meter-percent text-red">100% overdue</span>
+            <span class="text-red">⚠️ coverage expired</span>
+          </div>
+        `;
       } else {
-        statusBadge = `<div class="live-status completed"><span class="live-status-icon">⏸</span><span>On Hold</span></div>`;
+        statusSection = `<div class="live-status completed"><span>${prog.label}</span></div>`;
       }
       
-      const progressColor = s.state === 'overdue' ? 'var(--danger)' :
-                           s.state === 'completed' ? 'var(--text-muted)' :
-                           s.health === 'excellent' ? 'var(--accent)' :
-                           s.health === 'good' ? '#84cc16' : 'var(--warning)';
-      
-      let actions = `<button class="btn btn-sm btn-outline edit-btn" data-id="${p.id}">Edit</button>`;
-      
-      return `<tr class="project-row health-${s.health}" data-id="${p.id}">
-        <td><strong>${p.name || 'Untitled'}</strong></td>
-        <td>${p.client || '—'}</td>
-        <td>
-          <strong>${formatUGX(p.monthly_rate)}</strong>
-          <div class="text-muted" style="font-size:.72rem">${formatUSD(p.monthly_rate)}</div>
-        </td>
-        <td>${statusBadge}</td>
-        <td style="min-width:140px">
-          <div class="progress-track">
-            <div class="progress-fill" style="width:${s.pctOfTotal}%; background:${progressColor}"></div>
-          </div>
-          <div class="progress-info">
-            <span>${s.pctOfTotal}%</span>
-            <span>${s.totalMonthsPaid || 0}/${s.totalMonths} mo paid</span>
-          </div>
-        </td>
-        <td>${emp ? `<span class="text-blue fw-700">${emp.name}</span>` : '<span class="text-muted">—</span>'}</td>
-        <td><div class="flex gap-1 wrap">${actions}</div></td>
+      return `<tr class="project-row health-${prog.state === 'paid' ? 'green' : (prog.state === 'overdue' ? 'red' : 'completed')}" data-id="${p.id}">
+        <td><strong>${escapeHtml(p.name)}</strong></td>
+        <td>${escapeHtml(p.client || '—')}</td>
+        <td><strong>${formatUGX(p.monthly_rate)}</strong><div class="text-muted" style="font-size:.7rem">≈ ${(p.monthly_rate * 0.00027).toFixed(2)} USD</div></td>
+        <td style="min-width: 260px;">${statusSection}</td>
+        <td>${employee ? `<span class="text-blue fw-700">${escapeHtml(employee.name)}</span>` : '—'}</td>
+        <td><div class="flex gap-1"><button class="btn btn-sm btn-outline edit-btn" data-id="${p.id}">Edit</button><button class="btn btn-sm btn-outline text-red delete-btn" data-id="${p.id}">Del</button></div></td>
       </tr>`;
     }).join('');
+    
+    updateAllMetersAndTimers();
   }
-
-  // 🚀 UPDATED: Populates the standard <select> dropdown
-  function openModal(title, data = null) {
+  
+  function updateAllMetersAndTimers() {
+    document.querySelectorAll('.live-countdown').forEach(el => {
+      const endDate = new Date(el.dataset.end);
+      const startDate = new Date(el.dataset.start);
+      const now = new Date();
+      if (isNaN(endDate)) return;
+      if (now >= endDate) {
+        el.textContent = 'EXPIRED';
+        el.classList.add('expired');
+        const row = el.closest('tr.project-row');
+        if (row && !row.classList.contains('health-red')) {
+          row.classList.remove('health-green');
+          row.classList.add('health-red');
+          const meterCell = row.children[3];
+          if (meterCell && !meterCell.innerHTML.includes('OVERDUE')) {
+            meterCell.innerHTML = `
+              <div class="live-status overdue"><span class="live-status-icon">⚠️</span><span class="fw-700">OVERDUE</span><span style="margin:0 6px">•</span><span>payment required</span></div>
+              <div class="progress-meter"><div class="progress-fill" style="width:100%; background:#dc2626;"></div></div>
+              <div class="meter-stats"><span class="meter-percent text-red">100% overdue</span><span class="text-red">⚠️ coverage expired</span></div>
+            `;
+          }
+        }
+        return;
+      }
+      const diffMs = endDate - now;
+      const daysLeft = Math.floor(diffMs / (1000*3600*24));
+      if (daysLeft > 0) el.textContent = `${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining`;
+      else {
+        const hours = Math.floor(diffMs / (1000*3600));
+        if (hours > 0) el.textContent = `${hours}h ${Math.floor((diffMs % (3600000))/60000)}m left`;
+        else el.textContent = `${Math.floor(diffMs / 60000)}m left`;
+      }
+      
+      // update progress fill color & width dynamically
+      const row = el.closest('tr.project-row');
+      if (row && row.children[3]) {
+        const start = new Date(startDate);
+        const end = endDate;
+        const total = end - start;
+        const elapsed = now - start;
+        let percent = 0;
+        if (total > 0) percent = Math.min(99.99, Math.max(0, (elapsed / total) * 100));
+        const fillEl = row.querySelector('.progress-fill');
+        const percentSpan = row.querySelector('.meter-percent');
+        if (fillEl && percentSpan) {
+          const color = getColorFromPercent(percent);
+          fillEl.style.width = `${percent}%`;
+          fillEl.style.background = color;
+          percentSpan.textContent = `${Math.floor(percent)}% consumed`;
+          percentSpan.style.color = color;
+          const badgeDiv = row.querySelector('.live-status.paid');
+          if (badgeDiv) {
+            badgeDiv.style.borderColor = color;
+            badgeDiv.style.color = color;
+          }
+          if (percent >= 99) {
+            row.classList.remove('health-green');
+            row.classList.add('health-red');
+          } else {
+            row.classList.remove('health-red');
+            row.classList.add('health-green');
+          }
+        }
+      }
+    });
+  }
+  
+  function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+  
+  async function loadEmployees() {
+    try {
+      const { data } = await supabase.from('employees').select('id, name').eq('status', 'active').order('name');
+      employeesCache = data || [];
+      const sel = document.getElementById('projEmployee');
+      sel.innerHTML = '<option value="">None</option>' + employeesCache.map(e => `<option value="${e.id}">${escapeHtml(e.name)}</option>`).join('');
+    } catch(e) {}
+  }
+  async function loadClients() {
+    try {
+      const { data } = await supabase.from('clients').select('id, name, status').in('status', ['active', 'prospect']).order('name');
+      clientsCache = data || [];
+    } catch(e) { clientsCache = []; }
+  }
+  async function loadAllData() {
+    try {
+      const filter = document.getElementById('projectFilter').value;
+      let projQuery = supabase.from('projects').select('*').order('created_at', { ascending: false });
+      if (filter !== 'all' && filter !== 'overdue') projQuery = projQuery.eq('status', filter);
+      const [projRes, payRes] = await Promise.all([projQuery, supabase.from('payments').select('*')]);
+      if (projRes.error) throw projRes.error;
+      projectsCache = projRes.data || [];
+      paymentsCache = payRes.data || [];
+      renderProjects();
+    } catch(err) { showToast('Load error: '+err.message, 'error'); }
+  }
+  
+  async function deleteProject(id) {
+    if (!confirm('Delete project & all linked payments?')) return;
+    try {
+      await supabase.from('payments').delete().eq('project_id', id);
+      await supabase.from('projects').delete().eq('id', id);
+      showToast('Project deleted', 'success');
+      await loadAllData();
+    } catch(err) { showToast('Delete failed', 'error'); }
+  }
+  
+  function openModal(title, data=null) {
     document.getElementById('projId').value = data?.id || '';
     document.getElementById('projName').value = data?.name || '';
-    
-    // Populate the client dropdown
-    const clientSelect = document.getElementById('projClientSelect');
-    clientSelect.innerHTML = '<option value="">Select a registered client...</option>' +
-      clientsCache.map(c => `<option value="${c.id}">${c.name}${c.status === 'prospect' ? ' (Prospect)' : ''}</option>`).join('');
-      
-    // If editing, pre-select the correct client
-    if (data?.client_id) {
-      clientSelect.value = data.client_id;
-    } else if (data?.client) {
-      // Fallback: try to match by name if client_id is missing (for old records)
-      const match = clientsCache.find(c => c.name.toLowerCase() === data.client.toLowerCase());
-      if (match) clientSelect.value = match.id;
-    }
-
+    const clientSel = document.getElementById('projClientSelect');
+    clientSel.innerHTML = '<option value="">Select client...</option>' + clientsCache.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+    if (data?.client_id) clientSel.value = data.client_id;
     document.getElementById('projRate').value = data?.monthly_rate || '';
-    document.getElementById('projPlan').value = data?.plan_months || '1';
     document.getElementById('projStart').value = data?.start_date || new Date().toISOString().split('T')[0];
     document.getElementById('projStatus').value = data?.status || 'active';
     document.getElementById('projNotes').value = data?.notes || '';
@@ -602,88 +577,56 @@
     document.getElementById('modalTitle').textContent = title;
     document.getElementById('projectModal').classList.add('open');
   }
-  
   function closeModal() { document.getElementById('projectModal').classList.remove('open'); }
-
+  
   function setupEventListeners() {
-    document.getElementById('logoBtn').addEventListener('click', () => window.location.href = 'index.html');
-    document.getElementById('newProjectBtn').addEventListener('click', async () => {
-      await loadClients(); // Refresh clients list before opening
-      openModal('New Project');
-      document.getElementById('projClientSelect').focus();
-    });
+    document.getElementById('logoBtn').addEventListener('click', () => window.location.href='index.html');
+    document.getElementById('newProjectBtn').addEventListener('click', async () => { await loadClients(); openModal('New Project'); });
     document.getElementById('closeModal').addEventListener('click', closeModal);
     document.getElementById('cancelModal').addEventListener('click', closeModal);
-    document.getElementById('refreshBtn').addEventListener('click', async () => {
-      showToast('Refreshing...', 'info');
-      await loadAllData();
-    });
-    document.querySelectorAll('.modal-overlay').forEach(o => {
-      o.addEventListener('click', e => { if (e.target === o) closeModal(); });
-    });
-    document.getElementById('projectFilter').addEventListener('change', loadAllData);
-    
+    document.getElementById('refreshBtn').addEventListener('click', () => loadAllData());
+    document.getElementById('projectFilter').addEventListener('change', () => loadAllData());
     document.getElementById('projectsTable').addEventListener('click', async (e) => {
-      const editBtn = e.target.closest('.edit-btn');
-      if (editBtn) {
-        const p = projectsCache.find(x => x.id === editBtn.dataset.id);
-        if (p) openModal('Edit Project', p);
+      const edit = e.target.closest('.edit-btn');
+      const del = e.target.closest('.delete-btn');
+      if (edit) {
+        const p = projectsCache.find(x => x.id === edit.dataset.id);
+        if(p) openModal('Edit Project', p);
       }
+      if (del) await deleteProject(del.dataset.id);
     });
-    
     document.getElementById('saveProject').addEventListener('click', async function() {
-      if (isSaving) return;
-      isSaving = true;
-      const btn = this;
-      const originalText = btn.textContent;
-      btn.textContent = 'Saving...';
-      btn.disabled = true;
-      
+      if(isSaving) return;
+      isSaving=true;
+      const btn=this, orig=btn.textContent;
+      btn.textContent='Saving...'; btn.disabled=true;
       try {
-        const existingId = document.getElementById('projId').value;
-        const id = existingId || generateUUID();
-        
-        // 🚀 UPDATED: Get the UUID and Name from the dropdown
-        const clientSelect = document.getElementById('projClientSelect');
-        const selectedClientId = clientSelect.value;
-        const selectedClientName = clientSelect.options[clientSelect.selectedIndex]?.text.replace(' (Prospect)', '') || '';
-
-        if (!selectedClientId) {
-          showToast('Please select a registered client from the dropdown', 'error');
-          return;
-        }
-        
-        const data = {
-          id,
-          name: document.getElementById('projName').value.trim(),
-          client_id: selectedClientId, // 🚀 Save the UUID link
-          client: selectedClientName,  // Keep the text name for backward compatibility
-          monthly_rate: parseInt(document.getElementById('projRate').value) || 0,
-          plan_months: parseInt(document.getElementById('projPlan').value) || 1,
+        const existingId=document.getElementById('projId').value;
+        const id=existingId || generateUUID();
+        const clientId=document.getElementById('projClientSelect').value;
+        const clientObj=clientsCache.find(c=>c.id===clientId);
+        if(!clientId) throw new Error('Select a client');
+        const data={
+          id, name: document.getElementById('projName').value.trim(),
+          client_id: clientId, client: clientObj?.name || '',
+          monthly_rate: parseInt(document.getElementById('projRate').value)||0,
           start_date: document.getElementById('projStart').value,
           status: document.getElementById('projStatus').value,
           notes: document.getElementById('projNotes').value.trim(),
-          referred_by_id: document.getElementById('projEmployee').value || null,
+          referred_by_id: document.getElementById('projEmployee').value||null,
           created_at: new Date().toISOString()
         };
-        
-        if (!data.name || !data.client_id) throw new Error('Name and client required');
-        
-        const { error } = await supabase.from('projects').upsert(data, { onConflict: 'id' });
-        if (error) throw error;
-        
-        showToast(existingId ? 'Project updated!' : 'Project created!');
+        if(!data.name) throw new Error('Project name required');
+        const {error}=await supabase.from('projects').upsert(data, {onConflict:'id'});
+        if(error) throw error;
+        showToast(existingId?'Updated!':'Created!');
         closeModal();
-        await Promise.all([loadClients(), loadAllData()]);
-      } catch (err) {
-        showToast('Error: ' + err.message, 'error');
-      } finally {
-        btn.textContent = originalText;
-        btn.disabled = false;
-        isSaving = false;
-      }
+        await loadAllData();
+      } catch(err){ showToast(err.message,'error'); }
+      finally { btn.textContent=orig; btn.disabled=false; isSaving=false; }
     });
   }
+  function showToast(msg, type='success') { const c=document.getElementById('toastContainer'); const t=document.createElement('div'); t.className=`toast ${type}`; t.textContent=msg; c.appendChild(t); setTimeout(()=>t.remove(),3500); }
 })();
 </script>
 </body>
