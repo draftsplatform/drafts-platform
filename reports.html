@@ -5,14 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Reports — Drafts</title>
   
-  <!-- Google Fonts & Chart.js -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   
-  <!-- Supabase JS (v2) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   
   <style>
     :root {
@@ -34,7 +32,6 @@
     ::-webkit-scrollbar-track { background:transparent; }
     ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
     
-    /* === HEADER STYLES === */
     .header {
       position: sticky; top: 0; z-index: 100;
       display: flex; align-items: center; justify-content: space-between;
@@ -51,7 +48,7 @@
     .nav-btn {
       position: relative; padding: 10px 18px; border: none; background: transparent;
       color: var(--text-secondary); font-size: .88rem; font-weight: 500;
-      border-radius: var(--radius-sm); cursor: pointer; transition: var(--transition);
+      border-radius: var(--radius-sm); cursor: pointer; transition: var(--transition); text-decoration: none;
     }
     .nav-btn:hover { background: var(--primary-glow); color: var(--primary); }
     .nav-btn.active { background: var(--primary-glow); color: var(--primary); font-weight: 600; }
@@ -64,13 +61,12 @@
     .status-dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 8px rgba(5,150,105,.4); }
     .status-text { font-size: .75rem; color: var(--accent); font-weight: 600; }
     
-    /* === PAGE STYLES === */
     .main { padding: 2rem; max-width: 1440px; margin: 0 auto; }
     .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
     .page-title { font-size: 1.5rem; font-weight: 700; letter-spacing: -.3px; color: var(--text); }
     .page-desc { font-size: .85rem; color: var(--text-muted); margin-top: 2px; }
     
-    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border: none; border-radius: var(--radius-sm); font-size: .85rem; font-weight: 600; cursor: pointer; transition: var(--transition); pointer-events: auto; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border: none; border-radius: var(--radius-sm); font-size: .85rem; font-weight: 600; cursor: pointer; transition: var(--transition); pointer-events: auto; text-decoration: none; }
     .btn-primary { background: var(--primary); color: #fff; box-shadow: 0 2px 8px rgba(37,99,235,.2); }
     .btn-primary:hover { background: #1d4ed8; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37,99,235,.3); }
     .btn-outline { background: transparent; color: var(--text-secondary); border: 1px solid var(--border); }
@@ -78,61 +74,102 @@
     .btn-sm { padding: 6px 14px; font-size: .78rem; }
     .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important; }
     
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; transition: var(--transition); box-shadow: var(--shadow); margin-bottom: 1.5rem; }
-    .card:hover { border-color: rgba(37,99,235,.3); box-shadow: var(--shadow-hover); }
-    
-    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
-    .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 1rem; text-align: center; }
-    .stat-value { font-size: 1.5rem; font-weight: 700; margin: 0.25rem 0; }
-    .stat-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; }
-    
-    .chart-container { position: relative; height: 300px; margin: 1rem 0; }
+    .badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; font-size: .72rem; font-weight: 600; letter-spacing: .3px; }
+    .badge-green { background: var(--accent-glow); color: var(--accent); }
+    .badge-yellow { background: rgba(217,119,6,.12); color: var(--warning); }
+    .badge-red { background: rgba(220,38,38,.12); color: var(--danger); }
+    .badge-blue { background: var(--primary-glow); color: var(--primary); }
+    .badge-gray { background: rgba(100,116,139,.12); color: var(--text-muted); }
+    .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
     
     .table-wrapper { overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); }
-    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    table { width: 100%; border-collapse: collapse; font-size: .85rem; }
     thead { background: var(--card-hover); }
-    th { text-align: left; padding: 12px 16px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; font-size: 0.72rem; border-bottom: 1px solid var(--border); }
-    td { padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    th { text-align: left; padding: 12px 16px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; font-size: .72rem; letter-spacing: .8px; border-bottom: 1px solid var(--border); }
+    td { padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; color: var(--text); }
     tr:last-child td { border-bottom: none; }
+    tbody tr { transition: var(--transition); cursor: default; }
     tbody tr:hover { background: var(--card-hover); }
     
     .empty-state { text-align: center; padding: 3rem 1rem; color: var(--text-muted); }
-    .empty-icon { font-size: 3rem; margin-bottom: 0.75rem; opacity: 0.4; }
-    
+    .empty-icon { font-size: 3rem; margin-bottom: .75rem; opacity: .4; }
+
     .toast-container { position: fixed; top: 100px; right: 16px; z-index: 300; display: flex; flex-direction: column; gap: 8px; }
-    .toast { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: var(--radius-sm); padding: 12px 16px; font-size: 0.82rem; box-shadow: var(--shadow-hover); animation: slideIn 0.3s ease; max-width: 320px; }
+    .toast { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: var(--radius-sm); padding: 12px 16px; font-size: .82rem; box-shadow: var(--shadow-hover); animation: slideIn .3s ease; max-width: 320px; color: var(--text); }
+    .toast.success { border-left-color: var(--accent); }
+    .toast.error { border-left-color: var(--danger); }
     @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
-    
-    .form-group { margin-bottom: 1rem; }
-    .form-label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; }
-    .form-input, .form-select { width: 100%; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: 0.85rem; }
+
+    .form-input, .form-select { width: 100%; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); color: var(--text); font-size: .85rem; font-family: inherit; transition: var(--transition); }
     .form-input:focus, .form-select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-glow); }
-    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-    @media (max-width: 500px) { .form-row { grid-template-columns: 1fr; } }
-    
+    .form-select { cursor: pointer; }
+
     .text-green { color: var(--accent); }
     .text-yellow { color: var(--warning); }
     .text-red { color: var(--danger); }
     .text-blue { color: var(--primary); }
     .text-muted { color: var(--text-muted); }
     .flex { display: flex; }
-    .items-center { align-items: center; }
-    .justify-between { justify-content: space-between; }
-    .gap-1 { gap: 0.5rem; }
+    .gap-1 { gap: .5rem; }
     .wrap { flex-wrap: wrap; }
+
+    /* 🚀 REPORTS PAGE SPECIFIC STYLES */
+    .filters-panel {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 1.5rem; margin-bottom: 1.5rem; display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: end;
+    }
+    .filter-group { display: flex; flex-direction: column; gap: 6px; }
+    .filter-group label { font-size: .75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .filter-group.full-width { grid-column: 1 / -1; }
     
+    .quick-dates { display: flex; gap: 6px; flex-wrap: wrap; }
+    .quick-dates button { 
+      padding: 6px 12px; font-size: .75rem; font-weight: 500; border: 1px solid var(--border); 
+      background: var(--surface); border-radius: 6px; cursor: pointer; transition: var(--transition); color: var(--text-secondary);
+    }
+    .quick-dates button:hover { border-color: var(--primary); color: var(--primary); }
+    .quick-dates button.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+    .kpi-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem; margin-bottom: 1.5rem;
+    }
+    .kpi-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 1.25rem; transition: var(--transition); position: relative; overflow: hidden;
+    }
+    .kpi-card:hover { box-shadow: var(--shadow); transform: translateY(-2px); }
+    .kpi-label { font-size: .75rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; margin-bottom: 8px; }
+    .kpi-value { font-size: 1.6rem; font-weight: 800; letter-spacing: -.5px; }
+    .kpi-sub { font-size: .8rem; color: var(--text-secondary); margin-top: 4px; font-weight: 500; }
+
+    .charts-grid {
+      display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;
+    }
+    .chart-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 1.5rem; display: flex; flex-direction: column;
+    }
+    .chart-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 1rem; color: var(--text); }
+    .chart-container { position: relative; flex: 1; min-height: 300px; }
+    
+    .table-header-actions { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem; }
+    .search-box { max-width: 300px; width: 100%; }
+
     @media (max-width: 1024px) {
       .header { padding: 0 1rem; height: 80px; }
       .logo-img { height: 52px; }
       .nav { gap: 0; flex-wrap: wrap; }
-      .nav-btn { padding: 8px 12px; font-size: 0.78rem; }
+      .nav-btn { padding: 8px 12px; font-size: .78rem; }
       .logo-text { font-size: 1.2rem; }
       .logo-subtitle { display: none; }
       .main { padding: 1rem; }
-      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .charts-grid { grid-template-columns: 1fr; }
     }
     @media (max-width: 640px) {
-      .stats-grid { grid-template-columns: 1fr; }
+      .filters-panel { grid-template-columns: 1fr; }
+      .kpi-grid { grid-template-columns: 1fr 1fr; }
     }
   </style>
 </head>
@@ -150,7 +187,6 @@
     <a href="reports.html" class="nav-btn active">Reports</a>
     <a href="performance.html" class="nav-btn">Performance</a>
     <a href="finance.html" class="nav-btn">Finance</a>
-    <a href="employees.html" class="nav-btn">Employees</a>
   </nav>
   <div class="header-right">
     <div class="status-dot"></div>
@@ -163,98 +199,151 @@
 <main class="main">
   <div class="page-header">
     <div>
-      <h1 class="page-title">Reports & Analytics</h1>
-      <p class="page-desc">Generate insights, exports, and financial summaries</p>
+      <h1 class="page-title">Comprehensive Reports</h1>
+      <p class="page-desc">Analyze financial performance, filter by any category, and export data</p>
     </div>
-    <div class="flex gap-1 wrap">
-      <button class="btn btn-outline" id="exportCsvBtn">📥 Export CSV</button>
-      <button class="btn btn-primary" id="generateReportBtn">📊 Generate Report</button>
-    </div>
+    <button class="btn btn-primary" id="exportBtn">📥 Export to CSV</button>
   </div>
 
-  <div class="card">
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">Date Range</label>
-        <select class="form-select" id="reportRange">
-          <option value="30">Last 30 Days</option>
-          <option value="90">Last 90 Days</option>
-          <option value="180">Last 6 Months</option>
-          <option value="365">Last Year</option>
-          <option value="custom">Custom Range</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Report Type</label>
-        <select class="form-select" id="reportType">
-          <option value="revenue">💰 Revenue Summary</option>
-          <option value="projects">📁 Project Performance</option>
-          <option value="clients">👥 Client Activity</option>
-          <option value="employees">👤 Employee Referrals</option>
-          <option value="payments">💳 Payment History</option>
-        </select>
-      </div>
-    </div>
-    <div id="customRange" style="display:none" class="form-row">
-      <div class="form-group">
-        <label class="form-label">Start Date</label>
-        <input class="form-input" type="date" id="startDate" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">End Date</label>
-        <input class="form-input" type="date" id="endDate" />
+  <!-- 🚀 ADVANCED FILTERS PANEL -->
+  <div class="filters-panel">
+    <div class="filter-group full-width">
+      <label>Quick Period Selection</label>
+      <div class="quick-dates" id="quickDates">
+        <button data-range="today">Today</button>
+        <button data-range="week">This Week</button>
+        <button data-range="month" class="active">This Month</button>
+        <button data-range="last-month">Last Month</button>
+        <button data-range="quarter">This Quarter</button>
+        <button data-range="last-quarter">Last Quarter</button>
+        <button data-range="year">This Year</button>
+        <button data-range="all">All Time</button>
       </div>
     </div>
     
-    <!-- Employee Filter (appears for employee reports) -->
-    <div id="employeeFilterGroup" style="display:none; margin-top:1rem; padding-top:1rem; border-top:1px solid var(--border)">
-      <div class="form-group">
-        <label class="form-label">Filter by Employee</label>
-        <select class="form-select" id="employeeFilter">
-          <option value="all">All Employees</option>
-        </select>
+    <div class="filter-group">
+      <label>From Date</label>
+      <input type="date" id="filterDateFrom" class="form-input">
+    </div>
+    <div class="filter-group">
+      <label>To Date</label>
+      <input type="date" id="filterDateTo" class="form-input">
+    </div>
+    <div class="filter-group">
+      <label>Client</label>
+      <select id="filterClient" class="form-select">
+        <option value="all">All Clients</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Project</label>
+      <select id="filterProject" class="form-select">
+        <option value="all">All Projects</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Status</label>
+      <select id="filterStatus" class="form-select">
+        <option value="all">All Statuses</option>
+        <option value="paid">Paid</option>
+        <option value="pending">Pending</option>
+        <option value="overdue">Overdue</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label>Min Amount (UGX)</label>
+      <input type="number" id="filterMinAmt" class="form-input" placeholder="0">
+    </div>
+    <div class="filter-group">
+      <label>Max Amount (UGX)</label>
+      <input type="number" id="filterMaxAmt" class="form-input" placeholder="Any">
+    </div>
+    
+    <div class="filter-group full-width" style="display: flex; flex-direction: row; gap: 10px; justify-content: flex-end; margin-top: 10px;">
+      <button class="btn btn-outline" id="resetFilters">Reset</button>
+      <button class="btn btn-primary" id="applyFilters">Apply Filters</button>
+    </div>
+  </div>
+
+  <!-- 🚀 KPI SUMMARY CARDS -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Total Revenue (Paid)</div>
+      <div class="kpi-value text-green" id="kpiRevenue">UGX 0</div>
+      <div class="kpi-sub" id="kpiRevenueUsd">$0.00</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Pending Amount</div>
+      <div class="kpi-value text-yellow" id="kpiPending">UGX 0</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Overdue Amount</div>
+      <div class="kpi-value text-red" id="kpiOverdue">UGX 0</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Total Transactions</div>
+      <div class="kpi-value text-blue" id="kpiCount">0</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Average Payment</div>
+      <div class="kpi-value" id="kpiAvg">UGX 0</div>
+    </div>
+  </div>
+
+  <!-- 🚀 LIVE CHARTS DASHBOARD -->
+  <div class="charts-grid">
+    <div class="chart-card">
+      <h3>Revenue Trend</h3>
+      <div class="chart-container">
+        <canvas id="chartTrend"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>Payment Status Distribution</h3>
+      <div class="chart-container">
+        <canvas id="chartStatus"></canvas>
+      </div>
+    </div>
+  </div>
+  
+  <div class="charts-grid" style="grid-template-columns: 1fr 1fr; margin-bottom: 2rem;">
+    <div class="chart-card">
+      <h3>Top Clients by Revenue</h3>
+      <div class="chart-container">
+        <canvas id="chartClients"></canvas>
+      </div>
+    </div>
+    <div class="chart-card">
+      <h3>Project Performance</h3>
+      <div class="chart-container">
+        <canvas id="chartProjects"></canvas>
       </div>
     </div>
   </div>
 
-  <div class="stats-grid" id="statsGrid" style="display:none">
-    <div class="stat-card">
-      <div class="stat-label">Total Revenue</div>
-      <div class="stat-value" id="statRevenue">UGX 0</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Active Projects</div>
-      <div class="stat-value" id="statProjects">0</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Payments</div>
-      <div class="stat-value" id="statPayments">0</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-label">Avg. Value</div>
-      <div class="stat-value" id="statAvgValue">UGX 0</div>
-    </div>
+  <!-- 🚀 DETAILED RECORDS TABLE -->
+  <div class="table-header-actions">
+    <h2 style="font-size: 1.2rem; font-weight: 700;">Detailed Records</h2>
+    <input type="text" id="tableSearch" class="form-input search-box" placeholder="🔍 Search records...">
   </div>
-
-  <div class="card" id="chartCard" style="display:none">
-    <h3 style="font-size:1rem; font-weight:600; margin-bottom:1rem">📈 Trend</h3>
-    <div class="chart-container">
-      <canvas id="revenueChart"></canvas>
-    </div>
-  </div>
-
-  <div class="card">
-    <h3 id="tableTitle" style="font-size:1rem; font-weight:600; margin-bottom:1rem">Results</h3>
-    <div class="table-wrapper">
-      <table>
-        <thead id="tableHead">
-          <!-- Dynamic headers -->
-        </thead>
-        <tbody id="tableBody">
-          <tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📊</div><p>Click "Generate Report" to view data.</p></div></td></tr>
-        </tbody>
-      </table>
-    </div>
+  
+  <div class="table-wrapper">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Client</th>
+          <th>Project</th>
+          <th>Period</th>
+          <th>Amount (UGX)</th>
+          <th>Amount (USD)</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="reportTableBody">
+        <tr><td colspan="7"><div class="empty-state"><div class="empty-icon">📊</div><p>Loading report data...</p></div></td></tr>
+      </tbody>
+    </table>
   </div>
 </main>
 
@@ -262,12 +351,15 @@
   (function() {
     'use strict';
     
-    // === CONFIG ===
     const SUPABASE_URL = 'https://hnbzerhoqqsmzqxcbnxv.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhuYnplcmhvcXFzbXpxeGNibnh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDg1MjksImV4cCI6MjA5NDYyNDUyOX0.a4rM51DQGih9SXMr71PREngZ_pT6dJFgv_fG9j5jAGc';
     const USD_RATE = 0.00027;
+
+    let allClients = [];
+    let allProjects = [];
+    let currentFilteredData = [];
     
-    let chart = null, isGen = false, employeesCache = [];
+    let trendChart, statusChart, clientChart, projectChart;
 
     document.addEventListener('DOMContentLoaded', async function() {
       if (!window.supabase) {
@@ -278,360 +370,392 @@
       const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
       // === UTILS ===
-      function formatUGX(n) { if (!n) return 'UGX 0'; return 'UGX ' + Number(n).toLocaleString(); }
-      function formatUSD(n) { if (!n) return '$0.00'; return '$' + (n * USD_RATE).toFixed(2); }
+      function getLocalDateString(date = new Date()) {
+        const offset = date.getTimezoneOffset();
+        return new Date(date.getTime() - offset * 60000).toISOString().split('T')[0];
+      }
+      function formatUGX(n) { if (!n && n !== 0) return 'UGX 0'; return 'UGX ' + Number(n).toLocaleString(); }
+      function formatUSD(n) { if (!n && n !== 0) return '$0.00'; return '$' + (n * USD_RATE).toFixed(2); }
       
       function showToast(msg, type = 'success') {
         const c = document.getElementById('toastContainer');
         const t = document.createElement('div');
-        t.className = `toast ${type === 'error' ? 'error' : 'success'}`;
+        t.className = `toast ${type}`;
         t.textContent = msg;
         c.appendChild(t);
         setTimeout(() => t.remove(), 3500);
       }
-      
-      function renderTable(headers, rows) {
-        const thead = document.getElementById('tableHead');
-        const tbody = document.getElementById('tableBody');
-        
-        thead.innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
-        
-        if (!rows || rows.length === 0) {
-          tbody.innerHTML = `<tr><td colspan="${headers.length}"><div class="empty-state"><div class="empty-icon">📭</div><p>No data found for selected filters.</p></div></td></tr>`;
-          return;
-        }
-        
-        tbody.innerHTML = rows.map(row => 
-          '<tr>' + Object.values(row).map(v => `<td>${v}</td>`).join('') + '</tr>'
-        ).join('');
+
+      // === INITIALIZATION ===
+      async function init() {
+        await loadFilterDropdowns();
+        setDefaultDateRange();
+        await fetchReportData();
       }
 
-      function drawChart(labels, values, type) {
-        const ctx = document.getElementById('revenueChart').getContext('2d');
-        
-        if (chart) chart.destroy();
-        
-        const colors = {
-          revenue: 'rgba(37, 99, 235, 0.8)',
-          projects: 'rgba(5, 150, 105, 0.8)',
-          clients: 'rgba(217, 119, 6, 0.8)',
-          employees: 'rgba(100, 116, 139, 0.8)',
-          payments: 'rgba(100, 116, 139, 0.8)'
-        };
-        
-        chart = new Chart(ctx, {
-          type: type === 'projects' ? 'doughnut' : 'bar',
+      async function loadFilterDropdowns() {
+        try {
+          const { data: clients } = await supabase.from('clients').select('id, name').order('name');
+          allClients = clients || [];
+          document.getElementById('filterClient').innerHTML = '<option value="all">All Clients</option>' + 
+            allClients.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+
+          const { data: projects } = await supabase.from('projects').select('id, name, client_id').order('name');
+          allProjects = (projects || []).map(p => ({ id: p.id, name: p.name, clientId: p.client_id }));
+          document.getElementById('filterProject').innerHTML = '<option value="all">All Projects</option>' + 
+            allProjects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+        } catch (err) {
+          console.error('Failed to load dropdowns:', err);
+        }
+      }
+
+      function setDefaultDateRange() {
+        const today = new Date();
+        const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
+        document.getElementById('filterDateFrom').value = getLocalDateString(firstDay);
+        document.getElementById('filterDateTo').value = getLocalDateString(today);
+      }
+
+      // === DATA FETCHING & FILTERING ===
+      async function fetchReportData() {
+        const tbody = document.getElementById('reportTableBody');
+        tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">⏳</div><p>Fetching data...</p></div></td></tr>`;
+
+        try {
+          let query = supabase.from('payments').select('*');
+          
+          const dateFrom = document.getElementById('filterDateFrom').value;
+          const dateTo = document.getElementById('filterDateTo').value;
+          const projectId = document.getElementById('filterProject').value;
+          const status = document.getElementById('filterStatus').value;
+          const minAmt = document.getElementById('filterMinAmt').value;
+          const maxAmt = document.getElementById('filterMaxAmt').value;
+
+          if (dateFrom) query = query.gte('payment_date', dateFrom);
+          if (dateTo) query = query.lte('payment_date', dateTo);
+          if (projectId !== 'all') query = query.eq('project_id', projectId);
+          if (status !== 'all') query = query.eq('status', status);
+          if (minAmt) query = query.gte('amount', parseInt(minAmt));
+          if (maxAmt) query = query.lte('amount', parseInt(maxAmt));
+
+          query = query.order('payment_date', { ascending: false });
+
+          const { data: payments, error } = await query;
+          if (error) throw error;
+
+          const clientId = document.getElementById('filterClient').value;
+          
+          const clientMap = Object.fromEntries(allClients.map(c => [c.id, c.name]));
+          const projectMap = Object.fromEntries(allProjects.map(p => [p.id, { name: p.name, clientId: p.clientId }]));
+
+          let filteredPayments = payments || [];
+          if (clientId !== 'all') {
+            filteredPayments = filteredPayments.filter(p => {
+              const proj = projectMap[p.project_id];
+              return proj && proj.clientId === clientId;
+            });
+          }
+
+          currentFilteredData = filteredPayments.map(p => {
+            const proj = projectMap[p.project_id] || {};
+            return {
+              ...p,
+              projectName: proj.name || 'Unknown',
+              clientName: clientMap[proj.clientId] || 'Unknown Client'
+            };
+          });
+
+          renderKPIs(currentFilteredData);
+          renderCharts(currentFilteredData);
+          renderTable(currentFilteredData);
+
+        } catch (err) {
+          console.error('Report fetch error:', err);
+          showToast('Failed to load report data', 'error');
+          tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">⚠️</div><p>Error loading data</p></div></td></tr>`;
+        }
+      }
+
+      // === RENDERING FUNCTIONS ===
+      function renderKPIs(data) {
+        let totalPaid = 0, totalPending = 0, totalOverdue = 0, count = 0;
+        data.forEach(p => {
+          count++;
+          if (p.status === 'paid') totalPaid += p.amount;
+          else if (p.status === 'pending') totalPending += p.amount;
+          else if (p.status === 'overdue') totalOverdue += p.amount;
+        });
+
+        document.getElementById('kpiRevenue').textContent = formatUGX(totalPaid);
+        document.getElementById('kpiRevenueUsd').textContent = formatUSD(totalPaid);
+        document.getElementById('kpiPending').textContent = formatUGX(totalPending);
+        document.getElementById('kpiOverdue').textContent = formatUGX(totalOverdue);
+        document.getElementById('kpiCount').textContent = count;
+        document.getElementById('kpiAvg').textContent = formatUGX(count > 0 ? Math.round(totalPaid / count) : 0);
+      }
+
+      function renderCharts(data) {
+        // 1. Trend Chart
+        const dateFrom = document.getElementById('filterDateFrom').value;
+        const dateTo = document.getElementById('filterDateTo').value;
+        let groupBy = 'month';
+        if (dateFrom && dateTo) {
+          const diffDays = (new Date(dateTo) - new Date(dateFrom)) / (1000 * 60 * 60 * 24);
+          if (diffDays <= 31) groupBy = 'day';
+          else if (diffDays <= 365) groupBy = 'month';
+          else groupBy = 'year';
+        }
+
+        const trendData = {};
+        data.forEach(p => {
+          if (p.status !== 'paid') return;
+          const d = new Date(p.payment_date);
+          let key;
+          if (groupBy === 'day') key = p.payment_date;
+          else if (groupBy === 'month') key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+          else key = `${d.getFullYear()}`;
+          trendData[key] = (trendData[key] || 0) + p.amount;
+        });
+
+        const sortedKeys = Object.keys(trendData).sort();
+        const trendValues = sortedKeys.map(k => trendData[k]);
+
+        if (trendChart) trendChart.destroy();
+        trendChart = new Chart(document.getElementById('chartTrend'), {
+          type: 'bar',
           data: {
-            labels: labels,
+            labels: sortedKeys,
             datasets: [{
-              label: type === 'projects' ? 'Projects' : 'Amount (UGX)',
-              data: values,
-              backgroundColor: colors[type] || colors.revenue,
-              borderColor: colors[type]?.replace('0.8', '1') || colors.revenue.replace('0.8', '1'),
-              borderWidth: 1
+              label: 'Revenue (UGX)',
+              data: trendValues,
+              backgroundColor: 'rgba(37, 99, 235, 0.8)',
+              borderColor: '#2563eb',
+              borderWidth: 1,
+              borderRadius: 6
             }]
           },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: type !== 'projects' } },
-            scales: type === 'projects' ? {} : {
-              y: { 
-                beginAtZero: true, 
-                ticks: { callback: v => 'UGX ' + (v/1000000).toFixed(1) + 'M' } 
-              }
-            }
+          options: { 
+            responsive: true, maintainAspectRatio: false, 
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } }, x: { grid: { display: false } } }
+          }
+        });
+
+        // 2. Status Chart
+        const statusCounts = { paid: 0, pending: 0, overdue: 0 };
+        data.forEach(p => { if (statusCounts[p.status] !== undefined) statusCounts[p.status] += p.amount; });
+
+        if (statusChart) statusChart.destroy();
+        statusChart = new Chart(document.getElementById('chartStatus'), {
+          type: 'doughnut',
+          data: {
+            labels: ['Paid', 'Pending', 'Overdue'],
+            datasets: [{
+              data: [statusCounts.paid, statusCounts.pending, statusCounts.overdue],
+              backgroundColor: ['#059669', '#d97706', '#dc2626'],
+              borderWidth: 0,
+              hoverOffset: 10
+            }]
+          },
+          options: { 
+            responsive: true, maintainAspectRatio: false, 
+            cutout: '65%',
+            plugins: { legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } } }
+          }
+        });
+
+        // 3. Top Clients Chart
+        const clientTotals = {};
+        data.forEach(p => {
+          if (p.status === 'paid') {
+            clientTotals[p.clientName] = (clientTotals[p.clientName] || 0) + p.amount;
+          }
+        });
+        const sortedClients = Object.entries(clientTotals).sort((a,b) => b[1] - a[1]).slice(0, 5);
+        
+        if (clientChart) clientChart.destroy();
+        clientChart = new Chart(document.getElementById('chartClients'), {
+          type: 'bar',
+          data: {
+            labels: sortedClients.map(c => c[0]),
+            datasets: [{
+              label: 'Revenue',
+              data: sortedClients.map(c => c[1]),
+              backgroundColor: '#059669',
+              borderRadius: 6
+            }]
+          },
+          options: { 
+            indexAxis: 'y', responsive: true, maintainAspectRatio: false, 
+            plugins: { legend: { display: false } },
+            scales: { x: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } }, y: { grid: { display: false } } }
+          }
+        });
+
+        // 4. Project Performance Chart
+        const projectTotals = {};
+        data.forEach(p => {
+          if (p.status === 'paid') {
+            projectTotals[p.projectName] = (projectTotals[p.projectName] || 0) + p.amount;
+          }
+        });
+        const sortedProjects = Object.entries(projectTotals).sort((a,b) => b[1] - a[1]).slice(0, 5);
+        
+        if (projectChart) projectChart.destroy();
+        projectChart = new Chart(document.getElementById('chartProjects'), {
+          type: 'bar',
+          data: {
+            labels: sortedProjects.map(c => c[0]),
+            datasets: [{
+              label: 'Revenue',
+              data: sortedProjects.map(c => c[1]),
+              backgroundColor: '#2563eb',
+              borderRadius: 6
+            }]
+          },
+          options: { 
+            responsive: true, maintainAspectRatio: false, 
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } }, x: { grid: { display: false } } }
           }
         });
       }
 
-      // === LOAD EMPLOYEES FOR FILTER ===
-      async function loadEmployeesFilter() {
-        try {
-          const { data, error } = await supabase.from('employees').select('id, name').eq('status', 'active').order('name');
-          if (error) throw error;
-          employeesCache = data || [];
-          
-          const sel = document.getElementById('employeeFilter');
-          sel.innerHTML = '<option value="all">All Employees</option>' + 
-            employeesCache.map(e => `<option value="${e.id}">${e.name}</option>`).join('');
-        } catch (err) {
-          console.warn('Failed to load employees for filter:', err);
-        }
-      }
-
-      // === GENERATE REPORT ===
-      async function generateReport() {
-        if (isGen) return;
-        isGen = true;
-        const btn = document.getElementById('generateReportBtn');
-        const originalText = btn.textContent;
-        btn.textContent = 'Generating...';
-        btn.disabled = true;
-
-        try {
-          const type = document.getElementById('reportType').value;
-          const range = document.getElementById('reportRange').value;
-          const employeeId = document.getElementById('employeeFilter').value;
-          
-          let startDate, endDate;
-          if (range === 'custom') {
-            startDate = document.getElementById('startDate').value;
-            endDate = document.getElementById('endDate').value;
-            if (!startDate || !endDate) throw new Error('Please select both start and end dates');
-          } else {
-            const dates = getDateRange(parseInt(range));
-            startDate = dates.start;
-            endDate = dates.end;
-          }
-
-          // Show loading state
-          document.getElementById('statsGrid').style.display = 'grid';
-          document.getElementById('chartCard').style.display = 'block';
-          document.getElementById('tableBody').innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">⏳</div><p>Loading data...</p></div></td></tr>`;
-
-          // Fetch base data
-          const { data: projects, error: projErr } = await supabase.from('projects').select('*');
-          if (projErr) throw projErr;
-          
-          const { data: payments, error: payErr } = await supabase.from('payments').select('*');
-          if (payErr) throw payErr;
-          
-          const paid = (payments || []).filter(p => 
-            p.status === 'paid' && 
-            p.payment_date >= startDate && 
-            p.payment_date <= endDate
-          );
-          
-          const rev = paid.reduce((s, p) => s + (p.amount || 0), 0);
-          
-          let results = [], chartData = { labels: [], values: [] }, stats = { revenue: 0, projects: 0, payments: 0, avgValue: 0 };
-          
-          stats.revenue = rev;
-          stats.projects = (projects || []).filter(p => p.status === 'active').length;
-          stats.payments = payments?.length || 0;
-          stats.avgValue = stats.projects > 0 ? stats.revenue / stats.projects : 0;
-          
-          document.getElementById('statRevenue').textContent = formatUGX(stats.revenue);
-          document.getElementById('statProjects').textContent = stats.projects;
-          document.getElementById('statPayments').textContent = stats.payments;
-          document.getElementById('statAvgValue').textContent = formatUGX(stats.avgValue);
-
-          if (type === 'revenue') {
-            // Revenue by month
-            const monthly = {};
-            paid.forEach(p => {
-              const month = p.payment_date.substring(0, 7); // YYYY-MM
-              monthly[month] = (monthly[month] || 0) + p.amount;
-            });
-            
-            chartData.labels = Object.keys(monthly).map(m => new Date(m + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' }));
-            chartData.values = Object.values(monthly);
-            
-            results = Object.entries(monthly).map(([month, amount]) => ({
-              period: new Date(month + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
-              amount: formatUGX(amount),
-              usd: formatUSD(amount)
-            }));
-            
-            document.getElementById('tableTitle').textContent = 'Monthly Revenue';
-            renderTable(['Period', 'Amount (UGX)', 'Amount (USD)'], results);
-            
-          } else if (type === 'projects') {
-            // Filter by employee referral if selected
-            let filteredProjects = projects || [];
-            if (employeeId !== 'all') {
-              filteredProjects = filteredProjects.filter(p => p.referred_by_id === employeeId);
-            }
-            
-            chartData.labels = ['Active', 'Completed', 'On Hold'];
-            chartData.values = [
-              filteredProjects.filter(p => p.status === 'active').length,
-              filteredProjects.filter(p => p.status === 'completed').length,
-              filteredProjects.filter(p => p.status === 'on-hold').length
-            ];
-            
-            results = filteredProjects.map(p => ({
-              name: p.name || 'Untitled',
-              client: p.client || '—',
-              rate: formatUGX(p.monthly_rate),
-              duration: `${p.plan_months || 1} mo`,
-              status: p.status || 'unknown'
-            }));
-            
-            document.getElementById('tableTitle').textContent = employeeId !== 'all' ? `Projects Referred by ${employeesCache.find(e => e.id === employeeId)?.name || 'Employee'}` : 'Project Performance';
-            renderTable(['Project', 'Client', 'Monthly Rate', 'Duration', 'Status'], results);
-            
-          } else if (type === 'clients') {
-            // Client stats via JS merging (text-based client field)
-            const clientMap = {};
-            (projects || []).forEach(p => {
-              const client = p.client || 'Unknown';
-              if (!clientMap[client]) clientMap[client] = { name: client, count: 0, revenue: 0 };
-              clientMap[client].count++;
-            });
-            
-            paid.forEach(py => {
-              const proj = projects?.find(p => p.id === py.project_id);
-              if (proj?.client && clientMap[proj.client]) {
-                clientMap[proj.client].revenue += py.amount || 0;
-              }
-            });
-            
-            const clientData = Object.values(clientMap).sort((a, b) => b.revenue - a.revenue);
-            
-            chartData.labels = clientData.slice(0, 10).map(c => c.name);
-            chartData.values = clientData.slice(0, 10).map(c => c.revenue);
-            
-            results = clientData.map(c => ({
-              name: c.name,
-              projects: c.count,
-              revenue: formatUGX(c.revenue),
-              usd: formatUSD(c.revenue)
-            }));
-            
-            document.getElementById('tableTitle').textContent = 'Client Revenue';
-            renderTable(['Client', 'Projects', 'Revenue (UGX)', 'Revenue (USD)'], results);
-            
-          } else if (type === 'employees') {
-            // Employee referral report
-            document.getElementById('tableTitle').textContent = 'Employee Referral Performance';
-            
-            // Show employee filter
-            document.getElementById('employeeFilterGroup').style.display = 'block';
-            await loadEmployeesFilter();
-            
-            // Filter earnings by employee if selected
-            let earnings = await supabase.from('employee_earnings').select('*, projects(name, client)').eq('type', 'commission');
-            if (employeeId !== 'all') {
-              earnings = earnings.eq('employee_id', employeeId);
-            }
-            const { data: empEarnings, error: earnErr } = await earnings;
-            if (earnErr) throw earnErr;
-            
-            // Group by employee
-            const empMap = {};
-            (empEarnings || []).forEach(e => {
-              const empId = e.employee_id;
-              if (!empMap[empId]) {
-                const emp = employeesCache.find(em => em.id === empId);
-                empMap[empId] = { 
-                  name: emp?.name || 'Unknown', 
-                  count: 0, 
-                  total: 0,
-                  projects: new Set()
-                };
-              }
-              empMap[empId].count++;
-              empMap[empId].total += e.amount || 0;
-              if (e.project_id) empMap[empId].projects.add(e.project_id);
-            });
-            
-            const empData = Object.values(empMap).sort((a, b) => b.total - a.total);
-            
-            chartData.labels = empData.slice(0, 10).map(e => e.name);
-            chartData.values = empData.slice(0, 10).map(e => e.total);
-            
-            results = empData.map(e => ({
-              employee: e.name,
-              referrals: e.projects.size,
-              commissions: e.count,
-              earned: formatUGX(e.total),
-              usd: formatUSD(e.total)
-            }));
-            
-            renderTable(['Employee', 'Projects Referred', 'Commissions', 'Earned (UGX)', 'Earned (USD)'], results);
-            
-          } else if (type === 'payments') {
-            // Payment history
-            results = paid.map(p => {
-              const proj = projects?.find(pr => pr.id === p.project_id);
-              return {
-                date: new Date(p.payment_date).toLocaleDateString(),
-                project: proj?.name || 'Unknown',
-                client: proj?.client || '—',
-                amount: formatUGX(p.amount),
-                status: p.status
-              };
-            });
-            
-            document.getElementById('tableTitle').textContent = 'Payment History';
-            renderTable(['Date', 'Project', 'Client', 'Amount', 'Status'], results);
-          }
-          
-          // Render chart
-          drawChart(chartData.labels, chartData.values, type);
-          
-          showToast('Report generated successfully!');
-          
-        } catch (err) {
-          console.error('Report error:', err);
-          showToast('Failed to generate report: ' + err.message, 'error');
-          document.getElementById('statsGrid').style.display = 'none';
-          document.getElementById('chartCard').style.display = 'none';
-        } finally {
-          btn.textContent = originalText;
-          btn.disabled = false;
-          isGen = false;
-        }
-      }
-
-      // === EXPORT CSV ===
-      function exportCSV() {
-        const headers = Array.from(document.querySelectorAll('#tableHead th')).map(th => th.textContent);
-        const rows = Array.from(document.querySelectorAll('#tableBody tr')).map(tr => 
-          Array.from(tr.querySelectorAll('td')).map(td => td.textContent)
-        ).filter(row => row.length > 1 && !row[0].includes('No data'));
-        
-        if (rows.length === 0) {
-          showToast('No data to export', 'error');
+      function renderTable(data) {
+        const tbody = document.getElementById('reportTableBody');
+        if (!data.length) {
+          tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">📭</div><p>No records found for these filters.</p></div></td></tr>`;
           return;
         }
         
-        const csv = [headers, ...rows].map(row => row.map(cell => `"${cell.replace(/"/g, '""')}"`).join(',')).join('\n');
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `report-${new Date().toISOString().split('T')[0]}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
-        showToast('CSV exported successfully!');
-      }
-
-      // === DATE RANGE HELPER ===
-      function getDateRange(days) {
-        const end = new Date();
-        const start = new Date();
-        start.setDate(start.getDate() - days);
-        return { 
-          start: start.toISOString().split('T')[0], 
-          end: end.toISOString().split('T')[0] 
-        };
+        tbody.innerHTML = data.map(p => {
+          const statusBadge = p.status === 'paid' ? 'badge-green' : p.status === 'pending' ? 'badge-yellow' : 'badge-red';
+          return `<tr>
+            <td>${new Date(p.payment_date).toLocaleDateString()}</td>
+            <td><strong>${p.clientName}</strong></td>
+            <td>${p.projectName}</td>
+            <td style="font-size:.82rem">${p.period || '—'}</td>
+            <td><strong>${formatUGX(p.amount)}</strong></td>
+            <td><strong style="font-size:.82rem">${formatUSD(p.amount)}</strong></td>
+            <td><span class="badge ${statusBadge}"><span class="badge-dot"></span>${p.status}</span></td>
+          </tr>`;
+        }).join('');
       }
 
       // === EVENT LISTENERS ===
       document.getElementById('logoBtn').addEventListener('click', () => window.location.href = 'index.html');
-      
-      // Toggle custom date range
-      document.getElementById('reportRange').addEventListener('change', function() {
-        document.getElementById('customRange').style.display = this.value === 'custom' ? 'grid' : 'none';
+
+      // Quick Dates
+      document.querySelectorAll('#quickDates button').forEach(btn => {
+        btn.addEventListener('click', function() {
+          document.querySelectorAll('#quickDates button').forEach(b => b.classList.remove('active'));
+          this.classList.add('active');
+          
+          const range = this.dataset.range;
+          const today = new Date();
+          let from = '', to = getLocalDateString(today);
+          
+          if (range === 'today') {
+            from = to;
+          } else if (range === 'week') {
+            const d = new Date(today); d.setDate(d.getDate() - d.getDay());
+            from = getLocalDateString(d);
+          } else if (range === 'month') {
+            from = getLocalDateString(new Date(today.getFullYear(), today.getMonth(), 1));
+          } else if (range === 'last-month') {
+            const fromD = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+            const toD = new Date(today.getFullYear(), today.getMonth(), 0);
+            from = getLocalDateString(fromD); to = getLocalDateString(toD);
+          } else if (range === 'quarter') {
+            const qMonth = Math.floor(today.getMonth() / 3) * 3;
+            from = getLocalDateString(new Date(today.getFullYear(), qMonth, 1));
+          } else if (range === 'last-quarter') {
+            const qMonth = Math.floor(today.getMonth() / 3) * 3 - 3;
+            const fromD = new Date(today.getFullYear(), qMonth, 1);
+            const toD = new Date(today.getFullYear(), qMonth + 3, 0);
+            from = getLocalDateString(fromD); to = getLocalDateString(toD);
+          } else if (range === 'year') {
+            from = getLocalDateString(new Date(today.getFullYear(), 0, 1));
+          } else if (range === 'all') {
+            from = ''; to = '';
+          }
+          
+          document.getElementById('filterDateFrom').value = from;
+          document.getElementById('filterDateTo').value = to;
+          fetchReportData();
+        });
       });
-      
-      // Toggle employee filter visibility
-      document.getElementById('reportType').addEventListener('change', function() {
-        document.getElementById('employeeFilterGroup').style.display = this.value === 'employees' ? 'block' : 'none';
-        if (this.value === 'employees') loadEmployeesFilter();
+
+      // Filter Client -> Update Projects
+      document.getElementById('filterClient').addEventListener('change', function() {
+        const clientId = this.value;
+        const projSelect = document.getElementById('filterProject');
+        const filtered = clientId === 'all' ? allProjects : allProjects.filter(p => p.clientId === clientId);
+        projSelect.innerHTML = '<option value="all">All Projects</option>' + 
+          filtered.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
       });
-      
-      // Generate report button
-      document.getElementById('generateReportBtn').addEventListener('click', generateReport);
-      
-      // Export CSV button
-      document.getElementById('exportCsvBtn').addEventListener('click', exportCSV);
-      
-      // Auto-generate on load with default filters
-      setTimeout(generateReport, 300);
+
+      // Apply & Reset
+      document.getElementById('applyFilters').addEventListener('click', fetchReportData);
+      document.getElementById('resetFilters').addEventListener('click', () => {
+        document.querySelectorAll('#quickDates button').forEach(b => b.classList.remove('active'));
+        document.querySelector('#quickDates button[data-range="all"]').classList.add('active');
+        
+        document.getElementById('filterDateFrom').value = '';
+        document.getElementById('filterDateTo').value = '';
+        document.getElementById('filterClient').value = 'all';
+        document.getElementById('filterProject').innerHTML = '<option value="all">All Projects</option>' + 
+          allProjects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+        document.getElementById('filterStatus').value = 'all';
+        document.getElementById('filterMinAmt').value = '';
+        document.getElementById('filterMaxAmt').value = '';
+        
+        fetchReportData();
+      });
+
+      // Table Search
+      document.getElementById('tableSearch').addEventListener('input', function() {
+        const term = this.value.toLowerCase();
+        document.querySelectorAll('#reportTableBody tr').forEach(row => {
+          const text = row.textContent.toLowerCase();
+          row.style.display = text.includes(term) ? '' : 'none';
+        });
+      });
+
+      // Export CSV
+      document.getElementById('exportBtn').addEventListener('click', function() {
+        if (!currentFilteredData.length) {
+          showToast('No data to export', 'error');
+          return;
+        }
+        
+        const headers = ['Date', 'Client', 'Project', 'Period', 'Amount (UGX)', 'Amount (USD)', 'Status', 'Notes'];
+        const rows = currentFilteredData.map(p => [
+          p.payment_date,
+          p.clientName,
+          p.projectName,
+          p.period || '',
+          p.amount,
+          (p.amount * USD_RATE).toFixed(2),
+          p.status,
+          (p.notes || '').replace(/,/g, ';')
+        ]);
+        
+        const csvContent = [
+          headers.join(','),
+          ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+        ].join('\n');
+        
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `payment-report-${getLocalDateString()}.csv`;
+        link.click();
+        showToast('Report exported successfully!');
+      });
+
+      // Initialize
+      init();
     });
   })();
 </script>
