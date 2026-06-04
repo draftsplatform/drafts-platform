@@ -48,7 +48,6 @@
       position: relative; padding: 10px 18px; border: none; background: transparent;
       color: var(--text-secondary); font-size: .88rem; font-weight: 500;
       border-radius: var(--radius-sm); cursor: pointer; transition: var(--transition);
-      text-decoration: none;
     }
     .nav-btn:hover { background: var(--primary-glow); color: var(--primary); }
     .nav-btn.active { background: var(--primary-glow); color: var(--primary); font-weight: 600; }
@@ -66,7 +65,7 @@
     .page-title { font-size: 1.5rem; font-weight: 700; letter-spacing: -.3px; color: var(--text); }
     .page-desc { font-size: .85rem; color: var(--text-muted); margin-top: 2px; }
     
-    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border: none; border-radius: var(--radius-sm); font-size: .85rem; font-weight: 600; cursor: pointer; transition: var(--transition); pointer-events: auto; text-decoration: none; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border: none; border-radius: var(--radius-sm); font-size: .85rem; font-weight: 600; cursor: pointer; transition: var(--transition); pointer-events: auto; }
     .btn-primary { background: var(--primary); color: #fff; box-shadow: 0 2px 8px rgba(37,99,235,.2); }
     .btn-primary:hover { background: #1d4ed8; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37,99,235,.3); }
     .btn-outline { background: transparent; color: var(--text-secondary); border: 1px solid var(--border); }
@@ -90,6 +89,26 @@
     tr:last-child td { border-bottom: none; }
     tbody tr { transition: var(--transition); cursor: default; }
     tbody tr:hover { background: var(--card-hover); }
+    
+    /* 🚀 NEW: Row Highlighting by Status */
+    tbody tr[data-status="paid"] {
+      background-color: rgba(5, 150, 105, 0.05);
+    }
+    tbody tr[data-status="paid"]:hover {
+      background-color: rgba(5, 150, 105, 0.1);
+    }
+    tbody tr[data-status="overdue"] {
+      background-color: rgba(220, 38, 38, 0.06);
+    }
+    tbody tr[data-status="overdue"]:hover {
+      background-color: rgba(220, 38, 38, 0.12);
+    }
+    tbody tr[data-status="pending"] {
+      background-color: rgba(217, 119, 6, 0.05);
+    }
+    tbody tr[data-status="pending"]:hover {
+      background-color: rgba(217, 119, 6, 0.1);
+    }
     
     .empty-state { text-align: center; padding: 3rem 1rem; color: var(--text-muted); }
     .empty-icon { font-size: 3rem; margin-bottom: .75rem; opacity: .4; }
@@ -389,6 +408,7 @@
         }
       }
 
+      // 🚀 UPDATED: Smart filtering for projects dropdown
       async function loadClientProjects(clientId) {
         const projSelect = document.getElementById('payProject');
         if (!clientId) {
@@ -397,22 +417,82 @@
           return;
         }
         try {
-          const { data, error } = await supabase.from('projects')
+          // 1. Fetch all projects for this client
+          const { data: allProjs, error: projErr } = await supabase
+            .from('projects')
             .select('id, name, monthly_rate, start_date')
             .eq('client_id', clientId)
             .order('name');
-          if (error) throw error;
-          allProjects = data || [];
-          if (!allProjects.length) {
-            projSelect.innerHTML = '<option value="">No projects for this client</option>';
+            
+          if (projErr) throw projErr;
+          if (!allProjs || allProjs.length === 0) {
+            projSelect.innerHTML = '<option value="">No projects found</option>';
             projSelect.disabled = true;
             return;
           }
-          projSelect.innerHTML = '<option value="">Select a project...</option>' + 
-            allProjects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
-          projSelect.disabled = false;
+
+          const isEditing = !!document.getElementById('payId').value;
+          let eligibleProjects = allProjs;
+
+          // 2. If creating a NEW payment, filter out active/paid-up-to-date projects
+          if (!isEditing) {
+            const projectIds = allProjs.map(p => p.id);
+            const { data: allPayments, error: payErr } = await supabase
+              .from('payments')
+              .select('project_id, status, due_date, payment_date, created_at')
+              .in('project_id', projectIds);
+
+            // Group payments by project_id to find the latest one
+            const grouped = {};
+            (allPayments || []).forEach(p => {
+              const current = grouped[p.project_id];
+              if (!current) {
+                grouped[p.project_id] = p;
+              } else {
+                // Compare by payment_date, then created_at
+                const currDate = new Date(current.payment_date || current.created_at);
+                const newDate = new Date(p.payment_date || p.created_at);
+                if (newDate > currDate) {
+                  grouped[p.project_id] = p;
+                }
+              }
+            });
+
+            const today = getLocalDateString();
+            eligibleProjects = allProjs.filter(proj => {
+              const lastPay = grouped[proj.id];
+              
+              // If no payments exist, it needs its first payment -> include
+              if (!lastPay) return true;
+
+              // If the last payment is 'paid' and its due_date is in the future or today, 
+              // it means the project is active and paid up to date -> EXCLUDE
+              if (lastPay.status === 'paid' && lastPay.due_date && lastPay.due_date >= today) {
+                return false; 
+              }
+
+              // Otherwise (overdue, pending, or paid but due_date has passed) -> INCLUDE
+              return true;
+            });
+          }
+
+          // 3. Populate dropdown
+          if (eligibleProjects.length === 0) {
+            projSelect.innerHTML = '<option value="">All projects are up to date</option>';
+            projSelect.disabled = true;
+          } else {
+            projSelect.innerHTML = '<option value="">Select a project...</option>' +
+              eligibleProjects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+            projSelect.disabled = false;
+          }
+
+          // Update global allProjects for later use (like onProjectSelect)
+          allProjects = eligibleProjects;
+
         } catch (err) {
-          console.error('Failed to load projects:', err);
+          console.error('Failed to load filtered projects:', err);
+          projSelect.innerHTML = '<option value="">Error loading projects</option>';
+          projSelect.disabled = true;
         }
       }
 
