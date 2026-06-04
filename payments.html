@@ -26,11 +26,13 @@
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
       background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.5;
+      -webkit-tap-highlight-color: transparent;
     }
     ::-webkit-scrollbar { width:6px; }
     ::-webkit-scrollbar-track { background:transparent; }
     ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
     
+    /* HEADER */
     .header {
       position: sticky; top: 0; z-index: 100;
       display: flex; align-items: center; justify-content: space-between;
@@ -41,13 +43,14 @@
     }
     .logo { display: flex; align-items: center; gap: 16px; cursor: pointer; user-select: none; }
     .logo-img { height: 64px; width: auto; object-fit: contain; }
-    .logo-text { font-size: 1.6rem; font-weight: 800; letter-spacing: -.3px; color: var(--text); }
-    .logo-subtitle { font-size: .65rem; color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase; margin-top: -4px; }
+    
+    /* DESKTOP NAV */
     .nav { display: flex; gap: 4px; }
     .nav-btn {
       position: relative; padding: 10px 18px; border: none; background: transparent;
       color: var(--text-secondary); font-size: .88rem; font-weight: 500;
       border-radius: var(--radius-sm); cursor: pointer; transition: var(--transition);
+      text-decoration: none;
     }
     .nav-btn:hover { background: var(--primary-glow); color: var(--primary); }
     .nav-btn.active { background: var(--primary-glow); color: var(--primary); font-weight: 600; }
@@ -59,13 +62,58 @@
     .header-right { display: flex; align-items: center; gap: 12px; }
     .status-dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 8px rgba(5,150,105,.4); }
     .status-text { font-size: .75rem; color: var(--accent); font-weight: 600; }
+
+    /* 📱 MOBILE NAV TOGGLE */
+    .mobile-nav-toggle {
+      display: none; background: none; border: 1px solid var(--border);
+      font-size: 1.3rem; cursor: pointer; padding: 6px 10px;
+      color: var(--text); border-radius: var(--radius-sm);
+      transition: var(--transition); line-height: 1;
+    }
+    .mobile-nav-toggle:hover { background: var(--primary-glow); border-color: var(--primary); color: var(--primary); }
+
+    /* 📱 MOBILE NAV DRAWER */
+    .nav-drawer-overlay {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(15,23,42,.5); backdrop-filter: blur(4px);
+      z-index: 200; opacity: 0; transition: opacity .3s;
+    }
+    .nav-drawer-overlay.active { display: block; opacity: 1; }
+    .nav-drawer {
+      position: fixed; top: 0; left: -300px; width: 280px; height: 100vh; height: 100dvh;
+      background: var(--surface); z-index: 201;
+      transition: left .3s cubic-bezier(.4,0,.2,1);
+      box-shadow: 4px 0 32px rgba(0,0,0,.15);
+      padding: 1.5rem 1rem; display: flex; flex-direction: column; gap: 4px;
+      overflow-y: auto;
+    }
+    .nav-drawer.active { left: 0; }
+    .nav-drawer-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 8px 16px; border-bottom: 1px solid var(--border); margin-bottom: 8px;
+    }
+    .nav-drawer-title { font-size: 1rem; font-weight: 700; color: var(--text); }
+    .nav-drawer-close {
+      background: none; border: none; font-size: 1.4rem; cursor: pointer;
+      color: var(--text-muted); padding: 4px 8px; border-radius: var(--radius-sm);
+      transition: var(--transition); line-height: 1;
+    }
+    .nav-drawer-close:hover { background: var(--card-hover); color: var(--text); }
+    .nav-drawer .nav-btn {
+      display: flex; align-items: center; padding: 14px 16px;
+      font-size: .95rem; border-radius: var(--radius-sm); width: 100%; text-align: left;
+      text-decoration: none;
+    }
+    .nav-drawer .nav-btn.active::after { display: none; }
+    .nav-drawer .nav-btn.active { background: var(--primary); color: #fff; }
     
+    /* MAIN CONTENT */
     .main { padding: 2rem; max-width: 1440px; margin: 0 auto; }
     .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
     .page-title { font-size: 1.5rem; font-weight: 700; letter-spacing: -.3px; color: var(--text); }
     .page-desc { font-size: .85rem; color: var(--text-muted); margin-top: 2px; }
     
-    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border: none; border-radius: var(--radius-sm); font-size: .85rem; font-weight: 600; cursor: pointer; transition: var(--transition); pointer-events: auto; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border: none; border-radius: var(--radius-sm); font-size: .85rem; font-weight: 600; cursor: pointer; transition: var(--transition); pointer-events: auto; text-decoration: none;}
     .btn-primary { background: var(--primary); color: #fff; box-shadow: 0 2px 8px rgba(37,99,235,.2); }
     .btn-primary:hover { background: #1d4ed8; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37,99,235,.3); }
     .btn-outline { background: transparent; color: var(--text-secondary); border: 1px solid var(--border); }
@@ -90,25 +138,13 @@
     tbody tr { transition: var(--transition); cursor: default; }
     tbody tr:hover { background: var(--card-hover); }
     
-    /* 🚀 NEW: Row Highlighting by Status */
-    tbody tr[data-status="paid"] {
-      background-color: rgba(5, 150, 105, 0.05);
-    }
-    tbody tr[data-status="paid"]:hover {
-      background-color: rgba(5, 150, 105, 0.1);
-    }
-    tbody tr[data-status="overdue"] {
-      background-color: rgba(220, 38, 38, 0.06);
-    }
-    tbody tr[data-status="overdue"]:hover {
-      background-color: rgba(220, 38, 38, 0.12);
-    }
-    tbody tr[data-status="pending"] {
-      background-color: rgba(217, 119, 6, 0.05);
-    }
-    tbody tr[data-status="pending"]:hover {
-      background-color: rgba(217, 119, 6, 0.1);
-    }
+    /* Row Highlighting by Status */
+    tbody tr[data-status="paid"] { background-color: rgba(5, 150, 105, 0.05); }
+    tbody tr[data-status="paid"]:hover { background-color: rgba(5, 150, 105, 0.1); }
+    tbody tr[data-status="overdue"] { background-color: rgba(220, 38, 38, 0.06); }
+    tbody tr[data-status="overdue"]:hover { background-color: rgba(220, 38, 38, 0.12); }
+    tbody tr[data-status="pending"] { background-color: rgba(217, 119, 6, 0.05); }
+    tbody tr[data-status="pending"]:hover { background-color: rgba(217, 119, 6, 0.1); }
     
     .empty-state { text-align: center; padding: 3rem 1rem; color: var(--text-muted); }
     .empty-icon { font-size: 3rem; margin-bottom: .75rem; opacity: .4; }
@@ -155,18 +191,9 @@
     .gap-1 { gap: .5rem; }
     .wrap { flex-wrap: wrap; }
     
-    @media (max-width: 1024px) {
-      .header { padding: 0 1rem; height: 80px; }
-      .logo-img { height: 52px; }
-      .nav { gap: 0; flex-wrap: wrap; }
-      .nav-btn { padding: 8px 12px; font-size: .78rem; }
-      .logo-text { font-size: 1.2rem; }
-      .logo-subtitle { display: none; }
-      .main { padding: 1rem; }
-    }
     .calc-hint { font-size: 0.75rem; color: var(--primary); font-weight: 600; margin-top: 4px; }
 
-    /* 🚀 NEW: Print Styles for Receipt */
+    /* Print Styles for Receipt */
     @media print {
       body * { visibility: hidden; }
       #receiptModal, #receiptModal * { visibility: visible; }
@@ -175,6 +202,147 @@
         background: white; box-shadow: none; border: none; max-height: none; 
       }
       .modal-header, .modal-footer { display: none !important; }
+    }
+
+    /* 📱 RESPONSIVE: TABLET */
+    @media (max-width: 1024px) {
+      .header { padding: 0 1rem; height: 80px; }
+      .logo-img { height: 52px; }
+      .nav { gap: 0; flex-wrap: wrap; }
+      .nav-btn { padding: 8px 12px; font-size: .78rem; }
+      .main { padding: 1rem; }
+    }
+
+    /* 📱 RESPONSIVE: MOBILE */
+    @media (max-width: 768px) {
+      .header { padding: 0 1rem; height: 64px; }
+      .logo-img { height: 44px; }
+      .nav { display: none; }
+      .mobile-nav-toggle { display: flex; align-items: center; justify-content: center; }
+      .main { padding: 1rem; padding-bottom: 2rem; }
+      
+      .page-header { 
+        margin-bottom: 1rem; 
+        flex-direction: column; 
+        align-items: flex-start; 
+      }
+      .page-title { font-size: 1.25rem; }
+      .page-desc { font-size: .78rem; }
+      .btn { padding: 8px 16px; font-size: .8rem; }
+      
+      /* Header buttons full width */
+      .page-header > div:last-child {
+        width: 100%;
+        display: flex;
+        gap: 0.5rem;
+      }
+      .page-header .form-select { flex: 1; }
+      .page-header .btn { flex-shrink: 0; }
+
+      /* Tabs scrollable */
+      .tabs { 
+        width: 100%; 
+        overflow-x: auto; 
+        white-space: nowrap; 
+        margin-bottom: 1rem; 
+        -webkit-overflow-scrolling: touch;
+      }
+      .tabs::-webkit-scrollbar { display: none; }
+      .tab-btn { flex-shrink: 0; }
+
+      /* Modal full screen on mobile */
+      #paymentModal .modal, #receiptModal .modal {
+        width: 100% !important; max-width: 100% !important; 
+        height: 100dvh !important; max-height: 100dvh !important; 
+        border-radius: 0 !important; border: none !important;
+      }
+
+      /* 📱 MOBILE TABLE TO CARDS */
+      .table-wrapper {
+        border: none;
+        background: transparent;
+        overflow: visible;
+      }
+      .table-wrapper table, 
+      .table-wrapper thead, 
+      .table-wrapper tbody, 
+      .table-wrapper th, 
+      .table-wrapper td, 
+      .table-wrapper tr {
+        display: block;
+      }
+      .table-wrapper thead tr {
+        position: absolute; top: -9999px; left: -9999px;
+      }
+      .table-wrapper tr {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        margin-bottom: 1rem;
+        background: var(--surface);
+        padding: 1rem;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+      }
+      
+      /* Status colors on cards */
+      .table-wrapper tr[data-status="paid"] { background-color: rgba(5, 150, 105, 0.05); border-left: 4px solid var(--accent); }
+      .table-wrapper tr[data-status="overdue"] { background-color: rgba(220, 38, 38, 0.06); border-left: 4px solid var(--danger); }
+      .table-wrapper tr[data-status="pending"] { background-color: rgba(217, 119, 6, 0.05); border-left: 4px solid var(--warning); }
+      
+      .table-wrapper td {
+        border: none;
+        position: relative;
+        padding: 8px 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        text-align: right;
+      }
+      .table-wrapper td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: var(--text-muted);
+        font-size: .72rem;
+        text-transform: uppercase;
+        letter-spacing: .5px;
+        flex-shrink: 0;
+        margin-right: 1rem;
+        text-align: left;
+      }
+      
+      /* Project Cell */
+      .table-wrapper td.project-cell {
+        flex-direction: column;
+        align-items: flex-start;
+        border-bottom: 1px solid var(--border);
+        padding-bottom: 12px;
+        margin-bottom: 8px;
+      }
+      .table-wrapper td.project-cell::before { margin-bottom: 6px; }
+      .table-wrapper td.project-cell strong { font-size: 1rem; color: var(--text); }
+      
+      /* Amount Cell */
+      .table-wrapper td.amount-cell {
+        flex-direction: column;
+        align-items: flex-end;
+        justify-content: center;
+      }
+      .table-wrapper td.amount-cell strong { font-size: 1.05rem; color: var(--text); }
+
+      /* Actions Cell */
+      .table-wrapper td.actions-cell {
+        justify-content: flex-end;
+        border-top: 1px solid var(--border);
+        margin-top: 8px;
+        padding-top: 12px;
+      }
+      .table-wrapper td.actions-cell::before { display: none; }
+    }
+
+    /* 📱 VERY SMALL MOBILE */
+    @media (max-width: 380px) {
+      .main { padding: .75rem; }
+      .page-title { font-size: 1.1rem; }
     }
   </style>
 </head>
@@ -192,12 +360,31 @@
     <a href="reports.html" class="nav-btn">Reports</a>
     <a href="performance.html" class="nav-btn">Performance</a>
     <a href="finance.html" class="nav-btn">Finance</a>
+    <a href="employees.html" class="nav-btn">Employees</a>
   </nav>
   <div class="header-right">
+    <button class="mobile-nav-toggle" id="mobileNavToggle" aria-label="Open navigation menu">☰</button>
     <div class="status-dot"></div>
     <span class="status-text">Online</span>
   </div>
 </header>
+
+<!-- 📱 MOBILE NAV DRAWER -->
+<div class="nav-drawer-overlay" id="navDrawerOverlay"></div>
+<div class="nav-drawer" id="navDrawer" role="dialog" aria-label="Navigation menu">
+  <div class="nav-drawer-header">
+    <span class="nav-drawer-title">Menu</span>
+    <button class="nav-drawer-close" id="navDrawerClose" aria-label="Close menu">✕</button>
+  </div>
+  <a href="index.html" class="nav-btn">📊 Dashboard</a>
+  <a href="projects.html" class="nav-btn">📁 Projects</a>
+  <a href="payments.html" class="nav-btn active">💳 Payments</a>
+  <a href="clients.html" class="nav-btn">👥 Clients</a>
+  <a href="reports.html" class="nav-btn">📈 Reports</a>
+  <a href="performance.html" class="nav-btn">⚡ Performance</a>
+  <a href="finance.html" class="nav-btn">💰 Finance</a>
+  <a href="employees.html" class="nav-btn">🧑‍💼 Employees</a>
+</div>
 
 <div class="toast-container" id="toastContainer"></div>
 
@@ -226,18 +413,17 @@
     <table>
       <thead>
         <tr>
-          <th>Date</th>
           <th>Project</th>
-          <th>Period</th>
+          <th>Date</th>
           <th>Due Date</th>
-          <th>Amount (UGX)</th>
-          <th>Amount (USD)</th>
+          <th>Period</th>
+          <th>Amount</th>
           <th>Status</th>
           <th>Actions</th>
         </tr>
       </thead>
       <tbody id="paymentsTable">
-        <tr><td colspan="8"><div class="empty-state"><div class="empty-icon">💳</div><p>Loading payments...</p></div></td></tr>
+        <tr><td colspan="7"><div class="empty-state"><div class="empty-icon">💳</div><p>Loading payments...</p></div></td></tr>
       </tbody>
     </table>
   </div>
@@ -318,7 +504,7 @@
   </div>
 </div>
 
-<!-- 🚀 NEW: Receipt Modal -->
+<!-- Receipt Modal -->
 <div class="modal-overlay" id="receiptModal">
   <div class="modal" style="max-width: 550px;">
     <div class="modal-header">
@@ -357,12 +543,40 @@
       window.baseDueDateForCalc = null;
       window.startPeriodNum = 1;
 
+      // === MOBILE NAV DRAWER ===
+      const navToggle = document.getElementById('mobileNavToggle');
+      const navDrawer = document.getElementById('navDrawer');
+      const navOverlay = document.getElementById('navDrawerOverlay');
+      const navClose = document.getElementById('navDrawerClose');
+
+      function openDrawer() {
+        navDrawer.classList.add('active');
+        navOverlay.classList.add('active');
+        document.body.style.overflow = 'hidden';
+      }
+      function closeDrawer() {
+        navDrawer.classList.remove('active');
+        navOverlay.classList.remove('active');
+        document.body.style.overflow = '';
+      }
+
+      navToggle.addEventListener('click', openDrawer);
+      navClose.addEventListener('click', closeDrawer);
+      navOverlay.addEventListener('click', closeDrawer);
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
+
       // === UTILS ===
+      function escapeHtml(str) { 
+        if(!str) return ''; 
+        return String(str).replace(/[&<>"']/g, function(m){
+          if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; 
+          if(m==='"') return '&quot;'; if(m==="'") return '&#039;'; return m;
+        }); 
+      }
       function getLocalDateString(date = new Date()) {
         const offset = date.getTimezoneOffset();
         return new Date(date.getTime() - offset * 60000).toISOString().split('T')[0];
       }
-
       function generateId() {
         if (crypto?.randomUUID) return crypto.randomUUID();
         return 'id-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
@@ -394,21 +608,14 @@
 
       async function loadClientsDropdown() {
         try {
-          const { data, error } = await supabase
-            .from('clients')
-            .select('id, name')
-            .in('status', ['active', 'prospect']) 
-            .order('name');
+          const { data, error } = await supabase.from('clients').select('id, name').in('status', ['active', 'prospect']).order('name');
           if (error) throw error;
           const sel = document.getElementById('payClient');
           sel.innerHTML = '<option value="">Select a client...</option>' + 
-            (data || []).map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-        } catch (err) {
-          console.error('Failed to load clients:', err);
-        }
+            (data || []).map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+        } catch (err) { console.error('Failed to load clients:', err); }
       }
 
-      // 🚀 UPDATED: Smart filtering for projects dropdown
       async function loadClientProjects(clientId) {
         const projSelect = document.getElementById('payProject');
         if (!clientId) {
@@ -417,13 +624,7 @@
           return;
         }
         try {
-          // 1. Fetch all projects for this client
-          const { data: allProjs, error: projErr } = await supabase
-            .from('projects')
-            .select('id, name, monthly_rate, start_date')
-            .eq('client_id', clientId)
-            .order('name');
-            
+          const { data: allProjs, error: projErr } = await supabase.from('projects').select('id, name, monthly_rate, start_date').eq('client_id', clientId).order('name');
           if (projErr) throw projErr;
           if (!allProjs || allProjs.length === 0) {
             projSelect.innerHTML = '<option value="">No projects found</option>';
@@ -434,61 +635,39 @@
           const isEditing = !!document.getElementById('payId').value;
           let eligibleProjects = allProjs;
 
-          // 2. If creating a NEW payment, filter out active/paid-up-to-date projects
           if (!isEditing) {
             const projectIds = allProjs.map(p => p.id);
-            const { data: allPayments, error: payErr } = await supabase
-              .from('payments')
-              .select('project_id, status, due_date, payment_date, created_at')
-              .in('project_id', projectIds);
+            const { data: allPayments, error: payErr } = await supabase.from('payments').select('project_id, status, due_date, payment_date, created_at').in('project_id', projectIds);
 
-            // Group payments by project_id to find the latest one
             const grouped = {};
             (allPayments || []).forEach(p => {
               const current = grouped[p.project_id];
-              if (!current) {
-                grouped[p.project_id] = p;
-              } else {
-                // Compare by payment_date, then created_at
+              if (!current) grouped[p.project_id] = p;
+              else {
                 const currDate = new Date(current.payment_date || current.created_at);
                 const newDate = new Date(p.payment_date || p.created_at);
-                if (newDate > currDate) {
-                  grouped[p.project_id] = p;
-                }
+                if (newDate > currDate) grouped[p.project_id] = p;
               }
             });
 
             const today = getLocalDateString();
             eligibleProjects = allProjs.filter(proj => {
               const lastPay = grouped[proj.id];
-              
-              // If no payments exist, it needs its first payment -> include
               if (!lastPay) return true;
-
-              // If the last payment is 'paid' and its due_date is in the future or today, 
-              // it means the project is active and paid up to date -> EXCLUDE
-              if (lastPay.status === 'paid' && lastPay.due_date && lastPay.due_date >= today) {
-                return false; 
-              }
-
-              // Otherwise (overdue, pending, or paid but due_date has passed) -> INCLUDE
+              if (lastPay.status === 'paid' && lastPay.due_date && lastPay.due_date >= today) return false; 
               return true;
             });
           }
 
-          // 3. Populate dropdown
           if (eligibleProjects.length === 0) {
             projSelect.innerHTML = '<option value="">All projects are up to date</option>';
             projSelect.disabled = true;
           } else {
             projSelect.innerHTML = '<option value="">Select a project...</option>' +
-              eligibleProjects.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
+              eligibleProjects.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
             projSelect.disabled = false;
           }
-
-          // Update global allProjects for later use (like onProjectSelect)
           allProjects = eligibleProjects;
-
         } catch (err) {
           console.error('Failed to load filtered projects:', err);
           projSelect.innerHTML = '<option value="">Error loading projects</option>';
@@ -498,7 +677,6 @@
 
       async function onProjectSelect(projectId) {
         if (document.getElementById('payId').value) return;
-
         const project = allProjects.find(p => p.id === projectId);
         if (!project) return;
         
@@ -506,56 +684,39 @@
         document.getElementById('payMonths').value = 0;
         
         try {
-          const { data: lastPay } = await supabase.from('payments')
-            .select('due_date, period_number')
-            .eq('project_id', projectId)
-            .order('period_number', { ascending: false })
-            .limit(1);
-          
+          const { data: lastPay } = await supabase.from('payments').select('due_date, period_number').eq('project_id', projectId).order('period_number', { ascending: false }).limit(1);
           const lastPayData = lastPay && lastPay.length > 0 ? lastPay[0] : null;
           window.startPeriodNum = lastPayData ? (lastPayData.period_number || 0) + 1 : 1;
           
-          if (lastPayData && lastPayData.due_date) {
-            window.baseDueDateForCalc = lastPayData.due_date;
-          } else if (project.start_date) {
-            window.baseDueDateForCalc = project.start_date;
-          } else {
-            window.baseDueDateForCalc = getLocalDateString();
-          }
+          if (lastPayData && lastPayData.due_date) window.baseDueDateForCalc = lastPayData.due_date;
+          else if (project.start_date) window.baseDueDateForCalc = project.start_date;
+          else window.baseDueDateForCalc = getLocalDateString();
+          
           updateAllCalculations();
-        } catch (err) {
-          console.error('Error auto-filling:', err);
-        }
+        } catch (err) { console.error('Error auto-filling:', err); }
       }
 
       function updateAllCalculations() {
         const rate = window.currentProjectRate || 0;
         const months = parseInt(document.getElementById('payMonths').value) || 0;
         const total = rate * months;
-        
         document.getElementById('payAmount').value = total;
         
-        if (months === 0) {
-          document.getElementById('amountCalcHint').textContent = 'Select months to calculate total';
-        } else if (rate > 0) {
-          document.getElementById('amountCalcHint').textContent = `${formatUGX(rate)} × ${months} month(s) = ${formatUGX(total)}`;
-        } else {
-          document.getElementById('amountCalcHint').textContent = '';
-        }
+        if (months === 0) document.getElementById('amountCalcHint').textContent = 'Select months to calculate total';
+        else if (rate > 0) document.getElementById('amountCalcHint').textContent = `${formatUGX(rate)} × ${months} month(s) = ${formatUGX(total)}`;
+        else document.getElementById('amountCalcHint').textContent = '';
         
         const startNum = window.startPeriodNum || 1;
-        if (months === 0) {
-          document.getElementById('payPeriod').value = '—';
-        } else {
+        if (months === 0) document.getElementById('payPeriod').value = '—';
+        else {
           const endNum = startNum + months - 1;
           document.getElementById('payPeriod').value = months > 1 ? `Months ${startNum}-${endNum}` : `Month ${startNum}`;
         }
         
-        // 🚀 UPDATED: Due date calculates from Payment Date (or base date if empty)
         const paymentDateVal = document.getElementById('payPaymentDate').value;
         const baseDateStr = paymentDateVal || window.baseDueDateForCalc || getLocalDateString();
         const d = new Date(baseDateStr + 'T00:00:00');
-        d.setMonth(d.getMonth() + months); // Adds exactly 'months' to the date
+        d.setMonth(d.getMonth() + months); 
         document.getElementById('payDueDate').value = getLocalDateString(d);
       }
 
@@ -569,7 +730,7 @@
           const tbody = document.getElementById('paymentsTable');
           
           if (error) {
-            tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">⚠️</div><p>Failed to load</p></div></td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">⚠️</div><p>Failed to load</p></div></td></tr>`;
             return;
           }
           
@@ -585,7 +746,7 @@
             sel.innerHTML = '<option value="all">All Projects</option>' + 
               (projects || []).map(p => {
                 const cName = clientMap[p.client_id] || p.client || '';
-                return `<option value="${p.id}" ${currentVal === p.id ? 'selected' : ''}>${p.name} ${cName ? `(${cName})` : ''}</option>`;
+                return `<option value="${p.id}" ${currentVal === p.id ? 'selected' : ''}>${escapeHtml(p.name)} ${cName ? `(${escapeHtml(cName)})` : ''}</option>`;
               }).join('');
           } catch (e) { }
 
@@ -595,7 +756,7 @@
           });
 
           if (!payments || payments.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">💳</div><p>No payment records found.</p></div></td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">💳</div><p>No payment records found.</p></div></td></tr>`;
             return;
           }
           
@@ -603,17 +764,24 @@
             const proj = pMap[p.project_id] || {};
             const statusBadge = p.status === 'paid' ? 'badge-green' : p.status === 'pending' ? 'badge-yellow' : 'badge-red';
             return `<tr data-status="${p.status}">
-              <td>${new Date(p.payment_date).toLocaleDateString()}</td>
-              <td><strong>${proj.name || 'Unknown'}</strong><br><span class="text-muted" style="font-size:.75rem">${proj.clientName || ''}</span></td>
-              <td style="font-size:.82rem">${p.period || '—'}</td>
-              <td style="font-size:.82rem">${p.due_date ? new Date(p.due_date).toLocaleDateString() : '—'}</td>
-              <td><strong>${formatUGX(p.amount)}</strong></td>
-              <td><strong style="font-size:.82rem">${formatUSD(p.amount)}</strong></td>
-              <td><span class="badge ${statusBadge}"><span class="badge-dot"></span>${p.status}</span></td>
-              <td class="flex gap-1 wrap">
-                <button class="btn btn-sm btn-outline receipt-btn" data-id="${p.id}" style="color: var(--accent); border-color: var(--accent);">🧾 Receipt</button>
-                <button class="btn btn-sm btn-outline edit-btn" data-id="${p.id}">Edit</button>
-                <button class="btn btn-sm btn-outline text-red delete-btn" data-id="${p.id}">Delete</button>
+              <td class="project-cell" data-label="Project">
+                <div><strong>${escapeHtml(proj.name || 'Unknown')}</strong></div>
+                <div class="text-muted" style="font-size:.75rem">${escapeHtml(proj.clientName || '')}</div>
+              </td>
+              <td data-label="Date">${new Date(p.payment_date).toLocaleDateString()}</td>
+              <td data-label="Due Date">${p.due_date ? new Date(p.due_date).toLocaleDateString() : '—'}</td>
+              <td data-label="Period">${escapeHtml(p.period || '—')}</td>
+              <td class="amount-cell" data-label="Amount">
+                <div><strong>${formatUGX(p.amount)}</strong></div>
+                <div style="font-size:.75rem; color: var(--text-muted);">${formatUSD(p.amount)}</div>
+              </td>
+              <td data-label="Status"><span class="badge ${statusBadge}"><span class="badge-dot"></span>${p.status}</span></td>
+              <td class="actions-cell">
+                <div class="flex gap-1 wrap" style="justify-content: flex-end;">
+                  <button class="btn btn-sm btn-outline receipt-btn" data-id="${p.id}" style="color: var(--accent); border-color: var(--accent);">🧾 Receipt</button>
+                  <button class="btn btn-sm btn-outline edit-btn" data-id="${p.id}">Edit</button>
+                  <button class="btn btn-sm btn-outline text-red delete-btn" data-id="${p.id}">Del</button>
+                </div>
               </td>
             </tr>`;
           }).join('');
@@ -624,7 +792,6 @@
         }
       }
 
-      // 🚀 NEW: Receipt Generation Logic
       async function showReceipt(paymentId) {
         try {
           const { data: payment, error } = await supabase.from('payments').select('*').eq('id', paymentId).single();
@@ -642,9 +809,9 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; font-size: 0.85rem;">
               <div>
                 <p style="color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 4px;">Billed To</p>
-                <p style="font-weight: 600; font-size: 0.95rem;">${client?.name || 'Unknown Client'}</p>
-                <p style="color: var(--text-secondary);">${client?.email || ''}</p>
-                <p style="color: var(--text-secondary);">${client?.phone || ''}</p>
+                <p style="font-weight: 600; font-size: 0.95rem;">${escapeHtml(client?.name || 'Unknown Client')}</p>
+                <p style="color: var(--text-secondary);">${escapeHtml(client?.email || '')}</p>
+                <p style="color: var(--text-secondary);">${escapeHtml(client?.phone || '')}</p>
               </div>
               <div style="text-align: right;">
                 <p style="color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 4px;">Details</p>
@@ -663,8 +830,8 @@
               <tbody>
                 <tr>
                   <td style="padding: 14px 10px; border-bottom: 1px solid var(--border);">
-                    <strong style="font-size: 0.95rem;">${project?.name || 'Project Service'}</strong><br>
-                    <span style="color: var(--text-muted); font-size: 0.78rem;">${payment.period || 'No period specified'} (${payment.months_covered || 1} month(s))</span>
+                    <strong style="font-size: 0.95rem;">${escapeHtml(project?.name || 'Project Service')}</strong><br>
+                    <span style="color: var(--text-muted); font-size: 0.78rem;">${escapeHtml(payment.period || 'No period specified')} (${payment.months_covered || 1} month(s))</span>
                   </td>
                   <td style="padding: 14px 10px; text-align: right; border-bottom: 1px solid var(--border); font-weight: 600; font-size: 0.95rem;">
                     ${formatUGX(payment.amount)}
@@ -682,7 +849,7 @@
                 </tr>
               </tfoot>
             </table>
-            ${payment.notes ? `<div style="background: var(--card-hover); padding: 12px; border-radius: 8px; font-size: 0.8rem; color: var(--text-secondary); border-left: 3px solid var(--primary);"><strong>Notes:</strong> ${payment.notes}</div>` : ''}
+            ${payment.notes ? `<div style="background: var(--card-hover); padding: 12px; border-radius: 8px; font-size: 0.8rem; color: var(--text-secondary); border-left: 3px solid var(--primary);"><strong>Notes:</strong> ${escapeHtml(payment.notes)}</div>` : ''}
             <div style="text-align: center; margin-top: 2rem; color: var(--text-muted); font-size: 0.75rem; border-top: 1px dashed var(--border); padding-top: 1rem;">
               <p style="font-weight: 600; color: var(--text); margin-bottom: 4px;">Thank you for your business!</p>
               <p>Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
@@ -721,11 +888,8 @@
           const savedMonths = payment.months_covered;
           const inferredMonths = rate > 0 ? Math.round(payment.amount / rate) : 1;
           let finalMonths = 1;
-          if (savedMonths !== null && savedMonths !== undefined) {
-            finalMonths = savedMonths;
-          } else if (inferredMonths > 0) {
-            finalMonths = inferredMonths;
-          }
+          if (savedMonths !== null && savedMonths !== undefined) finalMonths = savedMonths;
+          else if (inferredMonths > 0) finalMonths = inferredMonths;
           document.getElementById('payMonths').value = finalMonths;
           
           document.getElementById('payPaymentDate').value = payment.payment_date || '';
@@ -735,11 +899,7 @@
 
           window.startPeriodNum = payment.period_number || 1;
           if (window.startPeriodNum > 1) {
-            const { data: prevPay } = await supabase.from('payments')
-              .select('due_date')
-              .eq('project_id', payment.project_id)
-              .eq('period_number', window.startPeriodNum - 1)
-              .single();
+            const { data: prevPay } = await supabase.from('payments').select('due_date').eq('project_id', payment.project_id).eq('period_number', window.startPeriodNum - 1).single();
             window.baseDueDateForCalc = (prevPay && prevPay.due_date) ? prevPay.due_date : (project.start_date || getLocalDateString());
           } else {
             window.baseDueDateForCalc = project.start_date || getLocalDateString();
@@ -812,8 +972,6 @@
       document.getElementById('payClient').addEventListener('change', function() { loadClientProjects(this.value); });
       document.getElementById('payProject').addEventListener('change', function() { onProjectSelect(this.value); });
       document.getElementById('payMonths').addEventListener('input', updateAllCalculations);
-      
-      // 🚀 NEW: Recalculate due date if payment date is manually changed
       document.getElementById('payPaymentDate').addEventListener('change', updateAllCalculations);
 
       function resetPaymentForm() {
@@ -853,11 +1011,7 @@
           const projectId = document.getElementById('payProject').value;
           if (!projectId) throw new Error('Please select a project');
           
-          const { data: pays } = await supabase.from('payments')
-            .select('period_number')
-            .eq('project_id', projectId)
-            .order('period_number', { ascending: false })
-            .limit(1);
+          const { data: pays } = await supabase.from('payments').select('period_number').eq('project_id', projectId).order('period_number', { ascending: false }).limit(1);
           const nextPeriodNum = (pays && pays.length > 0) ? (pays[0].period_number || 0) + 1 : 1;
 
           const paymentData = {
@@ -872,9 +1026,7 @@
             notes: document.getElementById('payNotes').value.trim()
           };
           
-          if (!paymentData.amount || paymentData.amount <= 0) {
-            throw new Error('Please select at least 1 month to calculate a valid amount.');
-          }
+          if (!paymentData.amount || paymentData.amount <= 0) throw new Error('Please select at least 1 month to calculate a valid amount.');
           if (!paymentData.due_date) throw new Error('Due date is required');
           
           let error;
