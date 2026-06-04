@@ -282,6 +282,7 @@
         padding: 1rem;
         box-shadow: var(--shadow);
         overflow: hidden;
+        position: relative; /* Added for checkbox positioning */
       }
       
       /* Status colors on cards */
@@ -310,6 +311,19 @@
         text-align: left;
       }
       
+      /* Mobile Checkbox Positioning */
+      .table-wrapper td.checkbox-cell {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        padding: 0;
+        width: auto;
+        z-index: 2;
+      }
+      .table-wrapper td.checkbox-cell::before {
+        display: none;
+      }
+      
       /* Project Cell */
       .table-wrapper td.project-cell {
         flex-direction: column;
@@ -317,6 +331,7 @@
         border-bottom: 1px solid var(--border);
         padding-bottom: 12px;
         margin-bottom: 8px;
+        padding-right: 40px; /* Space for checkbox */
       }
       .table-wrapper td.project-cell::before { margin-bottom: 6px; }
       .table-wrapper td.project-cell strong { font-size: 1rem; color: var(--text); }
@@ -398,6 +413,9 @@
       <select class="form-select" style="width:auto" id="paymentFilter">
         <option value="all">All Projects</option>
       </select>
+      <button class="btn btn-outline" id="combinedReceiptBtn" disabled style="color: var(--accent); border-color: var(--accent);">
+        🧾 Combined Receipt (<span id="selectedCount">0</span>)
+      </button>
       <button class="btn btn-primary" id="newPaymentBtn">＋ Record Payment</button>
     </div>
   </div>
@@ -413,6 +431,7 @@
     <table>
       <thead>
         <tr>
+          <th style="width: 40px; text-align: center;"><input type="checkbox" id="selectAllCheckbox" style="cursor: pointer; width: 16px; height: 16px;" /></th>
           <th>Project</th>
           <th>Date</th>
           <th>Due Date</th>
@@ -423,7 +442,7 @@
         </tr>
       </thead>
       <tbody id="paymentsTable">
-        <tr><td colspan="7"><div class="empty-state"><div class="empty-icon">💳</div><p>Loading payments...</p></div></td></tr>
+        <tr><td colspan="8"><div class="empty-state"><div class="empty-icon">💳</div><p>Loading payments...</p></div></td></tr>
       </tbody>
     </table>
   </div>
@@ -508,7 +527,7 @@
 <div class="modal-overlay" id="receiptModal">
   <div class="modal" style="max-width: 550px;">
     <div class="modal-header">
-      <h3 class="modal-title">Payment Receipt</h3>
+      <h3 class="modal-title" id="receiptModalTitle">Payment Receipt</h3>
       <button class="modal-close" id="closeReceiptModal">✕</button>
     </div>
     <div class="modal-body" id="receiptContent">
@@ -538,6 +557,9 @@
       const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
       let isSaving = false;
       let allProjects = []; 
+      
+      // State for combined receipt
+      let selectedPaymentIds = new Set();
       
       window.currentProjectRate = 0;
       window.baseDueDateForCalc = null;
@@ -604,6 +626,166 @@
           const target = statusMap[tab];
           row.style.display = status === target ? '' : 'none';
         });
+      }
+
+      // === COMBINED RECEIPT LOGIC ===
+      function updateCombinedReceiptBtn() {
+        const btn = document.getElementById('combinedReceiptBtn');
+        const count = selectedPaymentIds.size;
+        document.getElementById('selectedCount').textContent = count;
+        btn.disabled = count === 0;
+      }
+
+      function updateSelectAllCheckbox() {
+        const selectAll = document.getElementById('selectAllCheckbox');
+        const checkboxes = document.querySelectorAll('.row-checkbox');
+        if (checkboxes.length === 0) { selectAll.checked = false; return; }
+        selectAll.checked = Array.from(checkboxes).every(cb => cb.checked);
+      }
+
+      document.getElementById('selectAllCheckbox').addEventListener('change', function() {
+        const checkboxes = document.querySelectorAll('.row-checkbox');
+        checkboxes.forEach(cb => {
+          cb.checked = this.checked;
+          if (this.checked) selectedPaymentIds.add(cb.dataset.id);
+          else selectedPaymentIds.delete(cb.dataset.id);
+        });
+        updateCombinedReceiptBtn();
+      });
+
+      document.getElementById('combinedReceiptBtn').addEventListener('click', async () => {
+        if (selectedPaymentIds.size === 0) return;
+        await showCombinedReceipt(Array.from(selectedPaymentIds));
+      });
+
+      async function showCombinedReceipt(paymentIds) {
+        try {
+          const { data: payments, error } = await supabase.from('payments').select('*').in('id', paymentIds);
+          if (error || !payments) { showToast('Failed to load selected payments', 'error'); return; }
+
+          const projectIds = [...new Set(payments.map(p => p.project_id))];
+          const { data: projects } = await supabase.from('projects').select('id, name, client_id, monthly_rate').in('id', projectIds);
+          
+          const clientIds = [...new Set(projects.map(p => p.client_id))];
+          const { data: clients } = await supabase.from('clients').select('id, name, email, phone').in('id', clientIds);
+
+          const clientMap = {};
+          (clients || []).forEach(c => clientMap[c.id] = c);
+          const projectMap = {};
+          (projects || []).forEach(p => projectMap[p.id] = p);
+
+          const groupedByClient = {};
+          let grandTotal = 0;
+
+          payments.forEach(p => {
+            const proj = projectMap[p.project_id];
+            const client = proj ? clientMap[proj.client_id] : null;
+            const clientId = client ? client.id : 'unknown';
+            
+            if (!groupedByClient[clientId]) {
+              groupedByClient[clientId] = {
+                client: client || { name: 'Unknown Client', email: '', phone: '' },
+                items: []
+              };
+            }
+            
+            groupedByClient[clientId].items.push({
+              payment: p,
+              project: proj || { name: 'Unknown Project' }
+            });
+            grandTotal += (p.amount || 0);
+          });
+
+          let receiptHTML = `
+            <div style="text-align: center; margin-bottom: 1.5rem;">
+              <img src="https://i.ibb.co/p6GCfY1x/Screenshot-2026-05-30-at-17-06-41.png" alt="Logo" style="height: 48px; margin-bottom: 8px;">
+              <h2 style="font-size: 1.2rem; font-weight: 700; margin: 0; color: var(--text);">CONSOLIDATED PAYMENT RECEIPT</h2>
+              <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Receipt #: COMBINED-${Date.now().toString().substring(7).toUpperCase()}</p>
+              <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 2px;">Generated on ${new Date().toLocaleDateString()}</p>
+            </div>
+          `;
+
+          for (const clientId in groupedByClient) {
+            const group = groupedByClient[clientId];
+            const client = group.client;
+            let clientTotal = 0;
+            
+            receiptHTML += `
+              <div style="margin-bottom: 2rem; page-break-inside: avoid;">
+                <div style="background: var(--card-hover); padding: 12px; border-radius: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                  <div>
+                    <p style="color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 4px;">Billed To</p>
+                    <p style="font-weight: 600; font-size: 0.95rem; margin: 0;">${escapeHtml(client.name)}</p>
+                    <p style="color: var(--text-secondary); font-size: 0.8rem; margin: 0;">${escapeHtml(client.email || '')} ${client.phone ? '• ' + escapeHtml(client.phone) : ''}</p>
+                  </div>
+                </div>
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-bottom: 12px;">
+                  <thead>
+                    <tr style="background: var(--surface);">
+                      <th style="padding: 10px; text-align: left; border-bottom: 2px solid var(--border); color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Project / Period</th>
+                      <th style="padding: 10px; text-align: center; border-bottom: 2px solid var(--border); color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Date</th>
+                      <th style="padding: 10px; text-align: right; border-bottom: 2px solid var(--border); color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Amount (UGX)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+            `;
+            
+            group.items.forEach(item => {
+              const p = item.payment;
+              const proj = item.project;
+              clientTotal += (p.amount || 0);
+              
+              receiptHTML += `
+                <tr>
+                  <td style="padding: 12px 10px; border-bottom: 1px solid var(--border);">
+                    <strong style="font-size: 0.9rem;">${escapeHtml(proj.name)}</strong><br>
+                    <span style="color: var(--text-muted); font-size: 0.78rem;">${escapeHtml(p.period || 'No period')} (${p.months_covered || 1} mo.)</span>
+                  </td>
+                  <td style="padding: 12px 10px; text-align: center; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 0.8rem;">
+                    ${new Date(p.payment_date).toLocaleDateString()}
+                  </td>
+                  <td style="padding: 12px 10px; text-align: right; border-bottom: 1px solid var(--border); font-weight: 600;">
+                    ${formatUGX(p.amount)}
+                  </td>
+                </tr>
+              `;
+            });
+            
+            receiptHTML += `
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td colspan="2" style="padding: 12px 10px; text-align: right; font-weight: 700; color: var(--text);">Subtotal for ${escapeHtml(client.name)}</td>
+                      <td style="padding: 12px 10px; text-align: right; font-weight: 700; color: var(--primary);">${formatUGX(clientTotal)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            `;
+          }
+
+          receiptHTML += `
+            <div style="background: var(--primary-glow); border: 1px solid var(--primary); padding: 16px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+              <span style="font-size: 1rem; font-weight: 700; color: var(--primary);">GRAND TOTAL</span>
+              <div style="text-align: right;">
+                <div style="font-size: 1.25rem; font-weight: 800; color: var(--primary);">${formatUGX(grandTotal)}</div>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">${formatUSD(grandTotal)}</div>
+              </div>
+            </div>
+            <div style="text-align: center; margin-top: 2rem; color: var(--text-muted); font-size: 0.75rem; border-top: 1px dashed var(--border); padding-top: 1rem;">
+              <p style="font-weight: 600; color: var(--text); margin-bottom: 4px;">Thank you for your business!</p>
+              <p>This is a consolidated receipt for ${payments.length} payment(s).</p>
+            </div>
+          `;
+
+          document.getElementById('receiptContent').innerHTML = receiptHTML;
+          document.getElementById('receiptModalTitle').textContent = 'Consolidated Receipt';
+          openModal('receiptModal');
+          
+        } catch (err) {
+          console.error('Combined receipt error:', err);
+          showToast('Failed to generate combined receipt', 'error');
+        }
       }
 
       async function loadClientsDropdown() {
@@ -730,7 +912,7 @@
           const tbody = document.getElementById('paymentsTable');
           
           if (error) {
-            tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">⚠️</div><p>Failed to load</p></div></td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">⚠️</div><p>Failed to load</p></div></td></tr>`;
             return;
           }
           
@@ -756,14 +938,15 @@
           });
 
           if (!payments || payments.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">💳</div><p>No payment records found.</p></div></td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">💳</div><p>No payment records found.</p></div></td></tr>`;
             return;
           }
           
           tbody.innerHTML = payments.map(p => {
             const proj = pMap[p.project_id] || {};
             const statusBadge = p.status === 'paid' ? 'badge-green' : p.status === 'pending' ? 'badge-yellow' : 'badge-red';
-            return `<tr data-status="${p.status}">
+            return `<tr data-status="${p.status}" data-id="${p.id}">
+              <td class="checkbox-cell" style="text-align: center;"><input type="checkbox" class="row-checkbox" data-id="${p.id}" style="cursor: pointer; width: 16px; height: 16px;" /></td>
               <td class="project-cell" data-label="Project">
                 <div><strong>${escapeHtml(proj.name || 'Unknown')}</strong></div>
                 <div class="text-muted" style="font-size:.75rem">${escapeHtml(proj.clientName || '')}</div>
@@ -785,6 +968,11 @@
               </td>
             </tr>`;
           }).join('');
+          
+          // Reset selection state after re-render
+          selectedPaymentIds.clear();
+          updateCombinedReceiptBtn();
+          updateSelectAllCheckbox();
           
         } catch (err) {
           console.error('Payments load error:', err);
@@ -856,6 +1044,7 @@
             </div>
           `;
           document.getElementById('receiptContent').innerHTML = receiptHTML;
+          document.getElementById('receiptModalTitle').textContent = 'Payment Receipt';
           openModal('receiptModal');
         } catch (err) {
           console.error('Receipt error:', err);
@@ -967,6 +1156,17 @@
         
         const deleteBtn = e.target.closest('.delete-btn');
         if (deleteBtn) deletePayment(deleteBtn.dataset.id);
+      });
+
+      // Handle checkbox changes via delegation
+      document.getElementById('paymentsTable').addEventListener('change', (e) => {
+        if (e.target.classList.contains('row-checkbox')) {
+          const id = e.target.dataset.id;
+          if (e.target.checked) selectedPaymentIds.add(id);
+          else selectedPaymentIds.delete(id);
+          updateCombinedReceiptBtn();
+          updateSelectAllCheckbox();
+        }
       });
 
       document.getElementById('payClient').addEventListener('change', function() { loadClientProjects(this.value); });
