@@ -507,7 +507,6 @@
       // === MAIN LOAD ===
       async function loadDashboard() {
         try {
-          // Fetch projects and payments separately to avoid foreign key join errors
           const [projRes, payRes] = await Promise.all([
             supabase.from('projects').select('*'),
             supabase.from('payments').select('*')
@@ -519,7 +518,6 @@
           const projects = projRes.data || [];
           const payments = payRes.data || [];
           
-          // Create a map of projects for easy lookup in JS
           const projectMap = {};
           projects.forEach(p => { projectMap[p.id] = p; });
           
@@ -527,20 +525,29 @@
           const pending = payments.filter(p => p.status === 'pending');
           const overdue = payments.filter(p => p.status === 'overdue');
 
-          // === 1. PROJECT HEALTH ===
+          // === 1. PROJECT HEALTH --- UPDATED LOGIC: Based on Due Date ===
           const now = new Date();
+          const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
           const activeProjects = projects.filter(p => p.status === 'active');
           let healthyCount = 0, overdueCount = 0;
 
           activeProjects.forEach(p => {
-            const projectPayments = paid.filter(pay => pay.project_id === p.id);
-            let totalMonthsPaid = 0;
-            projectPayments.forEach(pay => totalMonthsPaid += (parseInt(pay.months_covered) || parseInt(pay.period_number) || 1));
-            const start = new Date(p.start_date);
-            const coveredUntil = new Date(start);
-            coveredUntil.setMonth(coveredUntil.getMonth() + totalMonthsPaid);
-            if (now <= coveredUntil) healthyCount++;
-            else overdueCount++;
+            const projectPayments = paid.filter(pay => pay.project_id === p.id && pay.due_date);
+            let maxDueDate = null;
+            projectPayments.forEach(pay => {
+                const dDate = new Date(pay.due_date + 'T00:00:00');
+                if (!maxDueDate || dDate > maxDueDate) maxDueDate = dDate;
+            });
+            
+            const start = new Date(p.start_date + 'T00:00:00');
+            
+            if (maxDueDate) {
+                if (today <= maxDueDate) healthyCount++;
+                else overdueCount++;
+            } else {
+                if (today <= start) healthyCount++;
+                else overdueCount++;
+            }
           });
 
           document.getElementById('dashActiveProjects').textContent = activeProjects.length;
@@ -559,7 +566,6 @@
           // === 3. COMMISSIONS & REFERRERS ===
           let commissionsList = [];
           try {
-            // Wrapped in try/catch so if this table doesn't exist, the rest of the dashboard still loads
             const { data: allCommissions, error } = await supabase
               .from('employee_earnings')
               .select('*')
@@ -574,7 +580,6 @@
           document.getElementById('dashCommission').innerHTML = priceHTML(totalCommission);
           document.getElementById('dashCommissionSub').textContent = `${commissionsList.length} payout${commissionsList.length !== 1 ? 's' : ''} to employees`;
 
-          // Get unique employee IDs and fetch names
           const empIds = [...new Set(commissionsList.map(c => c.employee_id).filter(Boolean))];
           let empNames = {};
           if (empIds.length > 0) {
@@ -584,7 +589,6 @@
             } catch(e) {}
           }
 
-          // Build leaderboard data
           const empMap = {};
           commissionsList.forEach(c => {
             if (c.employee_id) {
@@ -601,7 +605,6 @@
             .sort((a, b) => b.total - a.total)
             .slice(0, 5);
 
-          // Render Leaderboard
           const lbContainer = document.getElementById('referrersLeaderboard');
           if (leaderboard.length === 0) {
             lbContainer.innerHTML = `<div class="empty-state">
@@ -627,7 +630,6 @@
             }).join('');
           }
 
-          // Update Top Referrer summary card
           if (leaderboard.length > 0) {
             const top = leaderboard[0];
             document.getElementById('dashTopReferrer').textContent = top.name;
@@ -638,7 +640,6 @@
             document.getElementById('dashTopReferrerStats').textContent = '0 projects • UGX 0 earned';
           }
 
-          // Render Recent Payouts
           const payoutsContainer = document.getElementById('commissionPayouts');
           const recentPayouts = commissionsList.slice(0, 8);
           if (recentPayouts.length === 0) {
@@ -797,11 +798,9 @@
 
       document.getElementById('logoBtn').addEventListener('click', () => window.location.href = 'index.html');
       
-      // Initial load
       await loadDashboard();
 
       // === REALTIME UPDATES ===
-      // Automatically refresh dashboard when payments or projects change
       supabase.channel('dashboard-live')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => loadDashboard())
         .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => loadDashboard())
