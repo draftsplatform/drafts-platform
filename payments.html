@@ -146,6 +146,10 @@
     tbody tr[data-status="pending"] { background-color: rgba(217, 119, 6, 0.05); }
     tbody tr[data-status="pending"]:hover { background-color: rgba(217, 119, 6, 0.1); }
     
+    /* --- NEW: Ended Receipts Styling --- */
+    tbody tr[data-ended="true"] { background-color: rgba(100, 116, 139, 0.05) !important; opacity: 0.75; }
+    tbody tr[data-ended="true"]:hover { background-color: rgba(100, 116, 139, 0.1) !important; opacity: 1; }
+    
     .empty-state { text-align: center; padding: 3rem 1rem; color: var(--text-muted); }
     .empty-icon { font-size: 3rem; margin-bottom: .75rem; opacity: .4; }
     
@@ -230,7 +234,6 @@
       .page-desc { font-size: .78rem; }
       .btn { padding: 8px 16px; font-size: .8rem; }
       
-      /* Header buttons full width */
       .page-header > div:last-child {
         width: 100%;
         display: flex;
@@ -239,7 +242,6 @@
       .page-header .form-select { flex: 1; }
       .page-header .btn { flex-shrink: 0; }
 
-      /* Tabs scrollable */
       .tabs { 
         width: 100%; 
         overflow-x: auto; 
@@ -250,14 +252,12 @@
       .tabs::-webkit-scrollbar { display: none; }
       .tab-btn { flex-shrink: 0; }
 
-      /* Modal full screen on mobile */
       #paymentModal .modal, #receiptModal .modal {
         width: 100% !important; max-width: 100% !important; 
         height: 100dvh !important; max-height: 100dvh !important; 
         border-radius: 0 !important; border: none !important;
       }
 
-      /* 📱 MOBILE TABLE TO CARDS */
       .table-wrapper {
         border: none;
         background: transparent;
@@ -282,13 +282,15 @@
         padding: 1rem;
         box-shadow: var(--shadow);
         overflow: hidden;
-        position: relative; /* Added for checkbox positioning */
+        position: relative; 
       }
       
-      /* Status colors on cards */
       .table-wrapper tr[data-status="paid"] { background-color: rgba(5, 150, 105, 0.05); border-left: 4px solid var(--accent); }
       .table-wrapper tr[data-status="overdue"] { background-color: rgba(220, 38, 38, 0.06); border-left: 4px solid var(--danger); }
       .table-wrapper tr[data-status="pending"] { background-color: rgba(217, 119, 6, 0.05); border-left: 4px solid var(--warning); }
+      
+      /* Mobile Ended Styling */
+      .table-wrapper tr[data-ended="true"] { background-color: rgba(100, 116, 139, 0.05) !important; border-left: 4px solid var(--text-muted) !important; opacity: 0.75; }
       
       .table-wrapper td {
         border: none;
@@ -311,7 +313,6 @@
         text-align: left;
       }
       
-      /* Mobile Checkbox Positioning */
       .table-wrapper td.checkbox-cell {
         position: absolute;
         top: 12px;
@@ -324,19 +325,17 @@
         display: none;
       }
       
-      /* Project Cell */
       .table-wrapper td.project-cell {
         flex-direction: column;
         align-items: flex-start;
         border-bottom: 1px solid var(--border);
         padding-bottom: 12px;
         margin-bottom: 8px;
-        padding-right: 40px; /* Space for checkbox */
+        padding-right: 40px; 
       }
       .table-wrapper td.project-cell::before { margin-bottom: 6px; }
       .table-wrapper td.project-cell strong { font-size: 1rem; color: var(--text); }
       
-      /* Amount Cell */
       .table-wrapper td.amount-cell {
         flex-direction: column;
         align-items: flex-end;
@@ -344,7 +343,6 @@
       }
       .table-wrapper td.amount-cell strong { font-size: 1.05rem; color: var(--text); }
 
-      /* Actions Cell */
       .table-wrapper td.actions-cell {
         justify-content: flex-end;
         border-top: 1px solid var(--border);
@@ -558,7 +556,6 @@
       let isSaving = false;
       let allProjects = []; 
       
-      // State for combined receipt
       let selectedPaymentIds = new Set();
       
       window.currentProjectRate = 0;
@@ -833,11 +830,12 @@
             });
 
             const today = getLocalDateString();
+            // --- UPDATED LOGIC: Only hide project if the latest receipt is STILL ACTIVE (due_date >= today) ---
             eligibleProjects = allProjs.filter(proj => {
               const lastPay = grouped[proj.id];
-              if (!lastPay) return true;
-              if (lastPay.status === 'paid' && lastPay.due_date && lastPay.due_date >= today) return false; 
-              return true;
+              if (!lastPay) return true; // No payments yet, eligible
+              if (lastPay.status === 'paid' && lastPay.due_date && lastPay.due_date >= today) return false; // Active receipt, NOT eligible
+              return true; // Receipt is ended/overdue, ELIGIBLE for new payment
             });
           }
 
@@ -863,7 +861,10 @@
         if (!project) return;
         
         window.currentProjectRate = project.monthly_rate || 0;
-        document.getElementById('payMonths').value = 0;
+        
+        if (!document.getElementById('payMonths').value || document.getElementById('payMonths').value === '0') {
+          document.getElementById('payMonths').value = 1;
+        }
         
         try {
           const { data: lastPay } = await supabase.from('payments').select('due_date, period_number').eq('project_id', projectId).order('period_number', { ascending: false }).limit(1);
@@ -942,10 +943,29 @@
             return;
           }
           
+          // --- UPDATED LOGIC: Mark receipts as "Ended" if due_date has passed ---
           tbody.innerHTML = payments.map(p => {
             const proj = pMap[p.project_id] || {};
-            const statusBadge = p.status === 'paid' ? 'badge-green' : p.status === 'pending' ? 'badge-yellow' : 'badge-red';
-            return `<tr data-status="${p.status}" data-id="${p.id}">
+            let statusClass = '';
+            let statusText = p.status;
+            
+            const today = getLocalDateString();
+            const isEnded = p.status === 'paid' && p.due_date && p.due_date < today;
+            
+            if (isEnded) {
+                statusClass = 'badge-gray';
+                statusText = 'Ended';
+            } else if (p.status === 'paid') {
+                statusClass = 'badge-green';
+            } else if (p.status === 'pending') {
+                statusClass = 'badge-yellow';
+            } else if (p.status === 'overdue') {
+                statusClass = 'badge-red';
+            } else {
+                statusClass = 'badge-gray';
+            }
+
+            return `<tr data-status="${p.status}" data-ended="${isEnded}" data-id="${p.id}">
               <td class="checkbox-cell" style="text-align: center;"><input type="checkbox" class="row-checkbox" data-id="${p.id}" style="cursor: pointer; width: 16px; height: 16px;" /></td>
               <td class="project-cell" data-label="Project">
                 <div><strong>${escapeHtml(proj.name || 'Unknown')}</strong></div>
@@ -958,7 +978,7 @@
                 <div><strong>${formatUGX(p.amount)}</strong></div>
                 <div style="font-size:.75rem; color: var(--text-muted);">${formatUSD(p.amount)}</div>
               </td>
-              <td data-label="Status"><span class="badge ${statusBadge}"><span class="badge-dot"></span>${p.status}</span></td>
+              <td data-label="Status"><span class="badge ${statusClass}"><span class="badge-dot"></span>${statusText}</span></td>
               <td class="actions-cell">
                 <div class="flex gap-1 wrap" style="justify-content: flex-end;">
                   <button class="btn btn-sm btn-outline receipt-btn" data-id="${p.id}" style="color: var(--accent); border-color: var(--accent);">🧾 Receipt</button>
@@ -969,7 +989,6 @@
             </tr>`;
           }).join('');
           
-          // Reset selection state after re-render
           selectedPaymentIds.clear();
           updateCombinedReceiptBtn();
           updateSelectAllCheckbox();
@@ -1113,6 +1132,43 @@
         }
       }
 
+      // === URL PARAMS HANDLER ===
+      async function handleUrlParams() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetProjectId = urlParams.get('project_id');
+        const action = urlParams.get('action');
+
+        if (action === 'new_payment' && targetProjectId) {
+          try {
+            const { data: project, error } = await supabase.from('projects').select('client_id, name').eq('id', targetProjectId).single();
+            if (error || !project) {
+              showToast('Project not found', 'error');
+              return;
+            }
+
+            await loadClientsDropdown();
+            document.getElementById('payClient').value = project.client_id;
+            
+            await loadClientProjects(project.client_id);
+            
+            const projectSelect = document.getElementById('payProject');
+            projectSelect.value = targetProjectId;
+            
+            document.getElementById('payMonths').value = 1;
+            
+            await onProjectSelect(targetProjectId);
+            
+            openModal('paymentModal');
+            
+            window.history.replaceState({}, document.title, window.location.pathname);
+            
+          } catch (err) {
+            console.error('Error auto-filling from URL:', err);
+            showToast('Could not auto-select project', 'error');
+          }
+        }
+      }
+
       // === EVENT LISTENERS ===
       document.getElementById('logoBtn').addEventListener('click', () => window.location.href = 'index.html');
       
@@ -1158,7 +1214,6 @@
         if (deleteBtn) deletePayment(deleteBtn.dataset.id);
       });
 
-      // Handle checkbox changes via delegation
       document.getElementById('paymentsTable').addEventListener('change', (e) => {
         if (e.target.classList.contains('row-checkbox')) {
           const id = e.target.dataset.id;
@@ -1259,6 +1314,13 @@
 
       document.getElementById('payPaymentDate').value = getLocalDateString();
       await loadPayments();
+      
+      await handleUrlParams();
+
+      // === REALTIME UPDATES ===
+      supabase.channel('payments-table-live')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => loadPayments())
+        .subscribe();
     });
   })();
 </script>
