@@ -537,6 +537,7 @@
     setupEventListeners();
     document.getElementById('projStart').value = new Date().toISOString().split('T')[0];
     
+    // REALTIME LISTENER: Automatically updates the UI when a payment or project changes
     supabase.channel('projects-live')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => loadAllData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => loadAllData())
@@ -557,6 +558,7 @@
     
     const projectPayments = payments.filter(p => p.project_id === project.id && p.status === 'paid');
     let totalMonthsPaid = 0;
+    // Calculates total months covered by summing up payments
     projectPayments.forEach(p => totalMonthsPaid += (parseInt(p.months_covered) || parseInt(p.period_number) || 1));
     const coveredUntil = new Date(start);
     coveredUntil.setMonth(coveredUntil.getMonth() + totalMonthsPaid);
@@ -637,14 +639,18 @@
         statusSection = `<div class="live-status completed"><span>${prog.label}</span></div>`;
       }
       
-      // Added data-label attributes for mobile card transformation
+      // --- NEW LOGIC: Hide delete button if started, add Pay button if overdue ---
+      const hasStarted = p.status === 'active' || new Date(p.start_date) <= new Date();
+      const deleteBtn = hasStarted ? '' : `<button class="btn btn-sm btn-outline text-red delete-btn" data-id="${p.id}">Del</button>`;
+      const payBtn = prog.state === 'overdue' ? `<button class="btn btn-sm btn-primary pay-btn" data-id="${p.id}">💳 Pay</button>` : '';
+      
       return `<tr class="project-row health-${prog.state === 'paid' ? 'green' : (prog.state === 'overdue' ? 'red' : 'completed')}" data-id="${p.id}">
         <td data-label="Project"><strong>${escapeHtml(p.name)}</strong></td>
         <td data-label="Client">${escapeHtml(p.client || '—')}</td>
         <td data-label="Rate"><strong>${formatUGX(p.monthly_rate)}</strong><div class="text-muted" style="font-size:.7rem">≈ ${(p.monthly_rate * 0.00027).toFixed(2)} USD</div></td>
         <td data-label="Status & Meter" class="meter-cell" style="min-width: 260px;">${statusSection}</td>
         <td data-label="Referred By">${employee ? `<span class="text-blue fw-700">${escapeHtml(employee.name)}</span>` : '—'}</td>
-        <td class="actions-cell"><div class="flex gap-1"><button class="btn btn-sm btn-outline edit-btn" data-id="${p.id}">Edit</button><button class="btn btn-sm btn-outline text-red delete-btn" data-id="${p.id}">Del</button></div></td>
+        <td class="actions-cell"><div class="flex gap-1"><button class="btn btn-sm btn-outline edit-btn" data-id="${p.id}">Edit</button>${payBtn}${deleteBtn}</div></td>
       </tr>`;
     }).join('');
     
@@ -780,15 +786,25 @@
     document.getElementById('cancelModal').addEventListener('click', closeModal);
     document.getElementById('refreshBtn').addEventListener('click', () => loadAllData());
     document.getElementById('projectFilter').addEventListener('change', () => loadAllData());
+    
     document.getElementById('projectsTable').addEventListener('click', async (e) => {
       const edit = e.target.closest('.edit-btn');
       const del = e.target.closest('.delete-btn');
+      const pay = e.target.closest('.pay-btn'); // NEW: Listen for the new Pay button
+      
       if (edit) {
         const p = projectsCache.find(x => x.id === edit.dataset.id);
         if(p) openModal('Edit Project', p);
       }
       if (del) await deleteProject(del.dataset.id);
+      
+      // NEW: Handle "Pay Now" button for overdue projects
+      if (pay) {
+        // Redirects to payments page with the project ID so it can generate a new receipt
+        window.location.href = `payments.html?project_id=${pay.dataset.id}&action=new_payment`;
+      }
     });
+    
     document.getElementById('saveProject').addEventListener('click', async function() {
       if(isSaving) return;
       isSaving=true;
@@ -811,7 +827,6 @@
           referred_by_id: document.getElementById('projEmployee').value||null
         };
         
-        // Only set created_at if it's a new project (Bug fix: prevents overwriting timestamp on edit)
         if (!existingId) {
           data.created_at = new Date().toISOString();
         }
