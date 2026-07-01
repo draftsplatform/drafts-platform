@@ -146,7 +146,7 @@
     tbody tr[data-status="pending"] { background-color: rgba(217, 119, 6, 0.05); }
     tbody tr[data-status="pending"]:hover { background-color: rgba(217, 119, 6, 0.1); }
     
-    /* --- NEW: Ended Receipts Styling --- */
+    /* --- ENDED RECEIPTS STYLING --- */
     tbody tr[data-ended="true"] { background-color: rgba(100, 116, 139, 0.05) !important; opacity: 0.75; }
     tbody tr[data-ended="true"]:hover { background-color: rgba(100, 116, 139, 0.1) !important; opacity: 1; }
     
@@ -795,6 +795,7 @@
         } catch (err) { console.error('Failed to load clients:', err); }
       }
 
+      // --- FIXED: ALWAYS LOAD ALL PROJECTS TO ALLOW NEW PAYMENTS AT ANY TIME ---
       async function loadClientProjects(clientId) {
         const projSelect = document.getElementById('payProject');
         if (!clientId) {
@@ -811,45 +812,12 @@
             return;
           }
 
-          const isEditing = !!document.getElementById('payId').value;
-          let eligibleProjects = allProjs;
-
-          if (!isEditing) {
-            const projectIds = allProjs.map(p => p.id);
-            const { data: allPayments, error: payErr } = await supabase.from('payments').select('project_id, status, due_date, payment_date, created_at').in('project_id', projectIds);
-
-            const grouped = {};
-            (allPayments || []).forEach(p => {
-              const current = grouped[p.project_id];
-              if (!current) grouped[p.project_id] = p;
-              else {
-                const currDate = new Date(current.payment_date || current.created_at);
-                const newDate = new Date(p.payment_date || p.created_at);
-                if (newDate > currDate) grouped[p.project_id] = p;
-              }
-            });
-
-            const today = getLocalDateString();
-            // --- UPDATED LOGIC: Only hide project if the latest receipt is STILL ACTIVE (due_date >= today) ---
-            eligibleProjects = allProjs.filter(proj => {
-              const lastPay = grouped[proj.id];
-              if (!lastPay) return true; // No payments yet, eligible
-              if (lastPay.status === 'paid' && lastPay.due_date && lastPay.due_date >= today) return false; // Active receipt, NOT eligible
-              return true; // Receipt is ended/overdue, ELIGIBLE for new payment
-            });
-          }
-
-          if (eligibleProjects.length === 0) {
-            projSelect.innerHTML = '<option value="">All projects are up to date</option>';
-            projSelect.disabled = true;
-          } else {
-            projSelect.innerHTML = '<option value="">Select a project...</option>' +
-              eligibleProjects.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
-            projSelect.disabled = false;
-          }
-          allProjects = eligibleProjects;
+          projSelect.innerHTML = '<option value="">Select a project...</option>' +
+            allProjs.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+          projSelect.disabled = false;
+          allProjects = allProjs;
         } catch (err) {
-          console.error('Failed to load filtered projects:', err);
+          console.error('Failed to load projects:', err);
           projSelect.innerHTML = '<option value="">Error loading projects</option>';
           projSelect.disabled = true;
         }
@@ -871,9 +839,20 @@
           const lastPayData = lastPay && lastPay.length > 0 ? lastPay[0] : null;
           window.startPeriodNum = lastPayData ? (lastPayData.period_number || 0) + 1 : 1;
           
-          if (lastPayData && lastPayData.due_date) window.baseDueDateForCalc = lastPayData.due_date;
-          else if (project.start_date) window.baseDueDateForCalc = project.start_date;
-          else window.baseDueDateForCalc = getLocalDateString();
+          const todayStr = getLocalDateString();
+          if (lastPayData && lastPayData.due_date) {
+              const lastDueStr = lastPayData.due_date.substring(0, 10);
+              if (lastDueStr < todayStr) {
+                  // --- FIXED: If the last receipt is ended/overdue, start the new period from TODAY ---
+                  window.baseDueDateForCalc = todayStr;
+              } else {
+                  window.baseDueDateForCalc = lastPayData.due_date;
+              }
+          } else if (project.start_date) {
+              window.baseDueDateForCalc = project.start_date;
+          } else {
+              window.baseDueDateForCalc = todayStr;
+          }
           
           updateAllCalculations();
         } catch (err) { console.error('Error auto-filling:', err); }
@@ -943,28 +922,36 @@
             return;
           }
           
-          // --- UPDATED LOGIC: Mark receipts as "Ended" if due_date has passed ---
+          const todayStr = getLocalDateString();
+          
           tbody.innerHTML = payments.map(p => {
             const proj = pMap[p.project_id] || {};
+            
+            // --- FIXED: Robust Date Comparison to mark as "Ended" ---
+            const dueDateStr = p.due_date ? p.due_date.substring(0, 10) : '';
+            const isEnded = p.status === 'paid' && dueDateStr && dueDateStr < todayStr;
+            
             let statusClass = '';
             let statusText = p.status;
-            
-            const today = getLocalDateString();
-            const isEnded = p.status === 'paid' && p.due_date && p.due_date < today;
             
             if (isEnded) {
                 statusClass = 'badge-gray';
                 statusText = 'Ended';
             } else if (p.status === 'paid') {
                 statusClass = 'badge-green';
+                statusText = 'Paid';
             } else if (p.status === 'pending') {
                 statusClass = 'badge-yellow';
+                statusText = 'Pending';
             } else if (p.status === 'overdue') {
                 statusClass = 'badge-red';
+                statusText = 'Overdue';
             } else {
                 statusClass = 'badge-gray';
+                statusText = p.status || 'Unknown';
             }
 
+            // --- FIXED: Removed Edit Button ---
             return `<tr data-status="${p.status}" data-ended="${isEnded}" data-id="${p.id}">
               <td class="checkbox-cell" style="text-align: center;"><input type="checkbox" class="row-checkbox" data-id="${p.id}" style="cursor: pointer; width: 16px; height: 16px;" /></td>
               <td class="project-cell" data-label="Project">
@@ -982,7 +969,6 @@
               <td class="actions-cell">
                 <div class="flex gap-1 wrap" style="justify-content: flex-end;">
                   <button class="btn btn-sm btn-outline receipt-btn" data-id="${p.id}" style="color: var(--accent); border-color: var(--accent);">🧾 Receipt</button>
-                  <button class="btn btn-sm btn-outline edit-btn" data-id="${p.id}">Edit</button>
                   <button class="btn btn-sm btn-outline text-red delete-btn" data-id="${p.id}">Del</button>
                 </div>
               </td>
@@ -1071,55 +1057,6 @@
         }
       }
 
-      async function editPayment(id) {
-        try {
-          const { data: payment, error } = await supabase.from('payments').select('*').eq('id', id).single();
-          if (error || !payment) { showToast('Payment not found', 'error'); return; }
-
-          const { data: project } = await supabase.from('projects').select('client_id, monthly_rate, start_date').eq('id', payment.project_id).single();
-          const clientId = project?.client_id;
-          const rate = project?.monthly_rate || 0;
-
-          openModal('paymentModal');
-          document.getElementById('modalTitle').textContent = 'Edit Payment';
-          document.getElementById('savePayment').textContent = 'Update Payment';
-          document.getElementById('payId').value = payment.id;
-
-          await loadClientsDropdown();
-          document.getElementById('payClient').value = clientId;
-          await loadClientProjects(clientId);
-          document.getElementById('payProject').value = payment.project_id;
-
-          window.currentProjectRate = rate;
-          document.getElementById('payPeriod').value = payment.period || '';
-          
-          const savedMonths = payment.months_covered;
-          const inferredMonths = rate > 0 ? Math.round(payment.amount / rate) : 1;
-          let finalMonths = 1;
-          if (savedMonths !== null && savedMonths !== undefined) finalMonths = savedMonths;
-          else if (inferredMonths > 0) finalMonths = inferredMonths;
-          document.getElementById('payMonths').value = finalMonths;
-          
-          document.getElementById('payPaymentDate').value = payment.payment_date || '';
-          document.getElementById('payDueDate').value = payment.due_date || '';
-          document.getElementById('payStatus').value = payment.status || 'paid';
-          document.getElementById('payNotes').value = payment.notes || '';
-
-          window.startPeriodNum = payment.period_number || 1;
-          if (window.startPeriodNum > 1) {
-            const { data: prevPay } = await supabase.from('payments').select('due_date').eq('project_id', payment.project_id).eq('period_number', window.startPeriodNum - 1).single();
-            window.baseDueDateForCalc = (prevPay && prevPay.due_date) ? prevPay.due_date : (project.start_date || getLocalDateString());
-          } else {
-            window.baseDueDateForCalc = project.start_date || getLocalDateString();
-          }
-          updateAllCalculations();
-
-        } catch (err) {
-          console.error('Edit error:', err);
-          showToast('Failed to load payment: ' + err.message, 'error');
-        }
-      }
-
       async function deletePayment(id) {
         if (!confirm('Delete this payment record? This cannot be undone.')) return;
         try {
@@ -1203,12 +1140,10 @@
         });
       });
 
+      // --- FIXED: Removed Edit Button Listener ---
       document.getElementById('paymentsTable').addEventListener('click', (e) => {
         const receiptBtn = e.target.closest('.receipt-btn');
         if (receiptBtn) { showReceipt(receiptBtn.dataset.id); return; }
-        
-        const editBtn = e.target.closest('.edit-btn');
-        if (editBtn) { editPayment(editBtn.dataset.id); return; }
         
         const deleteBtn = e.target.closest('.delete-btn');
         if (deleteBtn) deletePayment(deleteBtn.dataset.id);
@@ -1290,6 +1225,7 @@
             const { error: updateErr } = await supabase.from('payments').update(paymentData).eq('id', payId);
             error = updateErr;
           } else {
+            // ALWAYS CREATE A NEW ROW (NEW RECEIPT) FOR NEW PAYMENTS
             paymentData.id = generateId();
             paymentData.created_at = new Date().toISOString();
             const { error: insertErr } = await supabase.from('payments').insert(paymentData);
