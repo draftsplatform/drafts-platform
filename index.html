@@ -507,9 +507,10 @@
       // === MAIN LOAD ===
       async function loadDashboard() {
         try {
+          // Fetch projects and payments separately to avoid foreign key join errors
           const [projRes, payRes] = await Promise.all([
             supabase.from('projects').select('*'),
-            supabase.from('payments').select('*, projects(name, client)')
+            supabase.from('payments').select('*')
           ]);
           
           if (projRes.error) throw projRes.error;
@@ -517,6 +518,10 @@
 
           const projects = projRes.data || [];
           const payments = payRes.data || [];
+          
+          // Create a map of projects for easy lookup in JS
+          const projectMap = {};
+          projects.forEach(p => { projectMap[p.id] = p; });
           
           const paid = payments.filter(p => p.status === 'paid');
           const pending = payments.filter(p => p.status === 'pending');
@@ -530,7 +535,7 @@
           activeProjects.forEach(p => {
             const projectPayments = paid.filter(pay => pay.project_id === p.id);
             let totalMonthsPaid = 0;
-            projectPayments.forEach(pay => totalMonthsPaid += (parseInt(pay.period_number) || 1));
+            projectPayments.forEach(pay => totalMonthsPaid += (parseInt(pay.months_covered) || parseInt(pay.period_number) || 1));
             const start = new Date(p.start_date);
             const coveredUntil = new Date(start);
             coveredUntil.setMonth(coveredUntil.getMonth() + totalMonthsPaid);
@@ -552,14 +557,19 @@
             `Collected • <span class="text-yellow fw-700">${formatUGX(totalPending)}</span> pending • <span class="text-red fw-700">${formatUGX(totalOverdue)}</span> overdue`;
 
           // === 3. COMMISSIONS & REFERRERS ===
-          const { data: allCommissions } = await supabase
-            .from('employee_earnings')
-            .select('*')
-            .eq('type', 'commission')
-            .eq('status', 'paid')
-            .order('created_at', { ascending: false });
+          let commissionsList = [];
+          try {
+            // Wrapped in try/catch so if this table doesn't exist, the rest of the dashboard still loads
+            const { data: allCommissions, error } = await supabase
+              .from('employee_earnings')
+              .select('*')
+              .eq('type', 'commission')
+              .eq('status', 'paid')
+              .order('created_at', { ascending: false });
+            
+            if (!error) commissionsList = allCommissions || [];
+          } catch (e) { console.warn('Could not fetch employee_earnings', e); }
 
-          const commissionsList = allCommissions || [];
           const totalCommission = commissionsList.reduce((s, c) => s + (c.amount || 0), 0);
           document.getElementById('dashCommission').innerHTML = priceHTML(totalCommission);
           document.getElementById('dashCommissionSub').textContent = `${commissionsList.length} payout${commissionsList.length !== 1 ? 's' : ''} to employees`;
@@ -568,8 +578,10 @@
           const empIds = [...new Set(commissionsList.map(c => c.employee_id).filter(Boolean))];
           let empNames = {};
           if (empIds.length > 0) {
-            const { data: emps } = await supabase.from('employees').select('id, name').in('id', empIds);
-            (emps || []).forEach(e => { empNames[e.id] = e.name; });
+            try {
+              const { data: emps } = await supabase.from('employees').select('id, name').in('id', empIds);
+              (emps || []).forEach(e => { empNames[e.id] = e.name; });
+            } catch(e) {}
           }
 
           // Build leaderboard data
@@ -621,6 +633,9 @@
             document.getElementById('dashTopReferrer').textContent = top.name;
             document.getElementById('dashTopReferrerStats').textContent = 
               `${top.count} project${top.count !== 1 ? 's' : ''} • ${formatUGX(top.total)} earned`;
+          } else {
+            document.getElementById('dashTopReferrer').textContent = '—';
+            document.getElementById('dashTopReferrerStats').textContent = '0 projects • UGX 0 earned';
           }
 
           // Render Recent Payouts
@@ -659,8 +674,8 @@
           const monthlyTotals = new Array(12).fill(0);
           
           paid.forEach(p => {
-            const d = new Date(p.payment_date);
-            if (!isNaN(d.getMonth()) && d.getFullYear() === currentYear) {
+            const d = new Date(p.payment_date || p.created_at);
+            if (!isNaN(d.getTime()) && d.getFullYear() === currentYear) {
               monthlyTotals[d.getMonth()] += (p.amount || 0);
             }
           });
@@ -719,7 +734,8 @@
 
           const clientRevenue = {};
           paid.forEach(p => {
-            const clientName = p.projects?.client || 'Unassigned';
+            const proj = projectMap[p.project_id];
+            const clientName = proj?.client || 'Unassigned';
             clientRevenue[clientName] = (clientRevenue[clientName] || 0) + (p.amount || 0);
           });
           const sortedClients = Object.entries(clientRevenue).sort((a,b) => b[1] - a[1]).slice(0, 5);
@@ -761,13 +777,14 @@
           } else {
             tl.innerHTML = recent.map(p => {
               const dot = p.status === 'paid' ? 'green' : p.status === 'pending' ? 'yellow' : 'red';
-              const projName = p.projects?.name || 'Project';
-              const clientName = p.projects?.client ? `(${p.projects.client})` : '';
+              const proj = projectMap[p.project_id];
+              const projName = proj?.name || 'Project';
+              const clientName = proj?.client ? `(${proj.client})` : '';
               return `<div class="timeline-item">
                 <div class="timeline-dot ${dot}"></div>
                 <div class="timeline-title">${formatUGX(p.amount)} — ${p.status}</div>
                 <div class="timeline-desc">${projName} ${clientName} ${p.period ? '• ' + p.period : ''}</div>
-                <div class="timeline-date">${new Date(p.payment_date).toLocaleDateString()}</div>
+                <div class="timeline-date">${new Date(p.payment_date || p.created_at).toLocaleDateString()}</div>
               </div>`;
             }).join('');
           }
@@ -779,7 +796,16 @@
       }
 
       document.getElementById('logoBtn').addEventListener('click', () => window.location.href = 'index.html');
+      
+      // Initial load
       await loadDashboard();
+
+      // === REALTIME UPDATES ===
+      // Automatically refresh dashboard when payments or projects change
+      supabase.channel('dashboard-live')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => loadDashboard())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => loadDashboard())
+        .subscribe();
     });
   })();
 </script>
