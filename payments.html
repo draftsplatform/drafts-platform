@@ -146,20 +146,23 @@
     tbody tr[data-status="pending"] { background-color: rgba(217, 119, 6, 0.05); }
     tbody tr[data-status="pending"]:hover { background-color: rgba(217, 119, 6, 0.1); }
     
-    /* --- ENDED RECEIPTS STYLING --- */
+    /* --- ENDED RECEIPTS STYLING (Faded & Deactivated) --- */
     tbody tr[data-ended="true"] { 
-      background-color: rgba(100, 116, 139, 0.08) !important; 
-      opacity: 0.85;
-      border-left: 3px solid var(--text-muted);
+      background-color: rgba(100, 116, 139, 0.03) !important; 
+      opacity: 0.6; 
+      filter: grayscale(50%);
+      transition: all 0.3s ease;
     }
     tbody tr[data-ended="true"]:hover { 
-      background-color: rgba(100, 116, 139, 0.12) !important; 
-      opacity: 1; 
+      background-color: rgba(100, 116, 139, 0.08) !important; 
+      opacity: 0.85; 
+      filter: grayscale(20%);
     }
-    tbody tr[data-ended="true"] td.amount-cell strong {
-      text-decoration: line-through;
-      text-decoration-color: var(--text-muted);
-      text-decoration-thickness: 1px;
+    tbody tr[data-ended="true"] td {
+      color: var(--text-muted) !important;
+    }
+    tbody tr[data-ended="true"] strong {
+      color: var(--text-secondary) !important;
     }
     
     .empty-state { text-align: center; padding: 3rem 1rem; color: var(--text-muted); }
@@ -209,15 +212,36 @@
     
     .calc-hint { font-size: 0.75rem; color: var(--primary); font-weight: 600; margin-top: 4px; }
 
-    /* Print Styles for Receipt */
+    /* Print Styles for Receipt - ONE PAGE ONLY */
     @media print {
+      @page {
+        size: A4;
+        margin: 1cm;
+      }
       body * { visibility: hidden; }
       #receiptModal, #receiptModal * { visibility: visible; }
       #receiptModal { 
         position: absolute; left: 0; top: 0; width: 100%; 
         background: white; box-shadow: none; border: none; max-height: none; 
+        overflow: visible;
+      }
+      #receiptModal .modal {
+        max-height: none;
+        overflow: visible;
+        page-break-inside: avoid;
       }
       .modal-header, .modal-footer { display: none !important; }
+      .modal-body { padding: 0; }
+      #receiptContent { 
+        font-size: 10pt; 
+        page-break-inside: avoid;
+      }
+      #receiptContent table {
+        page-break-inside: avoid;
+      }
+      #receiptContent * {
+        page-break-inside: avoid;
+      }
     }
 
     /* 📱 RESPONSIVE: TABLET */
@@ -303,14 +327,14 @@
       
       /* Mobile Ended Styling */
       .table-wrapper tr[data-ended="true"] { 
-        background-color: rgba(100, 116, 139, 0.08) !important; 
+        background-color: rgba(100, 116, 139, 0.03) !important; 
         border-left: 4px solid var(--text-muted) !important; 
-        opacity: 0.85;
+        opacity: 0.6; 
+        filter: grayscale(50%);
       }
-      .table-wrapper tr[data-ended="true"] td.amount-cell strong {
-        text-decoration: line-through;
-        text-decoration-color: var(--text-muted);
-        text-decoration-thickness: 1px;
+      .table-wrapper tr[data-ended="true"]:hover {
+        opacity: 0.85;
+        filter: grayscale(20%);
       }
       
       .table-wrapper td {
@@ -454,14 +478,13 @@
           <th>Project</th>
           <th>Date</th>
           <th>Due Date</th>
-          <th>Period</th>
           <th>Amount</th>
           <th>Status</th>
           <th>Actions</th>
         </tr>
       </thead>
       <tbody id="paymentsTable">
-        <tr><td colspan="8"><div class="empty-state"><div class="empty-icon">💳</div><p>Loading payments...</p></div></td></tr>
+        <tr><td colspan="7"><div class="empty-state"><div class="empty-icon">💳</div><p>Loading payments...</p></div></td></tr>
       </tbody>
     </table>
   </div>
@@ -492,15 +515,9 @@
         </div>
       </div>
       
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Period Name</label>
-          <input class="form-input" id="payPeriod" placeholder="e.g. Month 1" readonly style="background: var(--card-hover); cursor: not-allowed;" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Months Covered *</label>
-          <input class="form-input" id="payMonths" type="number" min="0" value="0" />
-        </div>
+      <div class="form-group">
+        <label class="form-label">Months Covered *</label>
+        <input class="form-input" id="payMonths" type="number" min="0" value="0" />
       </div>
       
       <div class="form-group">
@@ -580,8 +597,6 @@
       let selectedPaymentIds = new Set();
       
       window.currentProjectRate = 0;
-      window.baseDueDateForCalc = null;
-      window.startPeriodNum = 1;
 
       // === MOBILE NAV DRAWER ===
       const navToggle = document.getElementById('mobileNavToggle');
@@ -639,16 +654,10 @@
         const rows = document.querySelectorAll('#paymentsTable tr[data-status]');
         rows.forEach(row => {
           const status = row.dataset.status;
-          const isEnded = row.dataset.ended === 'true';
           if (tab === 'all-payments') { row.style.display = ''; return; }
           const statusMap = { 'paid-payments': 'paid', 'pending-payments': 'pending', 'overdue-payments': 'overdue' };
           const target = statusMap[tab];
-          // For "paid" tab, show both active paid and ended receipts
-          if (target === 'paid') {
-            row.style.display = (status === 'paid') ? '' : 'none';
-          } else {
-            row.style.display = status === target ? '' : 'none';
-          }
+          row.style.display = status === target ? '' : 'none';
         });
       }
 
@@ -688,129 +697,119 @@
           if (error || !payments) { showToast('Failed to load selected payments', 'error'); return; }
 
           const projectIds = [...new Set(payments.map(p => p.project_id))];
-          let projects = [];
-          if (projectIds.length > 0) {
-            const { data: projData } = await supabase.from('projects').select('id, name, client_id, monthly_rate').in('id', projectIds);
-            projects = projData || [];
-          }
+          const { data: projects } = await supabase.from('projects').select('id, name, client_id, monthly_rate').in('id', projectIds);
           
           const clientIds = [...new Set(projects.map(p => p.client_id))];
-          let clients = [];
-          if (clientIds.length > 0) {
-            const { data: clientData } = await supabase.from('clients').select('id, name, email, phone').in('id', clientIds);
-            clients = clientData || [];
-          }
+          const { data: clients } = await supabase.from('clients').select('id, name, email, phone').in('id', clientIds);
 
           const clientMap = {};
-          clients.forEach(c => clientMap[c.id] = c);
+          (clients || []).forEach(c => clientMap[c.id] = c);
           const projectMap = {};
-          projects.forEach(p => projectMap[p.id] = p);
+          (projects || []).forEach(p => projectMap[p.id] = p);
 
+          const groupedByClient = {};
           let grandTotal = 0;
-          const receiptItems = [];
-          const uniqueClients = new Set();
 
           payments.forEach(p => {
             const proj = projectMap[p.project_id];
             const client = proj ? clientMap[proj.client_id] : null;
+            const clientId = client ? client.id : 'unknown';
             
-            if (client) uniqueClients.add(client.id);
+            if (!groupedByClient[clientId]) {
+              groupedByClient[clientId] = {
+                client: client || { name: 'Unknown Client', email: '', phone: '' },
+                items: []
+              };
+            }
             
-            receiptItems.push({
+            groupedByClient[clientId].items.push({
               payment: p,
-              project: proj || { name: 'Unknown Project' },
-              client: client || { name: 'Unknown Client' }
+              project: proj || { name: 'Unknown Project' }
             });
             grandTotal += (p.amount || 0);
           });
 
-          // Sort by payment date
-          receiptItems.sort((a, b) => new Date(a.payment.payment_date) - new Date(b.payment.payment_date));
-
-          // Get date range
-          const firstDate = receiptItems.length > 0 ? new Date(receiptItems[0].payment.payment_date).toLocaleDateString() : 'N/A';
-          const lastDate = receiptItems.length > 0 ? new Date(receiptItems[receiptItems.length - 1].payment.payment_date).toLocaleDateString() : 'N/A';
-
-          // Build clients list HTML
-          let clientsHTML = '';
-          uniqueClients.forEach(clientId => {
-            const client = clientMap[clientId];
-            if (client) {
-              clientsHTML += `
-                <p style="font-weight: 600; font-size: 0.95rem; margin: 0 0 4px 0;">${escapeHtml(client.name)}</p>
-                ${client.email ? `<p style="color: var(--text-secondary); font-size: 0.8rem; margin: 0;">${escapeHtml(client.email)}</p>` : ''}
-                ${client.phone ? `<p style="color: var(--text-secondary); font-size: 0.8rem; margin: 0 0 8px 0;">${escapeHtml(client.phone)}</p>` : '<div style="margin-bottom: 8px;"></div>'}
-              `;
-            }
-          });
-
           let receiptHTML = `
-            <div style="text-align: center; margin-bottom: 1.5rem;">
-              <img src="https://i.ibb.co/p6GCfY1x/Screenshot-2026-05-30-at-17-06-41.png" alt="Logo" style="height: 48px; margin-bottom: 8px;">
-              <h2 style="font-size: 1.2rem; font-weight: 700; margin: 0; color: var(--text);">CONSOLIDATED PAYMENT RECEIPT</h2>
-              <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Receipt #: COMBINED-${Date.now().toString().substring(7).toUpperCase()}</p>
+            <div style="text-align: center; margin-bottom: 1rem;">
+              <img src="https://i.ibb.co/p6GCfY1x/Screenshot-2026-05-30-at-17-06-41.png" alt="Logo" style="height: 40px; margin-bottom: 6px;">
+              <h2 style="font-size: 1rem; font-weight: 700; margin: 0; color: var(--text);">CONSOLIDATED RECEIPT</h2>
+              <p style="color: var(--text-muted); font-size: 0.75rem; margin-top: 2px;">Receipt #: COMBINED-${Date.now().toString().substring(7).toUpperCase()}</p>
+              <p style="color: var(--text-muted); font-size: 0.7rem; margin-top: 2px;">Generated on ${new Date().toLocaleDateString()}</p>
             </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; font-size: 0.85rem;">
-              <div>
-                <p style="color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 4px;">Billed To</p>
-                ${clientsHTML || '<p style="color: var(--text-muted);">No clients found</p>'}
-              </div>
-              <div style="text-align: right;">
-                <p style="color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 4px;">Details</p>
-                <p><strong>Receipts:</strong> ${payments.length}</p>
-                <p><strong>Date Range:</strong> ${firstDate} - ${lastDate}</p>
-                <p><strong>Generated:</strong> ${new Date().toLocaleDateString()}</p>
-              </div>
-            </div>
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; font-size: 0.85rem;">
-              <thead>
-                <tr style="background: var(--card-hover);">
-                  <th style="padding: 10px; text-align: left; border-bottom: 2px solid var(--border); color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px;">Description</th>
-                  <th style="padding: 10px; text-align: center; border-bottom: 2px solid var(--border); color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px;">Date</th>
-                  <th style="padding: 10px; text-align: right; border-bottom: 2px solid var(--border); color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px;">Amount (UGX)</th>
-                </tr>
-              </thead>
-              <tbody>
           `;
 
-          receiptItems.forEach(item => {
-            const p = item.payment;
-            const proj = item.project;
-            const client = item.client;
+          for (const clientId in groupedByClient) {
+            const group = groupedByClient[clientId];
+            const client = group.client;
+            let clientTotal = 0;
             
             receiptHTML += `
-              <tr>
-                <td style="padding: 14px 10px; border-bottom: 1px solid var(--border);">
-                  <strong style="font-size: 0.95rem;">${escapeHtml(proj.name)}</strong><br>
-                  <span style="color: var(--text-muted); font-size: 0.78rem;">${escapeHtml(client.name)} • ${escapeHtml(p.period || 'No period')} (${p.months_covered || 1} mo.)</span>
-                </td>
-                <td style="padding: 14px 10px; text-align: center; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 0.85rem;">
-                  ${new Date(p.payment_date).toLocaleDateString()}
-                </td>
-                <td style="padding: 14px 10px; text-align: right; border-bottom: 1px solid var(--border); font-weight: 600; font-size: 0.95rem;">
-                  ${formatUGX(p.amount)}
-                </td>
-              </tr>
+              <div style="margin-bottom: 1rem; page-break-inside: avoid;">
+                <div style="background: var(--card-hover); padding: 8px; border-radius: 6px; margin-bottom: 8px;">
+                  <p style="color: var(--text-muted); font-size: 0.65rem; text-transform: uppercase; font-weight: 700; margin-bottom: 2px;">Billed To</p>
+                  <p style="font-weight: 600; font-size: 0.85rem; margin: 0;">${escapeHtml(client.name)}</p>
+                  <p style="color: var(--text-secondary); font-size: 0.7rem; margin: 0;">${escapeHtml(client.email || '')} ${client.phone ? '• ' + escapeHtml(client.phone) : ''}</p>
+                </div>
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.75rem; margin-bottom: 8px;">
+                  <thead>
+                    <tr style="background: var(--surface);">
+                      <th style="padding: 6px; text-align: left; border-bottom: 1px solid var(--border); color: var(--text-muted); font-size: 0.65rem; text-transform: uppercase;">Project</th>
+                      <th style="padding: 6px; text-align: center; border-bottom: 1px solid var(--border); color: var(--text-muted); font-size: 0.65rem; text-transform: uppercase;">Payment Date</th>
+                      <th style="padding: 6px; text-align: center; border-bottom: 1px solid var(--border); color: var(--text-muted); font-size: 0.65rem; text-transform: uppercase;">Due Date</th>
+                      <th style="padding: 6px; text-align: right; border-bottom: 1px solid var(--border); color: var(--text-muted); font-size: 0.65rem; text-transform: uppercase;">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
             `;
-          });
+            
+            group.items.forEach(item => {
+              const p = item.payment;
+              const proj = item.project;
+              clientTotal += (p.amount || 0);
+              
+              receiptHTML += `
+                <tr>
+                  <td style="padding: 8px 6px; border-bottom: 1px solid var(--border);">
+                    <strong style="font-size: 0.8rem;">${escapeHtml(proj.name)}</strong><br>
+                    <span style="color: var(--text-muted); font-size: 0.68rem;">${p.months_covered || 1} month(s)</span>
+                  </td>
+                  <td style="padding: 8px 6px; text-align: center; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 0.72rem;">
+                    ${new Date(p.payment_date).toLocaleDateString()}
+                  </td>
+                  <td style="padding: 8px 6px; text-align: center; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 0.72rem;">
+                    ${p.due_date ? new Date(p.due_date).toLocaleDateString() : '—'}
+                  </td>
+                  <td style="padding: 8px 6px; text-align: right; border-bottom: 1px solid var(--border); font-weight: 600; font-size: 0.8rem;">
+                    ${formatUGX(p.amount)}
+                  </td>
+                </tr>
+              `;
+            });
+            
+            receiptHTML += `
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td colspan="3" style="padding: 8px 6px; text-align: right; font-weight: 700; color: var(--text); font-size: 0.8rem;">Subtotal</td>
+                      <td style="padding: 8px 6px; text-align: right; font-weight: 700; color: var(--primary); font-size: 0.85rem;">${formatUGX(clientTotal)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            `;
+          }
 
           receiptHTML += `
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td colspan="2" style="padding: 14px 10px; text-align: right; font-weight: 700; font-size: 1rem; color: var(--text);">Total</td>
-                  <td style="padding: 14px 10px; text-align: right; font-weight: 800; font-size: 1.1rem; color: var(--primary);">${formatUGX(grandTotal)}</td>
-                </tr>
-                <tr>
-                  <td colspan="2" style="padding: 8px 10px; text-align: right; color: var(--text-muted); font-size: 0.75rem;">USD Equivalent</td>
-                  <td style="padding: 8px 10px; text-align: right; color: var(--text-muted); font-size: 0.75rem;">${formatUSD(grandTotal)}</td>
-                </tr>
-              </tfoot>
-            </table>
-            <div style="text-align: center; margin-top: 2rem; color: var(--text-muted); font-size: 0.75rem; border-top: 1px dashed var(--border); padding-top: 1rem;">
-              <p style="font-weight: 600; color: var(--text); margin-bottom: 4px;">Thank you for your business!</p>
-              <p>This is a consolidated receipt for ${payments.length} payment(s).</p>
-              <p>Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
+            <div style="background: var(--primary-glow); border: 1px solid var(--primary); padding: 12px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+              <span style="font-size: 0.9rem; font-weight: 700; color: var(--primary);">GRAND TOTAL</span>
+              <div style="text-align: right;">
+                <div style="font-size: 1.1rem; font-weight: 800; color: var(--primary);">${formatUGX(grandTotal)}</div>
+                <div style="font-size: 0.7rem; color: var(--text-muted);">${formatUSD(grandTotal)}</div>
+              </div>
+            </div>
+            <div style="text-align: center; margin-top: 1rem; color: var(--text-muted); font-size: 0.68rem; border-top: 1px dashed var(--border); padding-top: 0.5rem;">
+              <p style="font-weight: 600; color: var(--text); margin-bottom: 2px;">Thank you for your business!</p>
+              <p>Consolidated receipt for ${payments.length} payment(s)</p>
             </div>
           `;
 
@@ -834,7 +833,6 @@
         } catch (err) { console.error('Failed to load clients:', err); }
       }
 
-      // --- FIXED: ALWAYS LOAD ALL PROJECTS TO ALLOW NEW PAYMENTS AT ANY TIME ---
       async function loadClientProjects(clientId) {
         const projSelect = document.getElementById('payProject');
         if (!clientId) {
@@ -873,28 +871,7 @@
           document.getElementById('payMonths').value = 1;
         }
         
-        try {
-          const { data: lastPay } = await supabase.from('payments').select('due_date, period_number').eq('project_id', projectId).order('period_number', { ascending: false }).limit(1);
-          const lastPayData = lastPay && lastPay.length > 0 ? lastPay[0] : null;
-          window.startPeriodNum = lastPayData ? (lastPayData.period_number || 0) + 1 : 1;
-          
-          const todayStr = getLocalDateString();
-          if (lastPayData && lastPayData.due_date) {
-              const lastDueStr = lastPayData.due_date.substring(0, 10);
-              if (lastDueStr < todayStr) {
-                  // --- FIXED: If the last receipt is ended/overdue, start the new period from TODAY ---
-                  window.baseDueDateForCalc = todayStr;
-              } else {
-                  window.baseDueDateForCalc = lastPayData.due_date;
-              }
-          } else if (project.start_date) {
-              window.baseDueDateForCalc = project.start_date;
-          } else {
-              window.baseDueDateForCalc = todayStr;
-          }
-          
-          updateAllCalculations();
-        } catch (err) { console.error('Error auto-filling:', err); }
+        updateAllCalculations();
       }
 
       function updateAllCalculations() {
@@ -907,17 +884,17 @@
         else if (rate > 0) document.getElementById('amountCalcHint').textContent = `${formatUGX(rate)} × ${months} month(s) = ${formatUGX(total)}`;
         else document.getElementById('amountCalcHint').textContent = '';
         
-        const startNum = window.startPeriodNum || 1;
-        if (months === 0) document.getElementById('payPeriod').value = '—';
-        else {
-          const endNum = startNum + months - 1;
-          document.getElementById('payPeriod').value = months > 1 ? `Months ${startNum}-${endNum}` : `Month ${startNum}`;
+        const paymentDateVal = document.getElementById('payPaymentDate').value;
+        const baseDateStr = paymentDateVal || getLocalDateString();
+        const d = new Date(baseDateStr + 'T00:00:00');
+        
+        // For 1 month, use 30 days; for multiple months, use actual months
+        if (months === 1) {
+          d.setDate(d.getDate() + 30);
+        } else {
+          d.setMonth(d.getMonth() + months);
         }
         
-        const paymentDateVal = document.getElementById('payPaymentDate').value;
-        const baseDateStr = paymentDateVal || window.baseDueDateForCalc || getLocalDateString();
-        const d = new Date(baseDateStr + 'T00:00:00');
-        d.setMonth(d.getMonth() + months); 
         document.getElementById('payDueDate').value = getLocalDateString(d);
       }
 
@@ -931,7 +908,7 @@
           const tbody = document.getElementById('paymentsTable');
           
           if (error) {
-            tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">⚠️</div><p>Failed to load</p></div></td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">⚠️</div><p>Failed to load</p></div></td></tr>`;
             return;
           }
           
@@ -957,7 +934,7 @@
           });
 
           if (!payments || payments.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">💳</div><p>No payment records found.</p></div></td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">💳</div><p>No payment records found.</p></div></td></tr>`;
             return;
           }
           
@@ -966,37 +943,41 @@
           tbody.innerHTML = payments.map(p => {
             const proj = pMap[p.project_id] || {};
             
-            // --- FIXED: Robust Date Comparison to mark as "Ended" ---
+            // Check if payment date and due date are valid
+            const paymentDateStr = p.payment_date ? p.payment_date.substring(0, 10) : '';
             const dueDateStr = p.due_date ? p.due_date.substring(0, 10) : '';
-            const isEnded = p.status === 'paid' && dueDateStr && dueDateStr < todayStr;
             
+            // Determine status based on dates
             let statusClass = '';
-            let statusText = p.status;
-            let statusIcon = '';
+            let statusText = '';
+            let isEnded = false;
             
-            if (isEnded) {
+            if (p.status === 'paid') {
+              if (dueDateStr && dueDateStr < todayStr) {
+                // Past due date = ended
+                isEnded = true;
                 statusClass = 'badge-gray';
                 statusText = 'Ended';
-                statusIcon = '✓';
-            } else if (p.status === 'paid') {
+              } else {
+                // Valid payment within due date
                 statusClass = 'badge-green';
                 statusText = 'Paid';
-                statusIcon = '●';
+              }
             } else if (p.status === 'pending') {
-                statusClass = 'badge-yellow';
-                statusText = 'Pending';
-                statusIcon = '●';
+              statusClass = 'badge-yellow';
+              statusText = 'Pending';
             } else if (p.status === 'overdue') {
-                statusClass = 'badge-red';
-                statusText = 'Overdue';
-                statusIcon = '●';
+              statusClass = 'badge-red';
+              statusText = 'Overdue';
             } else {
-                statusClass = 'badge-gray';
-                statusText = p.status || 'Unknown';
-                statusIcon = '●';
+              statusClass = 'badge-gray';
+              statusText = p.status || 'Unknown';
             }
 
-            // --- FIXED: Removed Edit Button ---
+            // Conditional Delete Button: Show only if ended (past due) OR if status is not 'paid'
+            const canDelete = isEnded || p.status !== 'paid';
+            const deleteBtn = canDelete ? `<button class="btn btn-sm btn-outline text-red delete-btn" data-id="${p.id}">Del</button>` : '';
+
             return `<tr data-status="${p.status}" data-ended="${isEnded}" data-id="${p.id}">
               <td class="checkbox-cell" style="text-align: center;"><input type="checkbox" class="row-checkbox" data-id="${p.id}" style="cursor: pointer; width: 16px; height: 16px;" /></td>
               <td class="project-cell" data-label="Project">
@@ -1005,16 +986,15 @@
               </td>
               <td data-label="Date">${new Date(p.payment_date).toLocaleDateString()}</td>
               <td data-label="Due Date">${p.due_date ? new Date(p.due_date).toLocaleDateString() : '—'}</td>
-              <td data-label="Period">${escapeHtml(p.period || '—')}</td>
               <td class="amount-cell" data-label="Amount">
                 <div><strong>${formatUGX(p.amount)}</strong></div>
                 <div style="font-size:.75rem; color: var(--text-muted);">${formatUSD(p.amount)}</div>
               </td>
-              <td data-label="Status"><span class="badge ${statusClass}" title="${isEnded ? 'Period ended - due date has passed' : ''}"><span class="badge-dot"></span>${statusIcon} ${statusText}</span></td>
+              <td data-label="Status"><span class="badge ${statusClass}"><span class="badge-dot"></span>${statusText}</span></td>
               <td class="actions-cell">
                 <div class="flex gap-1 wrap" style="justify-content: flex-end;">
                   <button class="btn btn-sm btn-outline receipt-btn" data-id="${p.id}" style="color: var(--accent); border-color: var(--accent);">🧾 Receipt</button>
-                  <button class="btn btn-sm btn-outline text-red delete-btn" data-id="${p.id}">Del</button>
+                  ${deleteBtn}
                 </div>
               </td>
             </tr>`;
@@ -1069,7 +1049,7 @@
                 <tr>
                   <td style="padding: 14px 10px; border-bottom: 1px solid var(--border);">
                     <strong style="font-size: 0.95rem;">${escapeHtml(project?.name || 'Project Service')}</strong><br>
-                    <span style="color: var(--text-muted); font-size: 0.78rem;">${escapeHtml(payment.period || 'No period specified')} (${payment.months_covered || 1} month(s))</span>
+                    <span style="color: var(--text-muted); font-size: 0.78rem;">${payment.months_covered || 1} month(s)</span>
                   </td>
                   <td style="padding: 14px 10px; text-align: right; border-bottom: 1px solid var(--border); font-weight: 600; font-size: 0.95rem;">
                     ${formatUGX(payment.amount)}
@@ -1185,7 +1165,6 @@
         });
       });
 
-      // --- FIXED: Removed Edit Button Listener ---
       document.getElementById('paymentsTable').addEventListener('click', (e) => {
         const receiptBtn = e.target.closest('.receipt-btn');
         if (receiptBtn) { showReceipt(receiptBtn.dataset.id); return; }
@@ -1216,7 +1195,6 @@
         document.getElementById('payClient').value = '';
         document.getElementById('payProject').innerHTML = '<option value="">Select client first...</option>';
         document.getElementById('payProject').disabled = true;
-        document.getElementById('payPeriod').value = '';
         document.getElementById('payMonths').value = 0;
         document.getElementById('payAmount').value = '';
         document.getElementById('amountCalcHint').textContent = '';
@@ -1225,8 +1203,6 @@
         document.getElementById('payStatus').value = 'paid';
         document.getElementById('payNotes').value = '';
         window.currentProjectRate = 0;
-        window.baseDueDateForCalc = null;
-        window.startPeriodNum = 1;
         allProjects = [];
       }
 
@@ -1236,23 +1212,15 @@
         const btn = this;
         const originalText = btn.textContent;
         
-        const payId = document.getElementById('payId').value;
-        const isEdit = !!payId;
-        
-        btn.textContent = isEdit ? 'Updating...' : 'Recording...';
+        btn.textContent = 'Recording...';
         btn.disabled = true;
 
         try {
           const projectId = document.getElementById('payProject').value;
           if (!projectId) throw new Error('Please select a project');
           
-          const { data: pays } = await supabase.from('payments').select('period_number').eq('project_id', projectId).order('period_number', { ascending: false }).limit(1);
-          const nextPeriodNum = (pays && pays.length > 0) ? (pays[0].period_number || 0) + 1 : 1;
-
           const paymentData = {
             project_id: projectId,
-            period: document.getElementById('payPeriod').value.trim(),
-            period_number: nextPeriodNum, 
             months_covered: parseInt(document.getElementById('payMonths').value) || 0,
             amount: parseInt(document.getElementById('payAmount').value) || 0,
             payment_date: document.getElementById('payPaymentDate').value,
@@ -1264,22 +1232,13 @@
           if (!paymentData.amount || paymentData.amount <= 0) throw new Error('Please select at least 1 month to calculate a valid amount.');
           if (!paymentData.due_date) throw new Error('Due date is required');
           
-          let error;
-          if (isEdit) {
-            delete paymentData.period_number; 
-            const { error: updateErr } = await supabase.from('payments').update(paymentData).eq('id', payId);
-            error = updateErr;
-          } else {
-            // ALWAYS CREATE A NEW ROW (NEW RECEIPT) FOR NEW PAYMENTS
-            paymentData.id = generateId();
-            paymentData.created_at = new Date().toISOString();
-            const { error: insertErr } = await supabase.from('payments').insert(paymentData);
-            error = insertErr;
-          }
+          paymentData.id = generateId();
+          paymentData.created_at = new Date().toISOString();
+          const { error: insertErr } = await supabase.from('payments').insert(paymentData);
           
-          if (error) throw new Error(error.message);
+          if (insertErr) throw new Error(insertErr.message);
           
-          showToast(isEdit ? 'Payment updated successfully!' : 'Payment recorded successfully!');
+          showToast('Payment recorded successfully!');
           closeModal('paymentModal');
           resetPaymentForm();
           await loadPayments();
