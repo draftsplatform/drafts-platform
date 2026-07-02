@@ -147,8 +147,20 @@
     tbody tr[data-status="pending"]:hover { background-color: rgba(217, 119, 6, 0.1); }
     
     /* --- ENDED RECEIPTS STYLING --- */
-    tbody tr[data-ended="true"] { background-color: rgba(100, 116, 139, 0.05) !important; opacity: 0.75; }
-    tbody tr[data-ended="true"]:hover { background-color: rgba(100, 116, 139, 0.1) !important; opacity: 1; }
+    tbody tr[data-ended="true"] { 
+      background-color: rgba(100, 116, 139, 0.08) !important; 
+      opacity: 0.85;
+      border-left: 3px solid var(--text-muted);
+    }
+    tbody tr[data-ended="true"]:hover { 
+      background-color: rgba(100, 116, 139, 0.12) !important; 
+      opacity: 1; 
+    }
+    tbody tr[data-ended="true"] td.amount-cell strong {
+      text-decoration: line-through;
+      text-decoration-color: var(--text-muted);
+      text-decoration-thickness: 1px;
+    }
     
     .empty-state { text-align: center; padding: 3rem 1rem; color: var(--text-muted); }
     .empty-icon { font-size: 3rem; margin-bottom: .75rem; opacity: .4; }
@@ -290,7 +302,16 @@
       .table-wrapper tr[data-status="pending"] { background-color: rgba(217, 119, 6, 0.05); border-left: 4px solid var(--warning); }
       
       /* Mobile Ended Styling */
-      .table-wrapper tr[data-ended="true"] { background-color: rgba(100, 116, 139, 0.05) !important; border-left: 4px solid var(--text-muted) !important; opacity: 0.75; }
+      .table-wrapper tr[data-ended="true"] { 
+        background-color: rgba(100, 116, 139, 0.08) !important; 
+        border-left: 4px solid var(--text-muted) !important; 
+        opacity: 0.85;
+      }
+      .table-wrapper tr[data-ended="true"] td.amount-cell strong {
+        text-decoration: line-through;
+        text-decoration-color: var(--text-muted);
+        text-decoration-thickness: 1px;
+      }
       
       .table-wrapper td {
         border: none;
@@ -618,10 +639,16 @@
         const rows = document.querySelectorAll('#paymentsTable tr[data-status]');
         rows.forEach(row => {
           const status = row.dataset.status;
+          const isEnded = row.dataset.ended === 'true';
           if (tab === 'all-payments') { row.style.display = ''; return; }
           const statusMap = { 'paid-payments': 'paid', 'pending-payments': 'pending', 'overdue-payments': 'overdue' };
           const target = statusMap[tab];
-          row.style.display = status === target ? '' : 'none';
+          // For "paid" tab, show both active paid and ended receipts
+          if (target === 'paid') {
+            row.style.display = (status === 'paid') ? '' : 'none';
+          } else {
+            row.style.display = status === target ? '' : 'none';
+          }
         });
       }
 
@@ -661,36 +688,60 @@
           if (error || !payments) { showToast('Failed to load selected payments', 'error'); return; }
 
           const projectIds = [...new Set(payments.map(p => p.project_id))];
-          const { data: projects } = await supabase.from('projects').select('id, name, client_id, monthly_rate').in('id', projectIds);
+          let projects = [];
+          if (projectIds.length > 0) {
+            const { data: projData } = await supabase.from('projects').select('id, name, client_id, monthly_rate').in('id', projectIds);
+            projects = projData || [];
+          }
           
           const clientIds = [...new Set(projects.map(p => p.client_id))];
-          const { data: clients } = await supabase.from('clients').select('id, name, email, phone').in('id', clientIds);
+          let clients = [];
+          if (clientIds.length > 0) {
+            const { data: clientData } = await supabase.from('clients').select('id, name, email, phone').in('id', clientIds);
+            clients = clientData || [];
+          }
 
           const clientMap = {};
-          (clients || []).forEach(c => clientMap[c.id] = c);
+          clients.forEach(c => clientMap[c.id] = c);
           const projectMap = {};
-          (projects || []).forEach(p => projectMap[p.id] = p);
+          projects.forEach(p => projectMap[p.id] = p);
 
-          const groupedByClient = {};
           let grandTotal = 0;
+          const receiptItems = [];
+          const uniqueClients = new Set();
 
           payments.forEach(p => {
             const proj = projectMap[p.project_id];
             const client = proj ? clientMap[proj.client_id] : null;
-            const clientId = client ? client.id : 'unknown';
             
-            if (!groupedByClient[clientId]) {
-              groupedByClient[clientId] = {
-                client: client || { name: 'Unknown Client', email: '', phone: '' },
-                items: []
-              };
-            }
+            if (client) uniqueClients.add(client.id);
             
-            groupedByClient[clientId].items.push({
+            receiptItems.push({
               payment: p,
-              project: proj || { name: 'Unknown Project' }
+              project: proj || { name: 'Unknown Project' },
+              client: client || { name: 'Unknown Client' }
             });
             grandTotal += (p.amount || 0);
+          });
+
+          // Sort by payment date
+          receiptItems.sort((a, b) => new Date(a.payment.payment_date) - new Date(b.payment.payment_date));
+
+          // Get date range
+          const firstDate = receiptItems.length > 0 ? new Date(receiptItems[0].payment.payment_date).toLocaleDateString() : 'N/A';
+          const lastDate = receiptItems.length > 0 ? new Date(receiptItems[receiptItems.length - 1].payment.payment_date).toLocaleDateString() : 'N/A';
+
+          // Build clients list HTML
+          let clientsHTML = '';
+          uniqueClients.forEach(clientId => {
+            const client = clientMap[clientId];
+            if (client) {
+              clientsHTML += `
+                <p style="font-weight: 600; font-size: 0.95rem; margin: 0 0 4px 0;">${escapeHtml(client.name)}</p>
+                ${client.email ? `<p style="color: var(--text-secondary); font-size: 0.8rem; margin: 0;">${escapeHtml(client.email)}</p>` : ''}
+                ${client.phone ? `<p style="color: var(--text-secondary); font-size: 0.8rem; margin: 0 0 8px 0;">${escapeHtml(client.phone)}</p>` : '<div style="margin-bottom: 8px;"></div>'}
+              `;
+            }
           });
 
           let receiptHTML = `
@@ -698,80 +749,68 @@
               <img src="https://i.ibb.co/p6GCfY1x/Screenshot-2026-05-30-at-17-06-41.png" alt="Logo" style="height: 48px; margin-bottom: 8px;">
               <h2 style="font-size: 1.2rem; font-weight: 700; margin: 0; color: var(--text);">CONSOLIDATED PAYMENT RECEIPT</h2>
               <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Receipt #: COMBINED-${Date.now().toString().substring(7).toUpperCase()}</p>
-              <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 2px;">Generated on ${new Date().toLocaleDateString()}</p>
             </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem; font-size: 0.85rem;">
+              <div>
+                <p style="color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 4px;">Billed To</p>
+                ${clientsHTML || '<p style="color: var(--text-muted);">No clients found</p>'}
+              </div>
+              <div style="text-align: right;">
+                <p style="color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 4px;">Details</p>
+                <p><strong>Receipts:</strong> ${payments.length}</p>
+                <p><strong>Date Range:</strong> ${firstDate} - ${lastDate}</p>
+                <p><strong>Generated:</strong> ${new Date().toLocaleDateString()}</p>
+              </div>
+            </div>
+            <table style="width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; font-size: 0.85rem;">
+              <thead>
+                <tr style="background: var(--card-hover);">
+                  <th style="padding: 10px; text-align: left; border-bottom: 2px solid var(--border); color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px;">Description</th>
+                  <th style="padding: 10px; text-align: center; border-bottom: 2px solid var(--border); color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px;">Date</th>
+                  <th style="padding: 10px; text-align: right; border-bottom: 2px solid var(--border); color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px;">Amount (UGX)</th>
+                </tr>
+              </thead>
+              <tbody>
           `;
 
-          for (const clientId in groupedByClient) {
-            const group = groupedByClient[clientId];
-            const client = group.client;
-            let clientTotal = 0;
+          receiptItems.forEach(item => {
+            const p = item.payment;
+            const proj = item.project;
+            const client = item.client;
             
             receiptHTML += `
-              <div style="margin-bottom: 2rem; page-break-inside: avoid;">
-                <div style="background: var(--card-hover); padding: 12px; border-radius: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-                  <div>
-                    <p style="color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; margin-bottom: 4px;">Billed To</p>
-                    <p style="font-weight: 600; font-size: 0.95rem; margin: 0;">${escapeHtml(client.name)}</p>
-                    <p style="color: var(--text-secondary); font-size: 0.8rem; margin: 0;">${escapeHtml(client.email || '')} ${client.phone ? '• ' + escapeHtml(client.phone) : ''}</p>
-                  </div>
-                </div>
-                <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-bottom: 12px;">
-                  <thead>
-                    <tr style="background: var(--surface);">
-                      <th style="padding: 10px; text-align: left; border-bottom: 2px solid var(--border); color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Project / Period</th>
-                      <th style="padding: 10px; text-align: center; border-bottom: 2px solid var(--border); color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Date</th>
-                      <th style="padding: 10px; text-align: right; border-bottom: 2px solid var(--border); color: var(--text-muted); font-size: 0.72rem; text-transform: uppercase;">Amount (UGX)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+              <tr>
+                <td style="padding: 14px 10px; border-bottom: 1px solid var(--border);">
+                  <strong style="font-size: 0.95rem;">${escapeHtml(proj.name)}</strong><br>
+                  <span style="color: var(--text-muted); font-size: 0.78rem;">${escapeHtml(client.name)} • ${escapeHtml(p.period || 'No period')} (${p.months_covered || 1} mo.)</span>
+                </td>
+                <td style="padding: 14px 10px; text-align: center; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 0.85rem;">
+                  ${new Date(p.payment_date).toLocaleDateString()}
+                </td>
+                <td style="padding: 14px 10px; text-align: right; border-bottom: 1px solid var(--border); font-weight: 600; font-size: 0.95rem;">
+                  ${formatUGX(p.amount)}
+                </td>
+              </tr>
             `;
-            
-            group.items.forEach(item => {
-              const p = item.payment;
-              const proj = item.project;
-              clientTotal += (p.amount || 0);
-              
-              receiptHTML += `
-                <tr>
-                  <td style="padding: 12px 10px; border-bottom: 1px solid var(--border);">
-                    <strong style="font-size: 0.9rem;">${escapeHtml(proj.name)}</strong><br>
-                    <span style="color: var(--text-muted); font-size: 0.78rem;">${escapeHtml(p.period || 'No period')} (${p.months_covered || 1} mo.)</span>
-                  </td>
-                  <td style="padding: 12px 10px; text-align: center; border-bottom: 1px solid var(--border); color: var(--text-secondary); font-size: 0.8rem;">
-                    ${new Date(p.payment_date).toLocaleDateString()}
-                  </td>
-                  <td style="padding: 12px 10px; text-align: right; border-bottom: 1px solid var(--border); font-weight: 600;">
-                    ${formatUGX(p.amount)}
-                  </td>
-                </tr>
-              `;
-            });
-            
-            receiptHTML += `
-                  </tbody>
-                  <tfoot>
-                    <tr>
-                      <td colspan="2" style="padding: 12px 10px; text-align: right; font-weight: 700; color: var(--text);">Subtotal for ${escapeHtml(client.name)}</td>
-                      <td style="padding: 12px 10px; text-align: right; font-weight: 700; color: var(--primary);">${formatUGX(clientTotal)}</td>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
-            `;
-          }
+          });
 
           receiptHTML += `
-            <div style="background: var(--primary-glow); border: 1px solid var(--primary); padding: 16px; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-              <span style="font-size: 1rem; font-weight: 700; color: var(--primary);">GRAND TOTAL</span>
-              <div style="text-align: right;">
-                <div style="font-size: 1.25rem; font-weight: 800; color: var(--primary);">${formatUGX(grandTotal)}</div>
-                <div style="font-size: 0.8rem; color: var(--text-muted);">${formatUSD(grandTotal)}</div>
-              </div>
-            </div>
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="2" style="padding: 14px 10px; text-align: right; font-weight: 700; font-size: 1rem; color: var(--text);">Total</td>
+                  <td style="padding: 14px 10px; text-align: right; font-weight: 800; font-size: 1.1rem; color: var(--primary);">${formatUGX(grandTotal)}</td>
+                </tr>
+                <tr>
+                  <td colspan="2" style="padding: 8px 10px; text-align: right; color: var(--text-muted); font-size: 0.75rem;">USD Equivalent</td>
+                  <td style="padding: 8px 10px; text-align: right; color: var(--text-muted); font-size: 0.75rem;">${formatUSD(grandTotal)}</td>
+                </tr>
+              </tfoot>
+            </table>
             <div style="text-align: center; margin-top: 2rem; color: var(--text-muted); font-size: 0.75rem; border-top: 1px dashed var(--border); padding-top: 1rem;">
               <p style="font-weight: 600; color: var(--text); margin-bottom: 4px;">Thank you for your business!</p>
               <p>This is a consolidated receipt for ${payments.length} payment(s).</p>
+              <p>Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
             </div>
           `;
 
@@ -933,22 +972,28 @@
             
             let statusClass = '';
             let statusText = p.status;
+            let statusIcon = '';
             
             if (isEnded) {
                 statusClass = 'badge-gray';
                 statusText = 'Ended';
+                statusIcon = '✓';
             } else if (p.status === 'paid') {
                 statusClass = 'badge-green';
                 statusText = 'Paid';
+                statusIcon = '●';
             } else if (p.status === 'pending') {
                 statusClass = 'badge-yellow';
                 statusText = 'Pending';
+                statusIcon = '●';
             } else if (p.status === 'overdue') {
                 statusClass = 'badge-red';
                 statusText = 'Overdue';
+                statusIcon = '●';
             } else {
                 statusClass = 'badge-gray';
                 statusText = p.status || 'Unknown';
+                statusIcon = '●';
             }
 
             // --- FIXED: Removed Edit Button ---
@@ -965,7 +1010,7 @@
                 <div><strong>${formatUGX(p.amount)}</strong></div>
                 <div style="font-size:.75rem; color: var(--text-muted);">${formatUSD(p.amount)}</div>
               </td>
-              <td data-label="Status"><span class="badge ${statusClass}"><span class="badge-dot"></span>${statusText}</span></td>
+              <td data-label="Status"><span class="badge ${statusClass}" title="${isEnded ? 'Period ended - due date has passed' : ''}"><span class="badge-dot"></span>${statusIcon} ${statusText}</span></td>
               <td class="actions-cell">
                 <div class="flex gap-1 wrap" style="justify-content: flex-end;">
                   <button class="btn btn-sm btn-outline receipt-btn" data-id="${p.id}" style="color: var(--accent); border-color: var(--accent);">🧾 Receipt</button>
