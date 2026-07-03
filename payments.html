@@ -75,7 +75,7 @@
     /* 📱 MOBILE NAV DRAWER */
     .nav-drawer-overlay {
       display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(15,23,42,.5); backdrop-filter: blur(4px);
+      background: rgba(15,23,42,.5);
       z-index: 200; opacity: 0; transition: opacity .3s;
     }
     .nav-drawer-overlay.active { display: block; opacity: 1; }
@@ -179,9 +179,21 @@
     .toast.error { border-left-color: var(--danger); }
     @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
     
-    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); backdrop-filter: blur(4px); z-index: 200; place-items: center; pointer-events: none; opacity: 0; transition: opacity .2s ease; }
+    /* OPTIMIZED MODAL (Removed backdrop-filter blur for performance) */
+    .modal-overlay { 
+      display: none; position: fixed; inset: 0; 
+      background: rgba(0,0,0,.5); 
+      z-index: 200; place-items: center; pointer-events: none; 
+      opacity: 0; transition: opacity .2s ease; 
+      will-change: opacity;
+    }
     .modal-overlay.open { display: grid; pointer-events: auto; opacity: 1; }
-    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); width: 90%; max-width: 640px; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-hover); animation: fadeUp .2s ease; pointer-events: auto; }
+    .modal { 
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); 
+      width: 90%; max-width: 640px; max-height: 90vh; overflow-y: auto; 
+      box-shadow: var(--shadow-hover); animation: fadeUp .2s ease; pointer-events: auto; 
+      will-change: transform, opacity;
+    }
     @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--surface); z-index: 1; }
     .modal-title { font-size: 1.1rem; font-weight: 700; color: var(--text); }
@@ -584,6 +596,10 @@
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhuYnplcmhvcXFzbXpxeGNibnh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDg1MjksImV4cCI6MjA5NDYyNDUyOX0.a4rM51DQGih9SXMr71PREngZ_pT6dJFgv_fG9j5jAGc';
     const USD_RATE = 0.00027;
 
+    // CACHING FOR ZERO-LAG DROPDOWNS
+    let clientsCache = [];
+    let projectsByClient = {}; 
+
     document.addEventListener('DOMContentLoaded', async function() {
       if (!window.supabase) {
         showToast('Database SDK failed to load', 'error');
@@ -591,8 +607,7 @@
       }
 
       const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-      let isSaving = false;
-      let allProjects = []; 
+      let isSaving = false; 
       
       let selectedPaymentIds = new Set();
       
@@ -661,6 +676,29 @@
         });
       }
 
+      // === INSTANT DATA CACHING ===
+      async function loadInitialData() {
+        try {
+          const [clientsRes, projectsRes] = await Promise.all([
+            supabase.from('clients').select('id, name').in('status', ['active', 'prospect']).order('name'),
+            supabase.from('projects').select('id, name, monthly_rate, start_date, client_id').order('name')
+          ]);
+          clientsCache = clientsRes.data || [];
+          const allProjects = projectsRes.data || [];
+          
+          allProjects.forEach(p => {
+            if (!projectsByClient[p.client_id]) projectsByClient[p.client_id] = [];
+            projectsByClient[p.client_id].push(p);
+          });
+        } catch(e) { console.error('Initial load error:', e); }
+      }
+
+      function populateClientDropdown() {
+        const sel = document.getElementById('payClient');
+        sel.innerHTML = '<option value="">Select a client...</option>' + 
+          clientsCache.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
+      }
+
       // === COMBINED RECEIPT LOGIC ===
       function updateCombinedReceiptBtn() {
         const btn = document.getElementById('combinedReceiptBtn');
@@ -688,13 +726,24 @@
 
       document.getElementById('combinedReceiptBtn').addEventListener('click', async () => {
         if (selectedPaymentIds.size === 0) return;
-        await showCombinedReceipt(Array.from(selectedPaymentIds));
+        showCombinedReceipt(Array.from(selectedPaymentIds));
       });
 
-      async function showCombinedReceipt(paymentIds) {
+      // INSTANT RECEIPT LOADING (Opens modal immediately, loads data in background)
+      function showCombinedReceipt(paymentIds) {
+        document.getElementById('receiptContent').innerHTML = '<div style="text-align:center; padding:2rem;"><div class="empty-icon">⏳</div><p>Loading receipt...</p></div>';
+        document.getElementById('receiptModalTitle').textContent = 'Consolidated Receipt';
+        openModal('receiptModal');
+        
+        generateCombinedReceiptHTML(paymentIds).then(html => {
+          document.getElementById('receiptContent').innerHTML = html;
+        });
+      }
+
+      async function generateCombinedReceiptHTML(paymentIds) {
         try {
           const { data: payments, error } = await supabase.from('payments').select('*').in('id', paymentIds);
-          if (error || !payments) { showToast('Failed to load selected payments', 'error'); return; }
+          if (error || !payments) return '<p style="text-align:center;color:red;">Failed to load selected payments</p>';
 
           const projectIds = [...new Set(payments.map(p => p.project_id))];
           const { data: projects } = await supabase.from('projects').select('id, name, client_id, monthly_rate').in('id', projectIds);
@@ -812,90 +861,10 @@
               <p>Consolidated receipt for ${payments.length} payment(s)</p>
             </div>
           `;
-
-          document.getElementById('receiptContent').innerHTML = receiptHTML;
-          document.getElementById('receiptModalTitle').textContent = 'Consolidated Receipt';
-          openModal('receiptModal');
-          
+          return receiptHTML;
         } catch (err) {
-          console.error('Combined receipt error:', err);
-          showToast('Failed to generate combined receipt', 'error');
+          return '<p style="text-align:center;color:red;">Failed to generate receipt</p>';
         }
-      }
-
-      async function loadClientsDropdown() {
-        try {
-          const { data, error } = await supabase.from('clients').select('id, name').in('status', ['active', 'prospect']).order('name');
-          if (error) throw error;
-          const sel = document.getElementById('payClient');
-          sel.innerHTML = '<option value="">Select a client...</option>' + 
-            (data || []).map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
-        } catch (err) { console.error('Failed to load clients:', err); }
-      }
-
-      async function loadClientProjects(clientId) {
-        const projSelect = document.getElementById('payProject');
-        if (!clientId) {
-          projSelect.innerHTML = '<option value="">Select client first...</option>';
-          projSelect.disabled = true;
-          return;
-        }
-        try {
-          const { data: allProjs, error: projErr } = await supabase.from('projects').select('id, name, monthly_rate, start_date').eq('client_id', clientId).order('name');
-          if (projErr) throw projErr;
-          if (!allProjs || allProjs.length === 0) {
-            projSelect.innerHTML = '<option value="">No projects found</option>';
-            projSelect.disabled = true;
-            return;
-          }
-
-          projSelect.innerHTML = '<option value="">Select a project...</option>' +
-            allProjs.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
-          projSelect.disabled = false;
-          allProjects = allProjs;
-        } catch (err) {
-          console.error('Failed to load projects:', err);
-          projSelect.innerHTML = '<option value="">Error loading projects</option>';
-          projSelect.disabled = true;
-        }
-      }
-
-      async function onProjectSelect(projectId) {
-        if (document.getElementById('payId').value) return;
-        const project = allProjects.find(p => p.id === projectId);
-        if (!project) return;
-        
-        window.currentProjectRate = project.monthly_rate || 0;
-        
-        if (!document.getElementById('payMonths').value || document.getElementById('payMonths').value === '0') {
-          document.getElementById('payMonths').value = 1;
-        }
-        
-        updateAllCalculations();
-      }
-
-      function updateAllCalculations() {
-        const rate = window.currentProjectRate || 0;
-        const months = parseInt(document.getElementById('payMonths').value) || 0;
-        const total = rate * months;
-        document.getElementById('payAmount').value = total;
-        
-        if (months === 0) document.getElementById('amountCalcHint').textContent = 'Select months to calculate total';
-        else if (rate > 0) document.getElementById('amountCalcHint').textContent = `${formatUGX(rate)} × ${months} month(s) = ${formatUGX(total)}`;
-        else document.getElementById('amountCalcHint').textContent = '';
-        
-        const paymentDateVal = document.getElementById('payPaymentDate').value;
-        const baseDateStr = paymentDateVal || getLocalDateString();
-        const d = new Date(baseDateStr + 'T00:00:00');
-        
-        // For 1 month, use 30 days; for multiple months, use actual months
-        if (months === 1) {
-          d.setDate(d.getDate() + 30);
-        } else {
-          d.setMonth(d.getMonth() + months);
-        }
-        
-        document.getElementById('payDueDate').value = getLocalDateString(d);
       }
 
       async function loadPayments() {
@@ -943,23 +912,19 @@
           tbody.innerHTML = payments.map(p => {
             const proj = pMap[p.project_id] || {};
             
-            // Check if payment date and due date are valid
             const paymentDateStr = p.payment_date ? p.payment_date.substring(0, 10) : '';
             const dueDateStr = p.due_date ? p.due_date.substring(0, 10) : '';
             
-            // Determine status based on dates
             let statusClass = '';
             let statusText = '';
             let isEnded = false;
             
             if (p.status === 'paid') {
               if (dueDateStr && dueDateStr < todayStr) {
-                // Past due date = ended
                 isEnded = true;
                 statusClass = 'badge-gray';
                 statusText = 'Ended';
               } else {
-                // Valid payment within due date
                 statusClass = 'badge-green';
                 statusText = 'Paid';
               }
@@ -974,7 +939,6 @@
               statusText = p.status || 'Unknown';
             }
 
-            // Conditional Delete Button: Show only if ended (past due) OR if status is not 'paid'
             const canDelete = isEnded || p.status !== 'paid';
             const deleteBtn = canDelete ? `<button class="btn btn-sm btn-outline text-red delete-btn" data-id="${p.id}">Del</button>` : '';
 
@@ -1010,15 +974,26 @@
         }
       }
 
-      async function showReceipt(paymentId) {
+      // INSTANT RECEIPT LOADING
+      function showReceipt(paymentId) {
+        document.getElementById('receiptContent').innerHTML = '<div style="text-align:center; padding:2rem;"><div class="empty-icon">⏳</div><p>Loading receipt...</p></div>';
+        document.getElementById('receiptModalTitle').textContent = 'Payment Receipt';
+        openModal('receiptModal');
+        
+        generateSingleReceiptHTML(paymentId).then(html => {
+          document.getElementById('receiptContent').innerHTML = html;
+        });
+      }
+
+      async function generateSingleReceiptHTML(paymentId) {
         try {
           const { data: payment, error } = await supabase.from('payments').select('*').eq('id', paymentId).single();
-          if (error || !payment) { showToast('Receipt not found', 'error'); return; }
+          if (error || !payment) return '<p style="text-align:center;color:red;">Receipt not found</p>';
 
           const { data: project } = await supabase.from('projects').select('name, client_id, monthly_rate').eq('id', payment.project_id).single();
           const { data: client } = await supabase.from('clients').select('name, email, phone').eq('id', project?.client_id).single();
 
-          const receiptHTML = `
+          return `
             <div style="text-align: center; margin-bottom: 1.5rem;">
               <img src="https://i.ibb.co/p6GCfY1x/Screenshot-2026-05-30-at-17-06-41.png" alt="Logo" style="height: 48px; margin-bottom: 8px;">
               <h2 style="font-size: 1.2rem; font-weight: 700; margin: 0; color: var(--text);">PAYMENT RECEIPT</h2>
@@ -1073,12 +1048,8 @@
               <p>Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
             </div>
           `;
-          document.getElementById('receiptContent').innerHTML = receiptHTML;
-          document.getElementById('receiptModalTitle').textContent = 'Payment Receipt';
-          openModal('receiptModal');
         } catch (err) {
-          console.error('Receipt error:', err);
-          showToast('Failed to load receipt', 'error');
+          return '<p style="text-align:center;color:red;">Failed to load receipt</p>';
         }
       }
 
@@ -1094,51 +1065,75 @@
         }
       }
 
-      // === URL PARAMS HANDLER ===
+      // === URL PARAMS HANDLER (Uses cache for zero lag) ===
       async function handleUrlParams() {
         const urlParams = new URLSearchParams(window.location.search);
         const targetProjectId = urlParams.get('project_id');
         const action = urlParams.get('action');
 
         if (action === 'new_payment' && targetProjectId) {
-          try {
-            const { data: project, error } = await supabase.from('projects').select('client_id, name').eq('id', targetProjectId).single();
-            if (error || !project) {
-              showToast('Project not found', 'error');
-              return;
+          let targetProject = null;
+          let targetClientId = null;
+          for (const cId in projectsByClient) {
+            const found = projectsByClient[cId].find(p => p.id === targetProjectId);
+            if (found) {
+              targetProject = found;
+              targetClientId = cId;
+              break;
             }
+          }
 
-            await loadClientsDropdown();
-            document.getElementById('payClient').value = project.client_id;
+          if (targetProject && targetClientId) {
+            populateClientDropdown();
+            document.getElementById('payClient').value = targetClientId;
+            document.getElementById('payClient').dispatchEvent(new Event('change'));
             
-            await loadClientProjects(project.client_id);
-            
-            const projectSelect = document.getElementById('payProject');
-            projectSelect.value = targetProjectId;
-            
-            document.getElementById('payMonths').value = 1;
-            
-            await onProjectSelect(targetProjectId);
-            
-            openModal('paymentModal');
-            
-            window.history.replaceState({}, document.title, window.location.pathname);
-            
-          } catch (err) {
-            console.error('Error auto-filling from URL:', err);
-            showToast('Could not auto-select project', 'error');
+            setTimeout(() => {
+              document.getElementById('payProject').value = targetProjectId;
+              document.getElementById('payProject').dispatchEvent(new Event('change'));
+              document.getElementById('payMonths').value = 1;
+              updateAllCalculations();
+              openModal('paymentModal');
+              window.history.replaceState({}, document.title, window.location.pathname);
+            }, 50);
+          } else {
+            showToast('Project not found', 'error');
           }
         }
+      }
+
+      function updateAllCalculations() {
+        const rate = window.currentProjectRate || 0;
+        const months = parseInt(document.getElementById('payMonths').value) || 0;
+        const total = rate * months;
+        document.getElementById('payAmount').value = total;
+        
+        if (months === 0) document.getElementById('amountCalcHint').textContent = 'Select months to calculate total';
+        else if (rate > 0) document.getElementById('amountCalcHint').textContent = `${formatUGX(rate)} × ${months} month(s) = ${formatUGX(total)}`;
+        else document.getElementById('amountCalcHint').textContent = '';
+        
+        const paymentDateVal = document.getElementById('payPaymentDate').value;
+        const baseDateStr = paymentDateVal || getLocalDateString();
+        const d = new Date(baseDateStr + 'T00:00:00');
+        
+        if (months === 1) {
+          d.setDate(d.getDate() + 30);
+        } else {
+          d.setMonth(d.getMonth() + months);
+        }
+        
+        document.getElementById('payDueDate').value = getLocalDateString(d);
       }
 
       // === EVENT LISTENERS ===
       document.getElementById('logoBtn').addEventListener('click', () => window.location.href = 'index.html');
       
-      document.getElementById('newPaymentBtn').addEventListener('click', async () => {
+      // INSTANT MODAL OPEN (Zero lag)
+      document.getElementById('newPaymentBtn').addEventListener('click', () => {
         resetPaymentForm();
-        await loadClientsDropdown();
+        populateClientDropdown();
         openModal('paymentModal');
-        document.getElementById('payClient').focus();
+        setTimeout(() => document.getElementById('payClient').focus(), 100);
       });
       
       document.getElementById('closePaymentModal').addEventListener('click', () => { closeModal('paymentModal'); resetPaymentForm(); });
@@ -1183,8 +1178,40 @@
         }
       });
 
-      document.getElementById('payClient').addEventListener('change', function() { loadClientProjects(this.value); });
-      document.getElementById('payProject').addEventListener('change', function() { onProjectSelect(this.value); });
+      // INSTANT DROPDOWN POPULATION (Zero lag)
+      document.getElementById('payClient').addEventListener('change', function() { 
+        const clientId = this.value;
+        const projSelect = document.getElementById('payProject');
+        window.currentProjectRate = 0; 
+        
+        if (!clientId) {
+          projSelect.innerHTML = '<option value="">Select client first...</option>';
+          projSelect.disabled = true;
+          updateAllCalculations();
+          return;
+        }
+        const projects = projectsByClient[clientId] || [];
+        if (projects.length === 0) {
+          projSelect.innerHTML = '<option value="">No projects found</option>';
+          projSelect.disabled = true;
+          updateAllCalculations();
+          return;
+        }
+        projSelect.innerHTML = '<option value="">Select a project...</option>' +
+          projects.map(p => `<option value="${p.id}" data-rate="${p.monthly_rate}" data-start="${p.start_date}">${escapeHtml(p.name)}</option>`).join('');
+        projSelect.disabled = false;
+      });
+
+      document.getElementById('payProject').addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        if (!this.value || !selectedOption.dataset.rate) {
+          window.currentProjectRate = 0;
+        } else {
+          window.currentProjectRate = parseFloat(selectedOption.dataset.rate) || 0;
+        }
+        updateAllCalculations();
+      });
+
       document.getElementById('payMonths').addEventListener('input', updateAllCalculations);
       document.getElementById('payPaymentDate').addEventListener('change', updateAllCalculations);
 
@@ -1203,7 +1230,6 @@
         document.getElementById('payStatus').value = 'paid';
         document.getElementById('payNotes').value = '';
         window.currentProjectRate = 0;
-        allProjects = [];
       }
 
       document.getElementById('savePayment').addEventListener('click', async function() {
@@ -1253,8 +1279,10 @@
       });
 
       document.getElementById('payPaymentDate').value = getLocalDateString();
-      await loadPayments();
       
+      // INITIAL LOAD
+      await loadInitialData();
+      await loadPayments();
       await handleUrlParams();
 
       // === REALTIME UPDATES ===
