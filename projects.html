@@ -74,7 +74,7 @@
     /* 📱 MOBILE NAV DRAWER */
     .nav-drawer-overlay {
       display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(15,23,42,.5); backdrop-filter: blur(4px);
+      background: rgba(15,23,42,.5);
       z-index: 200; opacity: 0; transition: opacity .3s;
     }
     .nav-drawer-overlay.active { display: block; opacity: 1; }
@@ -207,9 +207,21 @@
     .toast.info { border-left-color: var(--primary); }
     @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
     
-    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.4); backdrop-filter: blur(4px); z-index: 200; place-items: center; pointer-events: none; opacity: 0; transition: opacity .2s ease; }
+    /* OPTIMIZED MODAL (Removed backdrop-filter blur for performance) */
+    .modal-overlay { 
+      display: none; position: fixed; inset: 0; 
+      background: rgba(0,0,0,.5); 
+      z-index: 200; place-items: center; pointer-events: none; 
+      opacity: 0; transition: opacity .2s ease; 
+      will-change: opacity;
+    }
     .modal-overlay.open { display: grid; pointer-events: auto; opacity: 1; }
-    .modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); width: 90%; max-width: 640px; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-hover); animation: fadeUp .2s ease; }
+    .modal { 
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); 
+      width: 90%; max-width: 640px; max-height: 90vh; overflow-y: auto; 
+      box-shadow: var(--shadow-hover); animation: fadeUp .2s ease; 
+      will-change: transform, opacity;
+    }
     @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--surface); z-index: 1; }
     .modal-title { font-size: 1.1rem; font-weight: 700; }
@@ -537,7 +549,7 @@
     setupEventListeners();
     document.getElementById('projStart').value = new Date().toISOString().split('T')[0];
     
-    // REALTIME LISTENER: Automatically updates the UI when a payment or project changes
+    // REALTIME LISTENER
     supabase.channel('projects-live')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => loadAllData())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => loadAllData())
@@ -550,6 +562,7 @@
   function generateUUID() { return crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => (c === 'x' ? (Math.random()*16|0) : (Math.random()*4|8)).toString(16)); }
   function formatUGX(n) { return 'UGX ' + (Number(n)||0).toLocaleString(); }
   
+  // --- THE FIX: Uses actual due_date instead of summing months ---
   function computeProgress(project, payments) {
     const now = new Date();
     const start = new Date(project.start_date + 'T00:00:00');
@@ -557,12 +570,31 @@
     if (project.status === 'on-hold') return { percent: 0, state: 'on-hold', label: 'On Hold', fillColor: '#94a3b8' };
     
     const projectPayments = payments.filter(p => p.project_id === project.id && p.status === 'paid');
-    let totalMonthsPaid = 0;
-    // Calculates total months covered by summing up payments
-    projectPayments.forEach(p => totalMonthsPaid += (parseInt(p.months_covered) || parseInt(p.period_number) || 1));
-    const coveredUntil = new Date(start);
-    coveredUntil.setMonth(coveredUntil.getMonth() + totalMonthsPaid);
     
+    if (projectPayments.length === 0) {
+      if (now <= start) {
+        return { percent: 0, state: 'paid', label: 'Not Started', coveredUntil: start, totalMonthsPaid: 0, start };
+      }
+      return { percent: 100, state: 'overdue', label: 'No Payments', coveredUntil: start, totalMonthsPaid: 0, start };
+    }
+
+    let latestDueDate = new Date(0);
+    let totalMonthsPaid = 0;
+
+    projectPayments.forEach(p => {
+      const dateStr = p.due_date || p.payment_date || (p.created_at ? p.created_at.split('T')[0] : null);
+      if (!dateStr) return;
+      const pDueDate = new Date(dateStr + 'T00:00:00');
+      if (isNaN(pDueDate.getTime())) return;
+      
+      if (pDueDate > latestDueDate) {
+        latestDueDate = pDueDate;
+      }
+      totalMonthsPaid += (parseInt(p.months_covered) || parseInt(p.period_number) || 1);
+    });
+
+    const coveredUntil = latestDueDate;
+
     if (now <= coveredUntil) {
       const totalMs = coveredUntil - start;
       const elapsedMs = now - start;
@@ -575,8 +607,8 @@
   }
 
   function getColorFromPercent(percent) {
-    if (percent >= 100) return '#dc2626'; // red full
-    if (percent <= 0) return '#059669'; // fresh green
+    if (percent >= 100) return '#dc2626'; 
+    if (percent <= 0) return '#059669'; 
     const r = Math.min(255, Math.floor(255 * (percent / 100)));
     const g = Math.min(255, Math.floor(150 * (1 - percent / 100) + 100));
     return `rgb(${r}, ${g}, 70)`;
@@ -639,7 +671,6 @@
         statusSection = `<div class="live-status completed"><span>${prog.label}</span></div>`;
       }
       
-      // --- NEW LOGIC: Hide delete button if started, add Pay button if overdue ---
       const hasStarted = p.status === 'active' || new Date(p.start_date) <= new Date();
       const deleteBtn = hasStarted ? '' : `<button class="btn btn-sm btn-outline text-red delete-btn" data-id="${p.id}">Del</button>`;
       const payBtn = prog.state === 'overdue' ? `<button class="btn btn-sm btn-primary pay-btn" data-id="${p.id}">💳 Pay</button>` : '';
@@ -690,7 +721,6 @@
         else el.textContent = `${Math.floor(diffMs / 60000)}m left`;
       }
       
-      // update progress fill color & width dynamically
       const row = el.closest('tr.project-row');
       if (row) {
         const start = new Date(startDate);
@@ -781,7 +811,10 @@
   
   function setupEventListeners() {
     document.getElementById('logoBtn').addEventListener('click', () => window.location.href='index.html');
-    document.getElementById('newProjectBtn').addEventListener('click', async () => { await loadClients(); openModal('New Project'); });
+    
+    // INSTANT MODAL OPEN (No await loadClients() lag)
+    document.getElementById('newProjectBtn').addEventListener('click', () => { openModal('New Project'); });
+    
     document.getElementById('closeModal').addEventListener('click', closeModal);
     document.getElementById('cancelModal').addEventListener('click', closeModal);
     document.getElementById('refreshBtn').addEventListener('click', () => loadAllData());
@@ -790,7 +823,7 @@
     document.getElementById('projectsTable').addEventListener('click', async (e) => {
       const edit = e.target.closest('.edit-btn');
       const del = e.target.closest('.delete-btn');
-      const pay = e.target.closest('.pay-btn'); // NEW: Listen for the new Pay button
+      const pay = e.target.closest('.pay-btn'); 
       
       if (edit) {
         const p = projectsCache.find(x => x.id === edit.dataset.id);
@@ -798,9 +831,7 @@
       }
       if (del) await deleteProject(del.dataset.id);
       
-      // NEW: Handle "Pay Now" button for overdue projects
       if (pay) {
-        // Redirects to payments page with the project ID so it can generate a new receipt
         window.location.href = `payments.html?project_id=${pay.dataset.id}&action=new_payment`;
       }
     });
