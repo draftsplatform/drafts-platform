@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Projects — Drafts | Green→Red Payment Meter</title>
+  <title>Projects — Drafts | Auto-Pause & Payment Tracking</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -117,10 +117,12 @@
     .btn-outline { background: transparent; color: var(--text-secondary); border: 1px solid var(--border); }
     .btn-outline:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-glow); }
     .btn-sm { padding: 6px 12px; font-size: .75rem; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none !important; }
     
     .live-status { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 20px; font-size: .75rem; font-weight: 700; font-variant-numeric: tabular-nums; }
     .live-status.paid { background: rgba(5,150,105,.08); border: 1px solid rgba(5,150,105,.2); transition: all 0.5s ease; }
     .live-status.overdue { background: rgba(220,38,38,.12); color: var(--danger); border: 1px solid rgba(220,38,38,.2); animation: overduePulse 2s infinite; }
+    .live-status.paused { background: rgba(217,119,6,.12); color: var(--warning); border: 1px solid rgba(217,119,6,.2); }
     .live-status.completed { background: rgba(100,116,139,.12); color: var(--text-muted); border: 1px solid var(--border); }
     
     @keyframes overduePulse {
@@ -136,23 +138,17 @@
       font-variant-numeric: tabular-nums;
       font-weight: 700;
       letter-spacing: 0.5px;
-    }
-    .live-countdown.expired {
-      color: var(--danger);
-      animation: pulseRed 1.8s infinite;
-    }
-    @keyframes pulseRed {
-      0%,100% { opacity: 1; text-shadow: 0 0 0px rgba(220,38,38,0); }
-      50% { opacity: 0.85; text-shadow: 0 0 2px rgba(220,38,38,0.5); }
+   2s infinite;
     }
     
     /* ENHANCED: Green-to-Red transition rows */
     .project-row { transition: background .5s ease, border-left-color .3s; border-left: 3px solid transparent; }
     .project-row.health-green { border-left-color: var(--accent); background: rgba(5,150,105,.04); }
     .project-row.health-red { border-left-color: var(--danger); background: rgba(220,38,38,.06); }
+    .project-row.health-paused { border-left-color: var(--warning); background: rgba(217,119,6,.04); }
     .project-row.health-completed { border-left-color: var(--text-muted); opacity: .75; }
     
-    /* PROGRESS BAR with gradient from green → red based on percentage */
+    /* PROGRESS BAR */
     .progress-meter {
       width: 100%;
       height: 8px;
@@ -207,7 +203,7 @@
     .toast.info { border-left-color: var(--primary); }
     @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
     
-    /* OPTIMIZED MODAL (Removed backdrop-filter blur for performance) */
+    /* MODAL */
     .modal-overlay { 
       display: none; position: fixed; inset: 0; 
       background: rgba(0,0,0,.5); 
@@ -283,84 +279,39 @@
       .page-desc { font-size: .78rem; }
       .btn { padding: 8px 16px; font-size: .8rem; }
       
-      /* Modal full screen on mobile */
       .modal { width: 100%; max-width: 100%; height: 100dvh; max-height: 100dvh; border-radius: 0; border: none; }
       .modal-header, .modal-footer { position: sticky; }
 
-      /* 📱 MOBILE TABLE TO CARDS */
       .table-wrapper {
-        border: none;
-        background: transparent;
-        max-height: none;
-        overflow: visible;
+        border: none; background: transparent; max-height: none; overflow: visible;
       }
-      .table-wrapper table, 
-      .table-wrapper thead, 
-      .table-wrapper tbody, 
-      .table-wrapper th, 
-      .table-wrapper td, 
+      .table-wrapper table, .table-wrapper thead, .table-wrapper tbody, .table-wrapper th, .table-wrapper td, .table-wrapper tr { display: block; }
+      .table-wrapper thead tr { position: absolute; top: -9999px; left: -9999px; }
       .table-wrapper tr {
-        display: block;
-      }
-      .table-wrapper thead tr {
-        position: absolute; top: -9999px; left: -9999px;
-      }
-      .table-wrapper tr {
-        border: 1px solid var(--border);
-        border-radius: var(--radius);
-        margin-bottom: 1rem;
-        background: var(--surface);
-        padding: 1rem;
-        box-shadow: var(--shadow);
-        overflow: hidden;
+        border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 1rem;
+        background: var(--surface); padding: 1rem; box-shadow: var(--shadow); overflow: hidden;
       }
       .table-wrapper tr.health-green { border-left: 4px solid var(--accent); }
       .table-wrapper tr.health-red { border-left: 4px solid var(--danger); }
+      .table-wrapper tr.health-paused { border-left: 4px solid var(--warning); }
       .table-wrapper tr.health-completed { border-left: 4px solid var(--text-muted); }
       
       .table-wrapper td {
-        border: none;
-        position: relative;
-        padding: 10px 0;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        text-align: right;
+        border: none; position: relative; padding: 10px 0; display: flex;
+        justify-content: space-between; align-items: center; text-align: right;
       }
       .table-wrapper td::before {
-        content: attr(data-label);
-        font-weight: 600;
-        color: var(--text-muted);
-        font-size: .72rem;
-        text-transform: uppercase;
-        letter-spacing: .5px;
-        flex-shrink: 0;
-        margin-right: 1rem;
-        text-align: left;
+        content: attr(data-label); font-weight: 600; color: var(--text-muted);
+        font-size: .72rem; text-transform: uppercase; letter-spacing: .5px;
+        flex-shrink: 0; margin-right: 1rem; text-align: left;
       }
-      .table-wrapper td.meter-cell {
-        flex-direction: column;
-        align-items: flex-start;
-        justify-content: flex-start;
-      }
-      .table-wrapper td.meter-cell::before {
-        margin-bottom: 10px;
-      }
-      .table-wrapper td.meter-cell > div {
-        width: 100%;
-      }
-      .table-wrapper td.actions-cell {
-        justify-content: flex-end;
-        border-top: 1px solid var(--border);
-        margin-top: 8px;
-        padding-top: 12px;
-      }
-      .table-wrapper td.actions-cell::before {
-        display: none;
-      }
+      .table-wrapper td.meter-cell { flex-direction: column; align-items: flex-start; justify-content: flex-start; }
+      .table-wrapper td.meter-cell::before { margin-bottom: 10px; }
+      .table-wrapper td.meter-cell > div { width: 100%; }
+      .table-wrapper td.actions-cell { justify-content: flex-end; border-top: 1px solid var(--border); margin-top: 8px; padding-top: 12px; }
+      .table-wrapper td.actions-cell::before { display: none; }
     }
 
-    /* 📱 VERY SMALL MOBILE */
     @media (max-width: 380px) {
       .main { padding: .75rem; }
       .page-title { font-size: 1.1rem; }
@@ -417,18 +368,18 @@
         Project Tracking
         <span class="realtime-indicator">
           <span class="realtime-dot"></span>
-          Green→Red meter
+          Auto-Pause & Resume
         </span>
       </h1>
-      <p class="page-desc">0% = Green active / 100% = Red overdue — real-time transition</p>
+      <p class="page-desc">Projects auto-pause when overdue and auto-resume upon payment.</p>
     </div>
     <div class="flex gap-1 wrap">
       <select class="form-select" style="width:auto" id="projectFilter">
         <option value="all">All Status</option>
         <option value="active">Active</option>
+        <option value="paused">⏸️ Paused</option>
         <option value="completed">Completed</option>
         <option value="on-hold">On Hold</option>
-        <option value="overdue">⚠ Overdue Only</option>
       </select>
       <button class="btn btn-outline" id="refreshBtn">↻ Refresh</button>
       <button class="btn btn-primary" id="newProjectBtn">＋ New Project</button>
@@ -476,7 +427,7 @@
         </div>
         <div class="form-group">
           <label class="form-label">Monthly Rate (UGX)</label>
-          <input class="form-input" id="projRate" type="number" placeholder="500,000" />
+          <input class="form-input" id="projRate" type="number" placeholder="500000" />
         </div>
       </div>
       <div class="form-group">
@@ -493,6 +444,7 @@
         <label class="form-label">Status</label>
         <select class="form-select" id="projStatus">
           <option value="active">Active</option>
+          <option value="paused">Paused</option>
           <option value="completed">Completed</option>
           <option value="on-hold">On Hold</option>
         </select>
@@ -505,6 +457,50 @@
     <div class="modal-footer">
       <button class="btn btn-outline" id="cancelModal">Cancel</button>
       <button class="btn btn-primary" id="saveProject">Save Project</button>
+    </div>
+  </div>
+</div>
+
+<!-- Payment Modal -->
+<div class="modal-overlay" id="paymentModal">
+  <div class="modal" style="max-width: 450px;">
+    <div class="modal-header">
+      <h3 class="modal-title">Record Payment</h3>
+      <button class="modal-close" id="closePaymentModal">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="payProjectId" />
+      <div class="form-group">
+        <label class="form-label">Project Name</label>
+        <input class="form-input" id="payProjectName" readonly style="background: var(--card-hover);" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Amount Due (UGX)</label>
+        <input class="form-input" id="payAmountDue" readonly style="background: var(--card-hover);" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Payment Amount (UGX) *</label>
+        <input class="form-input" id="payAmount" type="number" placeholder="e.g. 500000" required />
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Method</label>
+          <select class="form-select" id="payMethod">
+            <option value="Mobile Money">Mobile Money</option>
+            <option value="Bank Transfer">Bank Transfer</option>
+            <option value="Cash">Cash</option>
+            <option value="Card">Card</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Reference / Txn ID</label>
+          <input class="form-input" id="payReference" placeholder="e.g. 8H7S92K" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="cancelPayment">Cancel</button>
+      <button class="btn btn-primary" id="savePayment">Record Payment</button>
     </div>
   </div>
 </div>
@@ -546,6 +542,10 @@
 
     await Promise.all([loadEmployees(), loadClients()]);
     await loadAllData();
+    
+    // AUTO-PAUSE SAFETY NET
+    await syncOverdueProjects();
+    
     setupEventListeners();
     document.getElementById('projStart').value = new Date().toISOString().split('T')[0];
     
@@ -559,15 +559,35 @@
     intervalId = setInterval(() => updateAllMetersAndTimers(), 900);
   });
 
+  // === AUTO-PAUSE OVERDUE PROJECTS ===
+  async function syncOverdueProjects() {
+    try {
+      const { data, error } = await supabase
+        .from('projects')
+        .update({ status: 'paused' })
+        .lt('next_billing_date', new Date().toISOString())
+        .eq('status', 'active')
+        .gt('amount_due', 0)
+        .select('id, name');
+
+      if (data && data.length > 0) {
+        console.log(`Auto-paused ${data.length} overdue projects.`);
+        showToast(`${data.length} project(s) auto-paused due to overdue payments.`, 'info');
+      }
+    } catch (err) {
+      console.error('Sync overdue projects error:', err);
+    }
+  }
+
   function generateUUID() { return crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => (c === 'x' ? (Math.random()*16|0) : (Math.random()*4|8)).toString(16)); }
   function formatUGX(n) { return 'UGX ' + (Number(n)||0).toLocaleString(); }
   
-  // --- THE FIX: Uses actual due_date instead of summing months ---
   function computeProgress(project, payments) {
     const now = new Date();
     const start = new Date(project.start_date + 'T00:00:00');
     if (project.status === 'completed') return { percent: 100, state: 'completed', label: 'Completed', fillColor: '#64748b' };
     if (project.status === 'on-hold') return { percent: 0, state: 'on-hold', label: 'On Hold', fillColor: '#94a3b8' };
+    if (project.status === 'paused') return { percent: 100, state: 'paused', label: 'Paused', fillColor: '#d97706' };
     
     const projectPayments = payments.filter(p => p.project_id === project.id && p.status === 'paid');
     
@@ -617,8 +637,7 @@
   function renderProjects() {
     const filter = document.getElementById('projectFilter').value;
     let projects = projectsCache.map(p => ({ ...p, progress: computeProgress(p, paymentsCache) }));
-    if (filter === 'overdue') projects = projects.filter(p => p.progress.state === 'overdue');
-    else if (filter !== 'all') projects = projects.filter(p => p.status === filter);
+    if (filter !== 'all') projects = projects.filter(p => p.status === filter);
     
     const tb = document.getElementById('projectsTable');
     if (projects.length === 0) {
@@ -629,12 +648,28 @@
     tb.innerHTML = projects.map(p => {
       const prog = p.progress;
       const percentRaw = prog.percent;
-      const percentDisplay = prog.state === 'overdue' ? 100 : Math.floor(percentRaw);
-      const fillColor = getColorFromPercent(percentDisplay);
+      const percentDisplay = prog.state === 'overdue' || prog.state === 'paused' ? 100 : Math.floor(percentRaw);
+      const fillColor = prog.state === 'paused' ? '#d97706' : getColorFromPercent(percentDisplay);
       const employee = employeesCache.find(e => e.id === p.referred_by_id);
       
       let statusSection = '';
-      if (prog.state === 'paid') {
+      if (prog.state === 'paused') {
+        statusSection = `
+          <div class="live-status paused">
+            <span class="live-status-icon">⏸️</span>
+            <span class="fw-700">PAUSED</span>
+            <span style="margin:0 6px">•</span>
+            <span>Due: ${formatUGX(p.amount_due)}</span>
+          </div>
+          <div class="progress-meter">
+            <div class="progress-fill" style="width:100%; background: #d97706;"></div>
+          </div>
+          <div class="meter-stats">
+            <span class="meter-percent" style="color: #d97706;">Payment Required</span>
+            <span>Next billing: ${p.next_billing_date ? new Date(p.next_billing_date).toLocaleDateString() : 'N/A'}</span>
+          </div>
+        `;
+      } else if (prog.state === 'paid') {
         const endDate = prog.coveredUntil;
         statusSection = `
           <div class="live-status paid" style="border-color: ${fillColor}; color: ${fillColor};">
@@ -657,7 +692,7 @@
             <span class="live-status-icon">⚠️</span>
             <span class="fw-700">OVERDUE</span>
             <span style="margin:0 6px">•</span>
-            <span>payment required</span>
+            <span>Due: ${formatUGX(p.amount_due)}</span>
           </div>
           <div class="progress-meter">
             <div class="progress-fill" style="width:100%; background: #dc2626;"></div>
@@ -673,15 +708,19 @@
       
       const hasStarted = p.status === 'active' || new Date(p.start_date) <= new Date();
       const deleteBtn = hasStarted ? '' : `<button class="btn btn-sm btn-outline text-red delete-btn" data-id="${p.id}">Del</button>`;
-      const payBtn = prog.state === 'overdue' ? `<button class="btn btn-sm btn-primary pay-btn" data-id="${p.id}">💳 Pay</button>` : '';
       
-      return `<tr class="project-row health-${prog.state === 'paid' ? 'green' : (prog.state === 'overdue' ? 'red' : 'completed')}" data-id="${p.id}">
+      const isOverdueOrPaused = p.status === 'paused' || prog.state === 'overdue' || (parseFloat(p.amount_due) > 0);
+      const payBtn = isOverdueOrPaused ? `<button class="btn btn-sm btn-primary pay-btn" data-id="${p.id}">💳 Pay ${formatUGX(p.amount_due || 0)}</button>` : '';
+      
+      const healthClass = prog.state === 'paid' ? 'green' : (prog.state === 'paused' ? 'paused' : (prog.state === 'overdue' ? 'red' : 'completed'));
+      
+      return `<tr class="project-row health-${healthClass}" data-id="${p.id}">
         <td data-label="Project"><strong>${escapeHtml(p.name)}</strong></td>
         <td data-label="Client">${escapeHtml(p.client || '—')}</td>
         <td data-label="Rate"><strong>${formatUGX(p.monthly_rate)}</strong><div class="text-muted" style="font-size:.7rem">≈ ${(p.monthly_rate * 0.00027).toFixed(2)} USD</div></td>
         <td data-label="Status & Meter" class="meter-cell" style="min-width: 260px;">${statusSection}</td>
         <td data-label="Referred By">${employee ? `<span class="text-blue fw-700">${escapeHtml(employee.name)}</span>` : '—'}</td>
-        <td class="actions-cell"><div class="flex gap-1"><button class="btn btn-sm btn-outline edit-btn" data-id="${p.id}">Edit</button>${payBtn}${deleteBtn}</div></td>
+        <td class="actions-cell"><div class="flex gap-1" style="justify-content: flex-end;">${payBtn}<button class="btn btn-sm btn-outline edit-btn" data-id="${p.id}">Edit</button>${deleteBtn}</div></td>
       </tr>`;
     }).join('');
     
@@ -769,18 +808,23 @@
       const { data } = await supabase.from('clients').select('id, name, status').in('status', ['active', 'prospect']).order('name');
       clientsCache = data || [];
     } catch(e) { clientsCache = []; }
+    const sel = document.getElementById('projClientSelect');
+    sel.innerHTML = '<option value="">Select client...</option>' + clientsCache.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
   }
   async function loadAllData() {
     try {
       const filter = document.getElementById('projectFilter').value;
       let projQuery = supabase.from('projects').select('*').order('created_at', { ascending: false });
-      if (filter !== 'all' && filter !== 'overdue') projQuery = projQuery.eq('status', filter);
+      if (filter !== 'all') projQuery = projQuery.eq('status', filter);
       const [projRes, payRes] = await Promise.all([projQuery, supabase.from('payments').select('*')]);
       if (projRes.error) throw projRes.error;
       projectsCache = projRes.data || [];
       paymentsCache = payRes.data || [];
       renderProjects();
     } catch(err) { showToast('Load error: '+err.message, 'error'); }
+    // Re-populate client select in case it changed
+    const sel = document.getElementById('projClientSelect');
+    sel.innerHTML = '<option value="">Select client...</option>' + clientsCache.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
   }
   
   async function deleteProject(id) {
@@ -809,16 +853,29 @@
   }
   function closeModal() { document.getElementById('projectModal').classList.remove('open'); }
   
+  // === PAYMENT MODAL CONTROLS ===
+  function openPaymentModal(project) {
+    document.getElementById('payProjectId').value = project.id;
+    document.getElementById('payProjectName').value = project.name || 'Untitled Project';
+    document.getElementById('payAmountDue').value = project.amount_due || 0;
+    document.getElementById('payAmount').value = project.amount_due || 0; // Pre-fill full amount
+    document.getElementById('payMethod').value = 'Mobile Money';
+    document.getElementById('payReference').value = '';
+    document.getElementById('paymentModal').classList.add('open');
+  }
+
   function setupEventListeners() {
     document.getElementById('logoBtn').addEventListener('click', () => window.location.href='index.html');
     
-    // INSTANT MODAL OPEN (No await loadClients() lag)
     document.getElementById('newProjectBtn').addEventListener('click', () => { openModal('New Project'); });
     
     document.getElementById('closeModal').addEventListener('click', closeModal);
     document.getElementById('cancelModal').addEventListener('click', closeModal);
     document.getElementById('refreshBtn').addEventListener('click', () => loadAllData());
     document.getElementById('projectFilter').addEventListener('change', () => loadAllData());
+    
+    document.getElementById('closePaymentModal').addEventListener('click', () => document.getElementById('paymentModal').classList.remove('open'));
+    document.getElementById('cancelPayment').addEventListener('click', () => document.getElementById('paymentModal').classList.remove('open'));
     
     document.getElementById('projectsTable').addEventListener('click', async (e) => {
       const edit = e.target.closest('.edit-btn');
@@ -832,10 +889,89 @@
       if (del) await deleteProject(del.dataset.id);
       
       if (pay) {
-        window.location.href = `payments.html?project_id=${pay.dataset.id}&action=new_payment`;
+        const p = projectsCache.find(x => x.id === pay.dataset.id);
+        if (p) openPaymentModal(p);
       }
     });
     
+    // === RECORD PAYMENT & AUTO-RESUME ===
+    document.getElementById('savePayment').addEventListener('click', async function() {
+      const btn = this;
+      const origText = btn.textContent;
+      btn.textContent = 'Processing...';
+      btn.disabled = true;
+
+      try {
+        const projectId = document.getElementById('payProjectId').value;
+        const amount = parseFloat(document.getElementById('payAmount').value);
+        const method = document.getElementById('payMethod').value;
+        const reference = document.getElementById('payReference').value.trim();
+
+        if (!amount || amount <= 0) throw new Error('Please enter a valid amount.');
+
+        // 1. Insert Payment Record
+        const { error: payErr } = await supabase.from('payments').insert({
+          project_id: projectId,
+          amount: amount,
+          status: 'paid',
+          due_date: new Date().toISOString(),
+          paid_at: new Date().toISOString(),
+          payment_method: method,
+          reference: reference
+        });
+        if (payErr) throw payErr;
+
+        // 2. Fetch current project state
+        const { data: project, error: projErr } = await supabase
+          .from('projects')
+          .select('amount_due, next_billing_date, plan_months, status, monthly_rate')
+          .eq('id', projectId)
+          .single();
+        if (projErr) throw projErr;
+
+        // 3. Calculate new balance
+        const currentDue = parseFloat(project.amount_due || 0);
+        const newAmountDue = Math.max(0, currentDue - amount);
+
+        // 4. Advance billing date ONLY if fully paid
+        let newBillingDate = project.next_billing_date;
+        let newStatus = project.status;
+
+        if (newAmountDue === 0) {
+          const monthsToAdd = parseInt(project.plan_months) || 1;
+          const baseDate = project.next_billing_date ? new Date(project.next_billing_date) : new Date();
+          const startDate = baseDate < new Date() ? new Date() : baseDate;
+          startDate.setMonth(startDate.getMonth() + monthsToAdd);
+          newBillingDate = startDate.toISOString();
+          
+          // AUTO-RESUME if it was paused
+          if (project.status === 'paused') {
+            newStatus = 'active';
+          }
+        }
+
+        // 5. Update Project
+        const { error: updateErr } = await supabase.from('projects').update({
+          amount_due: newAmountDue,
+          next_billing_date: newBillingDate,
+          status: newStatus
+        }).eq('id', projectId);
+        
+        if (updateErr) throw updateErr;
+
+        showToast('Payment recorded! Project updated.', 'success');
+        document.getElementById('paymentModal').classList.remove('open');
+        await loadAllData(); // Refresh the table
+
+      } catch (err) {
+        console.error(err);
+        showToast('Error: ' + err.message, 'error');
+      } finally {
+        btn.textContent = origText;
+        btn.disabled = false;
+      }
+    });
+
     document.getElementById('saveProject').addEventListener('click', async function() {
       if(isSaving) return;
       isSaving=true;
@@ -848,14 +984,24 @@
         const clientObj=clientsCache.find(c=>c.id===clientId);
         if(!clientId) throw new Error('Select a client');
         
+        const monthlyRate = parseInt(document.getElementById('projRate').value) || 0;
+        const startDateStr = document.getElementById('projStart').value || new Date().toISOString().split('T')[0];
+        const startDate = new Date(startDateStr);
+        const nextBilling = new Date(startDate);
+        nextBilling.setMonth(nextBilling.getMonth() + 1); // Default 1 month plan
+
         const data={
           id, name: document.getElementById('projName').value.trim(),
           client_id: clientId, client: clientObj?.name || '',
-          monthly_rate: parseInt(document.getElementById('projRate').value)||0,
-          start_date: document.getElementById('projStart').value,
+          monthly_rate: monthlyRate,
+          start_date: startDateStr,
           status: document.getElementById('projStatus').value,
           notes: document.getElementById('projNotes').value.trim(),
-          referred_by_id: document.getElementById('projEmployee').value||null
+          referred_by_id: document.getElementById('projEmployee').value||null,
+          // Auto-initialize billing fields for new projects
+          amount_due: existingId ? undefined : monthlyRate,
+          next_billing_date: existingId ? undefined : nextBilling.toISOString(),
+          plan_months: 1
         };
         
         if (!existingId) {
