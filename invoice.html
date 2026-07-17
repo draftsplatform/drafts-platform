@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <meta name="description" content="Secure enterprise subscription billing portal">
-  <title>Billing Portal | Enterprise Risk Platform</title>
+  <title>Billing Portal | Drafts Platform</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -31,29 +32,17 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Inter', system-ui, sans-serif; background: #f8fafc; color: #0f172a; line-height: 1.5; }
-    
     @keyframes pulse-live { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
     .live-dot { animation: pulse-live 2s ease-in-out infinite; }
-    
     @keyframes card-appear { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
     .card-enter { animation: card-appear 0.4s ease-out forwards; }
-    
-    .month-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
-    .month-card.active { border-color: #0284c7; box-shadow: 0 8px 24px -4px rgba(2, 132, 199, 0.15); }
-    .month-card:hover:not(.upcoming) { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.06); }
-    
     .payment-option { transition: all 0.2s ease; border: 2px solid transparent; }
     .payment-option.selected { border-color: #0284c7; background: #f0f9ff; }
     .payment-option.disabled { opacity: 0.5; cursor: not-allowed; filter: grayscale(0.4); }
-    
     .mtn-badge { background: linear-gradient(135deg, #ffcc00, #ff9900); color: #000; }
     .airtel-badge { background: linear-gradient(135deg, #e30613, #cc0000); color: #fff; }
-    
-    @media (prefers-reduced-motion: reduce) {
-      *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
-    }
-    button:focus-visible, input:focus-visible { outline: 2px solid #0284c7; outline-offset: 2px; }
-    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+    .loading-skeleton { background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; animation: loading 1.5s infinite; }
+    @keyframes loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -76,15 +65,12 @@
           </div>
           <div>
             <h1 class="font-bold text-slate-900 tracking-tight">Enterprise Billing Portal</h1>
-            <p class="text-xs text-slate-500">RiskFlow Systems Ltd.</p>
+            <p class="text-xs text-slate-500" id="clientNameDisplay">Loading client...</p>
           </div>
         </div>
-        
-        <!-- 🔐 Role-restricted button (hidden by default, shown only via JS) -->
-        <button id="manageSubscriptionBtn" class="hidden inline-flex items-center px-4 py-2 bg-slate-800 text-white rounded-lg text-sm font-medium hover:bg-slate-900 transition shadow-sm">
-          <i class="fas fa-cog mr-2 text-xs"></i>
-          Manage Subscription
-        </button>
+        <a href="projects.html" class="inline-flex items-center px-4 py-2 bg-slate-100 text-slate-700 rounded-lg text-sm font-medium hover:bg-slate-200 transition shadow-sm">
+          <i class="fas fa-arrow-left mr-2 text-xs"></i> Back to Dashboard
+        </a>
       </div>
     </div>
   </nav>
@@ -93,140 +79,94 @@
   <main class="flex-1 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
     
     <!-- Header -->
-    <div class="mb-8">
-      <h2 class="text-2xl font-bold text-slate-900">Subscription Invoices</h2>
-      <p class="text-slate-500 mt-1">Manage your enterprise platform billing. <span class="font-medium text-brand-600">UGX amounts and USD equivalents</span>; fluctuate with exchange rates.</p>
+    <div class="mb-8 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+      <div>
+        <h2 class="text-2xl font-bold text-slate-900">Subscription Invoices</h2>
+        <p class="text-slate-500 mt-1">Invoice Reference: <span id="invoiceRef" class="font-mono text-slate-700">Loading...</span></p>
+      </div>
+      <div class="text-right">
+        <p class="text-xs text-slate-500">Total Amount Due</p>
+        <p class="text-3xl font-extrabold text-slate-900" id="dynamicTotalUGX">
+          <span class="loading-skeleton inline-block w-32 h-8 rounded"></span>
+        </p>
+      </div>
     </div>
 
-    <!-- Monthly Cards Container -->
-    <div class="space-y-6">
+    <!-- Dynamic Breakdown Container -->
+    <div id="breakdownContainer" class="space-y-6">
+      <!-- Skeleton Loading State -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 card-enter">
+        <div class="loading-skeleton h-6 w-48 rounded mb-4"></div>
+        <div class="space-y-3">
+          <div class="loading-skeleton h-16 w-full rounded"></div>
+          <div class="loading-skeleton h-16 w-full rounded"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payment Section (Hidden until loaded) -->
+    <div id="paymentSection" class="hidden mt-8 bg-white rounded-2xl border-2 border-brand-600/30 shadow-lg overflow-hidden card-enter">
+      <div class="px-6 py-4 bg-gradient-to-r from-brand-600 to-blue-700 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <span class="bg-white/20 backdrop-blur px-3 py-1 rounded-full text-white text-xs font-semibold">READY TO PAY</span>
+          <h3 class="text-white text-lg font-bold">Secure Checkout</h3>
+        </div>
+        <div class="flex items-center gap-2 text-white/90 text-sm">
+          <span class="w-2 h-2 bg-emerald-400 rounded-full live-dot"></span>
+          Live & Active
+        </div>
+      </div>
       
-      <!-- 📅 JUNE 2026 (ACTIVE / PAYMENT READY) -->
-      <div class="month-card active bg-white rounded-2xl border-2 border-brand-600/30 shadow-lg overflow-hidden card-enter">
-        <div class="px-6 py-4 bg-gradient-to-r from-brand-600 to-blue-700 flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <span class="bg-white/20 backdrop-blur px-3 py-1 rounded-full text-white text-xs font-semibold">CURRENT</span>
-            <h3 class="text-white text-lg font-bold">June 2026</h3>
+      <div class="p-6">
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <div>
+            <p class="text-xs text-slate-500 mb-1">Total Due (Fixed in UGX)</p>
+            <p class="text-3xl font-extrabold text-slate-900">
+              <span id="usdTotal" class="text-2xl">$0.00</span> 
+              <span class="text-lg font-medium text-slate-500" id="ugxTotalDisplay">/ 0 UGX</span>
+            </p>
+            <p class="text-xs text-slate-400 mt-1 flex items-center">
+              <i class="fas fa-info-circle mr-1"></i>
+              <span id="exchangeNote">Exchange: 1 USD = 3,775 UGX • USD amount updates with market rates</span>
+            </p>
+            <p class="text-[10px] text-emerald-600 mt-1 font-medium">
+              ✓ UGX amount is guaranteed fixed regardless of exchange fluctuations
+            </p>
+            <div id="paymentHistorySummary" class="mt-3 text-xs text-slate-500"></div>
           </div>
-          <div class="flex items-center gap-2 text-white/90 text-sm">
-            <span class="w-2 h-2 bg-emerald-400 rounded-full live-dot"></span>
-            Live & Active
+
+          <div class="flex-1 max-w-xl">
+            <label class="block text-xs font-medium text-slate-700 mb-3">Select Payment Method</label>
+            <div class="grid grid-cols-2 gap-3">
+              <button type="button" class="payment-option selected flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-xl focus:outline-none" onclick="selectPayment(this, 'mtn')">
+                <span class="mtn-badge w-10 h-10 rounded-lg flex items-center justify-center font-bold text-xs shadow-sm">MTN</span>
+                <div class="text-left">
+                  <p class="text-sm font-semibold text-slate-900">Mobile Money</p>
+                  <p class="text-xs text-emerald-600 flex items-center"><i class="fas fa-check-circle mr-1"></i> Available</p>
+                </div>
+              </button>
+              <button type="button" class="payment-option flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-xl focus:outline-none" onclick="selectPayment(this, 'airtel')">
+                <span class="airtel-badge w-10 h-10 rounded-lg flex items-center justify-center font-bold text-xs shadow-sm">Airtel</span>
+                <div class="text-left">
+                  <p class="text-sm font-semibold text-slate-900">Mobile Money</p>
+                  <p class="text-xs text-emerald-600 flex items-center"><i class="fas fa-check-circle mr-1"></i> Available</p>
+                </div>
+              </button>
+            </div>
           </div>
         </div>
-        
-        <div class="p-6">
-          <!-- Service Breakdown - FIXED UGX, VARIABLE USD -->
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
-            <div>
-              <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Secure Backend 🔒 TLS 1.3</p>
-              <p class="text-lg font-bold text-slate-900">$125.30 <span class="text-sm font-normal text-slate-500 block">473,000 UGX</span></p>
-            </div>
-            <div class="md:border-l md:pl-4 border-slate-200">
-              <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Saas Modules 🛡️ PCI-DSS </p>
-              <p class="text-lg font-bold text-slate-900">$48.08 <span class="text-sm font-normal text-slate-500 block">181,500 UGX</span></p>
-            </div>
-            <div class="md:border-l md:pl-4 border-slate-200">
-              <p class="text-xs text-slate-500 uppercase tracking-wider mb-1">Deployments 🌍 Gateway</p>
-              <p class="text-lg font-bold text-slate-900">$37.75 <span class="text-sm font-normal text-slate-500 block">142,500 UGX</span></p>
-            </div>
-          </div>
 
-          <!-- Total & Payment - FIXED UGX AMOUNT -->
-          <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div>
-              <p class="text-xs text-slate-500 mb-1">Total Due (Fixed in UGX)</p>
-              <p class="text-3xl font-extrabold text-slate-900">
-                <span id="usdTotal" class="text-2xl">$211.13</span> 
-                <span class="text-lg font-medium text-slate-500">/ 797,000 UGX</span>
-              </p>
-              <p class="text-xs text-slate-400 mt-1 flex items-center">
-                <i class="fas fa-info-circle mr-1"></i>
-                <span id="exchangeNote">Exchange: 1 USD = 3,775 UGX • USD amount updates with market rates</span>
-              </p>
-              <p class="text-[10px] text-emerald-600 mt-1 font-medium">
-                ✓ UGX amount is guaranteed fixed at 797,000 regardless of exchange fluctuations
-              </p>
-            </div>
-
-            <div class="flex-1 max-w-xl">
-              <label class="block text-xs font-medium text-slate-700 mb-3">Select Payment Method</label>
-              <div class="grid grid-cols-2 gap-3">
-                <!-- MTN -->
-                <button type="button" class="payment-option selected flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-xl focus:outline-none" onclick="selectPayment(this, 'mtn')">
-                  <span class="mtn-badge w-10 h-10 rounded-lg flex items-center justify-center font-bold text-xs shadow-sm">MTN</span>
-                  <div class="text-left">
-                    <p class="text-sm font-semibold text-slate-900">Mobile Money</p>
-                    <p class="text-xs text-emerald-600 flex items-center"><i class="fas fa-check-circle mr-1"></i> Available</p>
-                  </div>
-                </button>
-                <!-- Airtel -->
-                <button type="button" class="payment-option flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-xl focus:outline-none" onclick="selectPayment(this, 'airtel')">
-                  <span class="airtel-badge w-10 h-10 rounded-lg flex items-center justify-center font-bold text-xs shadow-sm">Airtel</span>
-                  <div class="text-left">
-                    <p class="text-sm font-semibold text-slate-900">Mobile Money</p>
-                    <p class="text-xs text-emerald-600 flex items-center"><i class="fas fa-check-circle mr-1"></i> Available</p>
-                  </div>
-                </button>
-                <!-- Card (Disabled) -->
-                <button type="button" class="payment-option disabled col-span-2 flex items-center gap-3 p-3 bg-slate-100 border border-slate-200 rounded-xl cursor-not-allowed" disabled>
-                  <span class="w-10 h-10 bg-slate-300 rounded-lg flex items-center justify-center text-slate-500"><i class="fas fa-credit-card"></i></span>
-                  <div class="text-left">
-                    <p class="text-sm font-semibold text-slate-600">Credit/Debit Card</p>
-                    <p class="text-xs text-amber-600"><i class="fas fa-exclamation-triangle mr-1"></i> Not available in this region. Mobile money only.</p>
-                  </div>
-                </button>
-              </div>
-            </div>
+        <div class="mt-6 pt-5 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div class="text-sm text-slate-500">
+            <p><i class="fas fa-clock mr-1.5"></i> Due: <span class="font-semibold text-slate-800" id="dueDateDisplay">Upon Receipt</span></p>
+            <p class="mt-1">Auto-renewal: <span class="text-emerald-600 font-medium">Enabled</span></p>
           </div>
-
-          <!-- Pay Button - FIXED UGX AMOUNT -->
-          <div class="mt-6 pt-5 border-t border-slate-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div class="text-sm text-slate-500">
-              <p><i class="fas fa-clock mr-1.5"></i> Due: <span class="font-semibold text-slate-800">June 30, 2026</span></p>
-              <p class="mt-1">Auto-renewal: <span class="text-emerald-600 font-medium">Enabled</span></p>
-            </div>
-            <button id="payJuneBtn" class="px-6 py-3 bg-gradient-to-r from-brand-600 to-blue-700 text-white rounded-xl font-semibold shadow-lg hover:from-brand-700 hover:to-blue-800 transition transform active:scale-95 flex items-center justify-center gap-2">
-              <i class="fas fa-mobile-alt"></i>
-              Pay 797,000 UGX Now
-            </button>
-          </div>
+          <button id="payNowBtn" class="px-6 py-3 bg-gradient-to-r from-brand-600 to-blue-700 text-white rounded-xl font-semibold shadow-lg hover:from-brand-700 hover:to-blue-800 transition transform active:scale-95 flex items-center justify-center gap-2">
+            <i class="fas fa-mobile-alt"></i>
+            <span id="payBtnText">Pay Now</span>
+          </button>
         </div>
       </div>
-
-      <!-- 📅 JULY 2026 (UPCOMING / LOCKED) -->
-      <div class="month-card upcoming bg-white rounded-2xl border border-slate-200 shadow-sm opacity-90 hover:opacity-100 transition-opacity card-enter" style="animation-delay: 0.1s;">
-        <div class="px-6 py-4 bg-slate-100 border-b border-slate-200 flex items-center justify-between">
-          <div class="flex items-center gap-3">
-            <span class="bg-slate-300 text-slate-600 px-3 py-1 rounded-full text-xs font-semibold">UPCOMING</span>
-            <h3 class="text-slate-700 text-lg font-bold">July 2026</h3>
-          </div>
-          <p class="text-slate-500 text-sm">Due July 1, 2026</p>
-        </div>
-        
-        <div class="p-6">
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 bg-slate-50/50 rounded-xl border border-slate-100 opacity-70">
-            <div><p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Platform License</p><p class="text-lg font-bold text-slate-600">$125.30 <span class="text-sm font-normal block">473,000 UGX</span></p></div>
-            <div><p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Analytics Module</p><p class="text-lg font-bold text-slate-600">$48.08 <span class="text-sm font-normal block">181,500 UGX</span></p></div>
-            <div><p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Priority Support</p><p class="text-lg font-bold text-slate-600">$37.75 <span class="text-sm font-normal block">142,500 UGX</span></p></div>
-          </div>
-          
-          <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div>
-              <p class="text-xs text-slate-400 mb-1">Projected Total (Fixed in UGX)</p>
-              <p class="text-2xl font-bold text-slate-400">
-                <span class="text-lg">$211.13</span> 
-                <span class="text-base text-slate-400">/ 797,000 UGX</span>
-              </p>
-              <p class="text-xs text-slate-400 mt-1">USD amount will adjust to exchange rate on billing date</p>
-            </div>
-            <button disabled class="px-6 py-3 bg-slate-100 text-slate-400 rounded-xl font-semibold cursor-not-allowed flex items-center gap-2">
-              <i class="fas fa-lock"></i>
-              Payment Unavailable
-            </button>
-          </div>
-        </div>
-      </div>
-
     </div>
 
     <!-- Security & Support Footer -->
@@ -237,160 +177,217 @@
           <div>
             <h4 class="font-semibold text-slate-900 mb-2">Secure Transaction Guarantee</h4>
             <p class="text-sm text-slate-600 leading-relaxed">All payments are processed through bank-grade 256-bit SSL encryption. We never store payment credentials. Fully compliant with PCI-DSS Level 1 and regional financial data protection standards.</p>
-            <div class="flex flex-wrap gap-2 mt-3">
-              <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-1 rounded font-medium">🔒 TLS 1.3</span>
-              <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-1 rounded font-medium">🛡️ PCI-DSS</span>
-              <span class="text-[10px] bg-slate-100 text-slate-600 px-2 py-1 rounded font-medium">🌍 Local Gateway</span>
-            </div>
           </div>
         </div>
       </div>
       
       <div class="bg-white rounded-xl border border-slate-200 p-6 text-center">
         <h4 class="font-semibold text-slate-900 mb-2">Billing Support</h4>
-        <p class="text-sm text-slate-600 mb-4">Questions about your subscription or payment? Our UK-based team responds within 2 business hours.</p>
-        <div class="flex flex-col sm:flex-row gap-3 justify-center">
-          <a href="mailto:billing@riskflowsystems.com" class="inline-flex items-center px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-brand-700 hover:bg-brand-50 transition"><i class="fas fa-envelope mr-2"></i> billing@riskflowsystems.com</a>
-          <!-- ✅ Updated to genuine UK phone number -->
-          <a href="tel:+442079460185" class="inline-flex items-center px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-brand-700 hover:bg-brand-50 transition"><i class="fas fa-phone mr-2"></i> +44 20 7946 0185</a>
-        </div>
-        <p class="mt-3 text-xs text-slate-500">London Office Hours: Mon-Fri, 9:00-17:30 GMT</p>
+        <p class="text-sm text-slate-600 mb-4">Questions about your subscription or payment? Our team responds within 2 business hours.</p>
+        <a href="mailto:support@draftsplatform.com" class="inline-flex items-center px-4 py-2 border border-slate-300 rounded-lg text-sm font-medium text-brand-700 hover:bg-brand-50 transition"><i class="fas fa-envelope mr-2"></i> support@draftsplatform.com</a>
       </div>
     </div>
   </main>
 
-  <!-- Footer -->
   <footer class="bg-white border-t border-slate-200 mt-8 py-6">
     <div class="max-w-6xl mx-auto px-4 text-center text-xs text-slate-500">
-      <p>© 2026 RiskFlow Systems Ltd. All rights reserved. <a href="#" class="hover:text-brand-600 mx-1">Terms</a> • <a href="#" class="hover:text-brand-600 mx-1">Privacy</a> • <a href="#" class="hover:text-brand-600 mx-1">SLA</a></p>
-      <p class="mt-1">Registered in England & Wales • Company No. 14582903 • VAT: GB 445 8291 03</p>
-      <p class="mt-1">This is an independent enterprise billing portal. Unauthorized access is strictly monitored.</p>
+      <p>© 2026 Drafts Platform. All rights reserved.</p>
     </div>
   </footer>
 
   <script>
-    // ========================================
-    // 💱 FIXED UGX / VARIABLE USD LOGIC
-    // ========================================
-    const FIXED_UGX_AMOUNT = 797000;
-    const BASE_EXCHANGE_RATE = 3775; // Bank of Uganda reference rate
-    
-    // Calculate USD equivalent based on current/fetched exchange rate
+    const SUPABASE_URL = 'https://hnbzerhoqqsmzqxcbnxv.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhuYnplcmhvcXFzbXpxeGNibnh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDg1MjksImV4cCI6MjA5NDYyNDUyOX0.a4rM51DQGih9SXMr71PREngZ_pT6dJFgv_fG9j5jAGc';
+    const BASE_EXCHANGE_RATE = 3775;
+    const RELPAY_URL = 'https://relpay.relworx.com/payment_links/6a2211f5c7377826ae83/mobile_money_requests/new';
+
+    let supabase, currentTotalUGX = 0, selectedMethod = 'mtn', projectIds = [];
+
+    function formatUGX(n) { return 'UGX ' + (Number(n)||0).toLocaleString(); }
+    function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+    async function initInvoice() {
+      if (!window.supabase) {
+        document.body.innerHTML = '<div class="min-h-screen flex items-center justify-center"><p class="text-red-600">SDK failed to load.</p></div>';
+        return;
+      }
+      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+      const params = new URLSearchParams(window.location.search);
+      const clientId = params.get('client_id');
+      const projectId = params.get('project_id');
+      const clientName = params.get('client_name');
+
+      if (!clientId && !projectId && !clientName) {
+        document.body.innerHTML = '<div class="min-h-screen flex items-center justify-center"><p class="text-red-600">Invalid invoice link. Missing client or project ID.</p></div>';
+        return;
+      }
+
+      try {
+        // 1. Fetch Projects
+        let projects = [];
+        if (projectId) {
+          const { data } = await supabase.from('projects').select('*').eq('id', projectId);
+          projects = data || [];
+        } else if (clientId) {
+          const { data } = await supabase.from('projects').select('*').eq('client_id', clientId);
+          projects = data || [];
+        }
+        
+        // Fallback: if client_name is passed or projects not found by ID, search by name
+        if (projects.length === 0 && clientName) {
+          const { data } = await supabase.from('projects').select('*').eq('client', clientName);
+          projects = data || [];
+        }
+
+        if (!projects || projects.length === 0) {
+          document.body.innerHTML = '<div class="min-h-screen flex items-center justify-center"><p class="text-red-600">No projects found for this invoice.</p></div>';
+          return;
+        }
+
+        projectIds = projects.map(p => p.id);
+        
+        // 2. Fetch Client Info
+        let clientData = { name: 'Valued Client', email: '', phone: '' };
+        if (clientId) {
+          const { data: c } = await supabase.from('clients').select('*').eq('id', clientId).single();
+          if (c) clientData = c;
+        } else if (projects[0].client) {
+          clientData.name = projects[0].client;
+        }
+
+        // 3. Fetch Payments
+        const { data: payments } = await supabase.from('payments').select('*').in('project_id', projectIds).order('created_at', { ascending: false });
+        const paidAmount = (payments || []).filter(p => p.status === 'paid').reduce((sum, p) => sum + (p.amount || 0), 0);
+
+        // 4. Render Breakdown
+        const container = document.getElementById('breakdownContainer');
+        container.innerHTML = '';
+        currentTotalUGX = 0;
+
+        projects.forEach(p => {
+          const due = parseFloat(p.amount_due || 0);
+          currentTotalUGX += due;
+          
+          const statusColor = p.status === 'active' ? 'text-emerald-600' : (p.status === 'paused' ? 'text-amber-600' : 'text-slate-500');
+          
+          const item = document.createElement('div');
+          item.className = 'flex flex-col sm:flex-row sm:justify-between sm:items-center p-4 bg-slate-50 rounded-xl border border-slate-200 mb-3 card-enter';
+          item.innerHTML = `
+            <div class="mb-2 sm:mb-0">
+              <p class="text-sm font-bold text-slate-900">${escapeHtml(p.name)}</p>
+              <p class="text-xs text-slate-500 mt-1">Monthly Rate: ${formatUGX(p.monthly_rate)} • Status: <span class="${statusColor} font-medium capitalize">${p.status}</span></p>
+              ${p.next_billing_date ? `<p class="text-[10px] text-slate-400 mt-1">Next Billing: ${new Date(p.next_billing_date).toLocaleDateString()}</p>` : ''}
+            </div>
+            <div class="text-right">
+              <p class="text-lg font-extrabold text-slate-900">${formatUGX(due)}</p>
+              <p class="text-xs text-slate-500">Amount Due</p>
+            </div>
+          `;
+          container.appendChild(item);
+        });
+
+        // If total due is 0, show a message
+        if (currentTotalUGX === 0) {
+          container.innerHTML = `
+            <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-6 text-center card-enter">
+              <i class="fas fa-check-circle text-3xl text-emerald-500 mb-2"></i>
+              <h3 class="text-lg font-bold text-emerald-800">All Caught Up!</h3>
+              <p class="text-sm text-emerald-600">There are no pending payments for this client.</p>
+            </div>
+          `;
+          document.getElementById('paymentSection').classList.add('hidden');
+        } else {
+          document.getElementById('paymentSection').classList.remove('hidden');
+        }
+
+        // Update UI Totals
+        document.getElementById('clientNameDisplay').textContent = clientData.name;
+        document.getElementById('invoiceRef').textContent = `INV-${clientData.name.substring(0,4).toUpperCase()}-${Date.now().toString().slice(-6)}`;
+        document.getElementById('dynamicTotalUGX').textContent = formatUGX(currentTotalUGX);
+        document.getElementById('ugxTotalDisplay').textContent = '/ ' + formatUGX(currentTotalUGX);
+        document.getElementById('payBtnText').textContent = `Pay ${formatUGX(currentTotalUGX)} Now`;
+        
+        if (payments && payments.length > 0) {
+          document.getElementById('paymentHistorySummary').innerHTML = `<i class="fas fa-history mr-1"></i> Previous payments: ${formatUGX(paidAmount)} total paid across ${payments.length} transaction(s).`;
+        }
+
+        // Fetch exchange rate
+        const currentRate = await fetchExchangeRate();
+        updateUSDDisplay(currentTotalUGX, currentRate);
+
+      } catch (err) {
+        console.error(err);
+        document.body.innerHTML = `<div class="min-h-screen flex items-center justify-center"><p class="text-red-600">Error loading invoice: ${err.message}</p></div>`;
+      }
+    }
+
     function calculateUSD(ugxAmount, exchangeRate) {
       return (ugxAmount / exchangeRate).toFixed(2);
     }
     
-    // Update USD display with current exchange rate
-    function updateUSDDisplay(exchangeRate) {
-      const usdTotal = calculateUSD(FIXED_UGX_AMOUNT, exchangeRate);
-      const usdElement = document.getElementById('usdTotal');
-      const noteElement = document.getElementById('exchangeNote');
-      
-      if (usdElement) {
-        usdElement.textContent = `$${usdTotal}`;
-      }
-      if (noteElement) {
-        noteElement.innerHTML = `Exchange: 1 USD = ${exchangeRate.toLocaleString()} UGX • USD amount updates with market rates`;
-      }
+    function updateUSDDisplay(ugxAmount, exchangeRate) {
+      const usdTotal = calculateUSD(ugxAmount, exchangeRate);
+      document.getElementById('usdTotal').textContent = `$${usdTotal}`;
+      document.getElementById('exchangeNote').innerHTML = `Exchange: 1 USD = ${exchangeRate.toLocaleString()} UGX • USD amount updates with market rates`;
     }
     
-    // Fetch live exchange rate (placeholder - replace with actual API)
     async function fetchExchangeRate() {
       try {
-        // Example: Bank of Uganda API or your preferred forex provider
-        // const response = await fetch('https://api.example.com/forex/ugx-usd');
-        // const data = await response.json();
-        // return data.rate;
-        
-        // For demo: simulate slight fluctuation around base rate
-        const fluctuation = (Math.random() - 0.5) * 20; // ±10 UGX
+        const fluctuation = (Math.random() - 0.5) * 20;
         return BASE_EXCHANGE_RATE + fluctuation;
       } catch (error) {
-        console.warn('Could not fetch live exchange rate, using base rate');
         return BASE_EXCHANGE_RATE;
       }
     }
-    
-    // ========================================
-    // 🔐 ROLE CHECK (Silent - No UI Leakage)
-    // ========================================
-    document.addEventListener('DOMContentLoaded', async () => {
-      // Initialize USD display with current rate
-      const currentRate = await fetchExchangeRate();
-      updateUSDDisplay(currentRate);
-      
-      // Optional: Refresh rate every 5 minutes for live updates
-      setInterval(async () => {
-        const newRate = await fetchExchangeRate();
-        updateUSDDisplay(newRate);
-      }, 300000);
-      
-      // Replace with your actual auth/Supabase logic
-      /*
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { window.location.href = '/login'; return; }
-      
-      const { data: profile } = await supabase.from('users').select('departments(name)').eq('id', user.id).single();
-      const dept = profile?.departments?.name?.toLowerCase() || '';
-      const authorized = dept === 'planning' || dept === 'planning & budgeting';
-      
-      if (!authorized) {
-        document.body.innerHTML = '<div class="min-h-screen flex items-center justify-center bg-slate-50"><div class="text-center p-8"><h1 class="text-2xl font-bold text-red-600 mb-2">Access Restricted</h1><p class="text-slate-600 mb-4">Billing management requires authorized privileges.</p><a href="/" class="text-brand-600 hover:underline">Return to Dashboard</a></div></div>';
-        return;
-      }
-      */
-      
-      // Demo toggle: Set to true to show button for authorized users
-      const isAuthorized = true; 
-      const btn = document.getElementById('manageSubscriptionBtn');
-      if (btn) {
-        btn.style.display = isAuthorized ? 'inline-flex' : 'none';
-      }
 
-      // Payment selection logic
-      window.selectPayment = function(el, method) {
-        document.querySelectorAll('.payment-option').forEach(c => c.classList.remove('selected'));
-        el.classList.add('selected');
-        const radio = el.querySelector('input');
-        if (radio) radio.checked = true;
-      };
+    window.selectPayment = function(el, method) {
+      document.querySelectorAll('.payment-option').forEach(c => c.classList.remove('selected'));
+      el.classList.add('selected');
+      selectedMethod = method;
+    };
 
-      // ✅ Pay button handler with RelPay integration
-      const payBtn = document.getElementById('payJuneBtn');
-      const RELPAY_URL = 'https://relpay.relworx.com/payment_links/6a2211f5c7377826ae83/mobile_money_requests/new';
-      
-      if (payBtn) {
-        payBtn.addEventListener('click', function() {
-          const selected = document.querySelector('.payment-option.selected');
-          if (!selected || selected.classList.contains('disabled')) {
-            alert('Please select an available mobile money option (MTN or Airtel).');
-            return;
-          }
-          
-          const original = this.innerHTML;
-          this.disabled = true;
-          this.innerHTML = '<i class="fas fa-spinner animate-spin mr-2"></i> Redirecting to secure gateway...';
-          
-          // Build redirect URL with parameters
-          const method = selected.querySelector('span').textContent.trim().toLowerCase();
-          const redirectUrl = new URL(RELPAY_URL);
-          
-          // Add query parameters for RelPay
-          redirectUrl.searchParams.append('amount', FIXED_UGX_AMOUNT);
-          redirectUrl.searchParams.append('currency', 'UGX');
-          redirectUrl.searchParams.append('provider', method); // 'mtn' or 'airtel'
-          redirectUrl.searchParams.append('reference', `INV-JUN2026-${Date.now()}`);
-          redirectUrl.searchParams.append('description', 'Enterprise Risk Platform Subscription - June 2026');
-          redirectUrl.searchParams.append('return_url', window.location.href.replace('subscription', 'confirmation'));
-          
-          // Short delay for UX, then redirect
-          setTimeout(() => {
-            console.log(`Redirecting to RelPay: ${redirectUrl.toString()}`);
-            window.location.href = redirectUrl.toString();
-          }, 1200);
+    document.getElementById('payNowBtn').addEventListener('click', async function() {
+      const btn = this;
+      const originalText = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner animate-spin mr-2"></i> Processing...';
+
+      try {
+        // 1. Record pending payment in Supabase for tracking
+        const reference = `INV-${Date.now()}`;
+        const { error: payErr } = await supabase.from('payments').insert({
+          project_id: projectIds[0], // Links to primary project (can be expanded for multiple)
+          amount: currentTotalUGX,
+          status: 'pending',
+          due_date: new Date().toISOString(),
+          payment_method: selectedMethod === 'mtn' ? 'MTN Mobile Money' : 'Airtel Mobile Money',
+          reference: reference
         });
+
+        if (payErr) throw payErr;
+
+        // 2. Redirect to RelPay with dynamic amount
+        const redirectUrl = new URL(RELPAY_URL);
+        redirectUrl.searchParams.append('amount', currentTotalUGX);
+        redirectUrl.searchParams.append('currency', 'UGX');
+        redirectUrl.searchParams.append('provider', selectedMethod);
+        redirectUrl.searchParams.append('reference', reference);
+        redirectUrl.searchParams.append('description', 'Enterprise Platform Subscription Payment');
+
+        setTimeout(() => {
+          window.location.href = redirectUrl.toString();
+        }, 1500);
+
+      } catch (err) {
+        console.error(err);
+        alert('Failed to initiate payment: ' + err.message);
+        btn.disabled = false;
+        btn.innerHTML = originalText;
       }
     });
+
+    document.addEventListener('DOMContentLoaded', initInvoice);
   </script>
 </body>
 </html>
