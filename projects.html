@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Projects — Drafts | Auto-Pause & Payment Tracking</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -138,7 +138,14 @@
       font-variant-numeric: tabular-nums;
       font-weight: 700;
       letter-spacing: 0.5px;
-   2s infinite;
+    }
+    .live-countdown.expired {
+      color: var(--danger);
+      animation: pulseRed 1.8s infinite;
+    }
+    @keyframes pulseRed {
+      0%,100% { opacity: 1; text-shadow: 0 0 0px rgba(220,38,38,0); }
+      50% { opacity: 0.85; text-shadow: 0 0 2px rgba(220,38,38,0.5); }
     }
     
     /* ENHANCED: Green-to-Red transition rows */
@@ -461,50 +468,6 @@
   </div>
 </div>
 
-<!-- Payment Modal -->
-<div class="modal-overlay" id="paymentModal">
-  <div class="modal" style="max-width: 450px;">
-    <div class="modal-header">
-      <h3 class="modal-title">Record Payment</h3>
-      <button class="modal-close" id="closePaymentModal">✕</button>
-    </div>
-    <div class="modal-body">
-      <input type="hidden" id="payProjectId" />
-      <div class="form-group">
-        <label class="form-label">Project Name</label>
-        <input class="form-input" id="payProjectName" readonly style="background: var(--card-hover);" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Amount Due (UGX)</label>
-        <input class="form-input" id="payAmountDue" readonly style="background: var(--card-hover);" />
-      </div>
-      <div class="form-group">
-        <label class="form-label">Payment Amount (UGX) *</label>
-        <input class="form-input" id="payAmount" type="number" placeholder="e.g. 500000" required />
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label class="form-label">Method</label>
-          <select class="form-select" id="payMethod">
-            <option value="Mobile Money">Mobile Money</option>
-            <option value="Bank Transfer">Bank Transfer</option>
-            <option value="Cash">Cash</option>
-            <option value="Card">Card</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Reference / Txn ID</label>
-          <input class="form-input" id="payReference" placeholder="e.g. 8H7S92K" />
-        </div>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" id="cancelPayment">Cancel</button>
-      <button class="btn btn-primary" id="savePayment">Record Payment</button>
-    </div>
-  </div>
-</div>
-
 <script>
 (function() {
   const SUPABASE_URL = 'https://hnbzerhoqqsmzqxcbnxv.supabase.co';
@@ -709,8 +672,9 @@
       const hasStarted = p.status === 'active' || new Date(p.start_date) <= new Date();
       const deleteBtn = hasStarted ? '' : `<button class="btn btn-sm btn-outline text-red delete-btn" data-id="${p.id}">Del</button>`;
       
-      const isOverdueOrPaused = p.status === 'paused' || prog.state === 'overdue' || (parseFloat(p.amount_due) > 0);
-      const payBtn = isOverdueOrPaused ? `<button class="btn btn-sm btn-primary pay-btn" data-id="${p.id}">💳 Pay ${formatUGX(p.amount_due || 0)}</button>` : '';
+      const isOverdueOrPaused = p.status === 'paused' || prog.state === 'overdue' || (parseFloat(p.amount_due || 0) > 0);
+      // Redirects to the dynamic invoice.html page
+      const payBtn = isOverdueOrPaused ? `<button class="btn btn-sm btn-primary pay-btn" data-client-name="${escapeHtml(p.client)}" data-project-id="${p.id}">💳 Pay ${formatUGX(p.amount_due || 0)}</button>` : '';
       
       const healthClass = prog.state === 'paid' ? 'green' : (prog.state === 'paused' ? 'paused' : (prog.state === 'overdue' ? 'red' : 'completed'));
       
@@ -793,7 +757,7 @@
     });
   }
   
-  function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>]/g, function(m){if(m==='&') return '&amp;'; if(m==='<') return '&lt;'; if(m==='>') return '&gt;'; return m;}); }
+  function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
   
   async function loadEmployees() {
     try {
@@ -822,7 +786,6 @@
       paymentsCache = payRes.data || [];
       renderProjects();
     } catch(err) { showToast('Load error: '+err.message, 'error'); }
-    // Re-populate client select in case it changed
     const sel = document.getElementById('projClientSelect');
     sel.innerHTML = '<option value="">Select client...</option>' + clientsCache.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
   }
@@ -853,17 +816,6 @@
   }
   function closeModal() { document.getElementById('projectModal').classList.remove('open'); }
   
-  // === PAYMENT MODAL CONTROLS ===
-  function openPaymentModal(project) {
-    document.getElementById('payProjectId').value = project.id;
-    document.getElementById('payProjectName').value = project.name || 'Untitled Project';
-    document.getElementById('payAmountDue').value = project.amount_due || 0;
-    document.getElementById('payAmount').value = project.amount_due || 0; // Pre-fill full amount
-    document.getElementById('payMethod').value = 'Mobile Money';
-    document.getElementById('payReference').value = '';
-    document.getElementById('paymentModal').classList.add('open');
-  }
-
   function setupEventListeners() {
     document.getElementById('logoBtn').addEventListener('click', () => window.location.href='index.html');
     
@@ -873,9 +825,6 @@
     document.getElementById('cancelModal').addEventListener('click', closeModal);
     document.getElementById('refreshBtn').addEventListener('click', () => loadAllData());
     document.getElementById('projectFilter').addEventListener('change', () => loadAllData());
-    
-    document.getElementById('closePaymentModal').addEventListener('click', () => document.getElementById('paymentModal').classList.remove('open'));
-    document.getElementById('cancelPayment').addEventListener('click', () => document.getElementById('paymentModal').classList.remove('open'));
     
     document.getElementById('projectsTable').addEventListener('click', async (e) => {
       const edit = e.target.closest('.edit-btn');
@@ -888,87 +837,14 @@
       }
       if (del) await deleteProject(del.dataset.id);
       
+      // REDIRECT TO DYNAMIC INVOICE PAGE
       if (pay) {
-        const p = projectsCache.find(x => x.id === pay.dataset.id);
-        if (p) openPaymentModal(p);
-      }
-    });
-    
-    // === RECORD PAYMENT & AUTO-RESUME ===
-    document.getElementById('savePayment').addEventListener('click', async function() {
-      const btn = this;
-      const origText = btn.textContent;
-      btn.textContent = 'Processing...';
-      btn.disabled = true;
-
-      try {
-        const projectId = document.getElementById('payProjectId').value;
-        const amount = parseFloat(document.getElementById('payAmount').value);
-        const method = document.getElementById('payMethod').value;
-        const reference = document.getElementById('payReference').value.trim();
-
-        if (!amount || amount <= 0) throw new Error('Please enter a valid amount.');
-
-        // 1. Insert Payment Record
-        const { error: payErr } = await supabase.from('payments').insert({
-          project_id: projectId,
-          amount: amount,
-          status: 'paid',
-          due_date: new Date().toISOString(),
-          paid_at: new Date().toISOString(),
-          payment_method: method,
-          reference: reference
-        });
-        if (payErr) throw payErr;
-
-        // 2. Fetch current project state
-        const { data: project, error: projErr } = await supabase
-          .from('projects')
-          .select('amount_due, next_billing_date, plan_months, status, monthly_rate')
-          .eq('id', projectId)
-          .single();
-        if (projErr) throw projErr;
-
-        // 3. Calculate new balance
-        const currentDue = parseFloat(project.amount_due || 0);
-        const newAmountDue = Math.max(0, currentDue - amount);
-
-        // 4. Advance billing date ONLY if fully paid
-        let newBillingDate = project.next_billing_date;
-        let newStatus = project.status;
-
-        if (newAmountDue === 0) {
-          const monthsToAdd = parseInt(project.plan_months) || 1;
-          const baseDate = project.next_billing_date ? new Date(project.next_billing_date) : new Date();
-          const startDate = baseDate < new Date() ? new Date() : baseDate;
-          startDate.setMonth(startDate.getMonth() + monthsToAdd);
-          newBillingDate = startDate.toISOString();
-          
-          // AUTO-RESUME if it was paused
-          if (project.status === 'paused') {
-            newStatus = 'active';
-          }
-        }
-
-        // 5. Update Project
-        const { error: updateErr } = await supabase.from('projects').update({
-          amount_due: newAmountDue,
-          next_billing_date: newBillingDate,
-          status: newStatus
-        }).eq('id', projectId);
-        
-        if (updateErr) throw updateErr;
-
-        showToast('Payment recorded! Project updated.', 'success');
-        document.getElementById('paymentModal').classList.remove('open');
-        await loadAllData(); // Refresh the table
-
-      } catch (err) {
-        console.error(err);
-        showToast('Error: ' + err.message, 'error');
-      } finally {
-        btn.textContent = origText;
-        btn.disabled = false;
+        const clientName = pay.dataset.clientName;
+        const projectId = pay.dataset.projectId;
+        let url = 'invoice.html?';
+        if (clientName) url += `client_name=${encodeURIComponent(clientName)}`;
+        if (projectId) url += `&project_id=${projectId}`;
+        window.location.href = url;
       }
     });
 
