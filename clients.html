@@ -55,7 +55,7 @@
     }
     .mobile-nav-toggle:hover { background: var(--primary-glow); border-color: var(--primary); color: var(--primary); }
 
-    /* 📱 MOBILE NAV DRAWER */
+    /*  MOBILE NAV DRAWER */
     .nav-drawer-overlay {
       display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
       background: rgba(15,23,42,.5); backdrop-filter: blur(4px);
@@ -157,6 +157,10 @@
     .items-center { align-items: center; }
     .gap-1 { gap: .5rem; }
     .wrap { flex-wrap: wrap; }
+    .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: .75rem; }
+    .stat-item { display: flex; flex-direction: column; gap: 2px; }
+    .stat-label { color: var(--text-muted); font-size: .68rem; }
+    .stat-value { font-weight: 600; color: var(--text); }
     
     /* 📱 RESPONSIVE: TABLET */
     @media (max-width: 1024px) {
@@ -167,7 +171,7 @@
       .main { padding: 1rem; }
     }
 
-    /* 📱 RESPONSIVE: MOBILE */
+    /*  RESPONSIVE: MOBILE */
     @media (max-width: 768px) {
       .header { padding: 0 1rem; height: 64px; }
       .logo-img { height: 44px; }
@@ -321,7 +325,7 @@
   </div>
 </header>
 
-<!-- 📱 MOBILE NAV DRAWER -->
+<!--  MOBILE NAV DRAWER -->
 <div class="nav-drawer-overlay" id="navDrawerOverlay"></div>
 <div class="nav-drawer" id="navDrawer" role="dialog" aria-label="Navigation menu">
   <div class="nav-drawer-header">
@@ -330,8 +334,8 @@
   </div>
   <a href="index.html" class="nav-btn">📊 Dashboard</a>
   <a href="projects.html" class="nav-btn">📁 Projects</a>
-  <a href="payments.html" class="nav-btn">💳 Payments</a>
-  <a href="clients.html" class="nav-btn active">👥 Clients</a>
+  <a href="payments.html" class="nav-btn"> Payments</a>
+  <a href="clients.html" class="nav-btn active"> Clients</a>
   <a href="reports.html" class="nav-btn">📈 Reports</a>
   <a href="performance.html" class="nav-btn">⚡ Performance</a>
   <a href="finance.html" class="nav-btn">💰 Finance</a>
@@ -366,11 +370,12 @@
           <th>Phone</th>
           <th>Projects</th>
           <th>Revenue</th>
+          <th>Project Value</th>
           <th>Actions</th>
         </tr>
       </thead>
       <tbody id="clientsTable">
-        <tr><td colspan="6"><div class="empty-state"><div class="empty-icon">👥</div><p>Loading clients...</p></div></td></tr>
+        <tr><td colspan="7"><div class="empty-state"><div class="empty-icon">👥</div><p>Loading clients...</p></div></td></tr>
       </tbody>
     </table>
   </div>
@@ -492,6 +497,8 @@
 
       // === LOAD CLIENTS TABLE ===
       async function loadClients() {
+        const tbody = document.getElementById('clientsTable');
+        
         try {
           const filter = document.getElementById('clientFilter').value;
           let query = supabase.from('clients').select('*');
@@ -501,26 +508,49 @@
           const { data: clients, error: clientErr } = await query;
           if (clientErr) throw clientErr;
           
+          // Fetch all projects
           const { data: projects, error: projErr } = await supabase.from('projects').select('id, client, status, monthly_rate, plan_months');
           if (projErr) throw projErr;
 
+          // Fetch all payments
           const { data: payments, error: payErr } = await supabase.from('payments').select('project_id, amount, status');
           if (payErr) throw payErr;
 
+          // Calculate revenue from paid payments
           const projectRevenue = {};
           (payments || []).filter(p => p.status && p.status.trim().toLowerCase() === 'paid').forEach(p => {
             projectRevenue[p.project_id] = (projectRevenue[p.project_id] || 0) + (p.amount || 0);
           });
 
+          // Process each client with stats
           const clientsWithStats = (clients || []).map(c => {
             const clientNameLower = (c.name || '').trim().toLowerCase();
             const clientProjects = (projects || []).filter(p => 
               p.client && p.client.trim().toLowerCase() === clientNameLower
             );
+            
+            // Count projects by status
             const activeProjects = clientProjects.filter(p => 
               p.status && p.status.trim().toLowerCase() === 'active'
             );
+            const inactiveProjects = clientProjects.filter(p => 
+              p.status && p.status.trim().toLowerCase() === 'inactive'
+            );
             
+            // Calculate project values (monthly_rate * plan_months)
+            let totalProjectValue = 0;
+            let activeProjectValue = 0;
+            
+            clientProjects.forEach(p => {
+              const projectValue = (p.monthly_rate || 0) * (p.plan_months || 0);
+              totalProjectValue += projectValue;
+              
+              if (p.status && p.status.trim().toLowerCase() === 'active') {
+                activeProjectValue += projectValue;
+              }
+            });
+            
+            // Calculate revenue from payments
             let totalRevenue = 0;
             clientProjects.forEach(p => {
               totalRevenue += (projectRevenue[p.id] || 0);
@@ -529,14 +559,16 @@
             return {
               ...c,
               activeCount: activeProjects.length,
+              inactiveCount: inactiveProjects.length,
               totalCount: clientProjects.length,
-              totalRevenue: totalRevenue
+              totalRevenue: totalRevenue,
+              totalProjectValue: totalProjectValue,
+              activeProjectValue: activeProjectValue
             };
           });
           
-          const tbody = document.getElementById('clientsTable');
           if (!clientsWithStats || clientsWithStats.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">👥</div><p>No clients found. Add your first client.</p></div></td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">👥</div><p>No clients found. Add your first client.</p></div></td></tr>`;
             return;
           }
 
@@ -555,15 +587,38 @@
               <td data-label="Email">${c.email ? `<a href="mailto:${escapeHtml(c.email)}" class="text-blue" style="word-break:break-all; text-align:right; flex:1;">${escapeHtml(c.email)}</a>` : '—'}</td>
               <td data-label="Phone">${escapeHtml(c.phone) || '—'}</td>
               <td data-label="Projects">
-                <div style="display:flex; align-items:center; gap:6px; justify-content: flex-end;">
-                  <span class="badge badge-blue">${c.activeCount} active</span>
-                  <span class="text-muted" style="font-size:.72rem;">(${c.totalCount} total)</span>
+                <div class="stats-grid">
+                  <div class="stat-item">
+                    <span class="stat-label">Total</span>
+                    <span class="stat-value">${c.totalCount}</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-label">Active</span>
+                    <span class="stat-value" style="color: var(--accent);">${c.activeCount}</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-label">Inactive</span>
+                    <span class="stat-value" style="color: var(--text-muted);">${c.inactiveCount}</span>
+                  </div>
                 </div>
               </td>
               <td data-label="Revenue">
                 <div style="text-align:right;">
                   <div><strong>${formatUGX(c.totalRevenue)}</strong></div>
                   <div style="font-size:.75rem; color: var(--text-muted);">${formatUSD(c.totalRevenue)}</div>
+                  <div style="font-size:.68rem; color: var(--text-muted); margin-top:2px;">Paid</div>
+                </div>
+              </td>
+              <td data-label="Project Value">
+                <div class="stats-grid">
+                  <div class="stat-item">
+                    <span class="stat-label">Total Value</span>
+                    <span class="stat-value">${formatUGX(c.totalProjectValue)}</span>
+                  </div>
+                  <div class="stat-item">
+                    <span class="stat-label">Active Value</span>
+                    <span class="stat-value" style="color: var(--accent);">${formatUGX(c.activeProjectValue)}</span>
+                  </div>
                 </div>
               </td>
               <td class="actions-cell">
@@ -577,7 +632,7 @@
           
         } catch (err) {
           console.error('Clients load error:', err);
-          tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">⚠️</div><p>Failed to load clients</p></div></td></tr>`;
+          tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">⚠️</div><p>Failed to load clients</p></div></td></tr>`;
           showToast('Failed to load clients', 'error');
         }
       }
