@@ -201,7 +201,7 @@
     const BASE_EXCHANGE_RATE = 3775;
     const RELPAY_URL = 'https://relpay.relworx.com/payment_links/6a2211f5c7377826ae83/mobile_money_requests/new';
 
-    let supabase, currentTotalUGX = 0, selectedMethod = 'mtn', projectIds = [];
+    let supabaseClient, currentTotalUGX = 0, selectedMethod = 'mtn', projectIds = [];
 
     function formatUGX(n) { return 'UGX ' + (Number(n)||0).toLocaleString(); }
     function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
@@ -211,7 +211,9 @@
         document.body.innerHTML = '<div class="min-h-screen flex items-center justify-center"><p class="text-red-600">SDK failed to load.</p></div>';
         return;
       }
-      supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+      
+      // Initialize Supabase client
+      supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
       const params = new URLSearchParams(window.location.search);
       const clientId = params.get('client_id');
@@ -227,16 +229,16 @@
         // 1. Fetch Projects
         let projects = [];
         if (projectId) {
-          const { data } = await supabase.from('projects').select('*').eq('id', projectId);
+          const { data } = await supabaseClient.from('projects').select('*').eq('id', projectId);
           projects = data || [];
         } else if (clientId) {
-          const { data } = await supabase.from('projects').select('*').eq('client_id', clientId);
+          const { data } = await supabaseClient.from('projects').select('*').eq('client_id', clientId);
           projects = data || [];
         }
         
         // Fallback: if client_name is passed or projects not found by ID, search by name
         if (projects.length === 0 && clientName) {
-          const { data } = await supabase.from('projects').select('*').eq('client', clientName);
+          const { data } = await supabaseClient.from('projects').select('*').eq('client', clientName);
           projects = data || [];
         }
 
@@ -250,14 +252,14 @@
         // 2. Fetch Client Info
         let clientData = { name: 'Valued Client', email: '', phone: '' };
         if (clientId) {
-          const { data: c } = await supabase.from('clients').select('*').eq('id', clientId).single();
+          const { data: c } = await supabaseClient.from('clients').select('*').eq('id', clientId).single();
           if (c) clientData = c;
         } else if (projects[0].client) {
           clientData.name = projects[0].client;
         }
 
         // 3. Fetch Payments
-        const { data: payments } = await supabase.from('payments').select('*').in('project_id', projectIds).order('created_at', { ascending: false });
+        const { data: payments } = await supabaseClient.from('payments').select('*').in('project_id', projectIds).order('created_at', { ascending: false });
         const paidAmount = (payments || []).filter(p => p.status === 'paid').reduce((sum, p) => sum + (p.amount || 0), 0);
 
         // 4. Render Breakdown
@@ -356,7 +358,7 @@
       try {
         // 1. Record pending payment in Supabase for tracking
         const reference = `INV-${Date.now()}`;
-        const { error: payErr } = await supabase.from('payments').insert({
+        const { error: payErr } = await supabaseClient.from('payments').insert({
           project_id: projectIds[0], // Links to primary project (can be expanded for multiple)
           amount: currentTotalUGX,
           status: 'pending',
