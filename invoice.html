@@ -43,6 +43,12 @@
     .airtel-badge { background: linear-gradient(135deg, #e30613, #cc0000); color: #fff; }
     .loading-skeleton { background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%); background-size: 200% 100%; animation: loading 1.5s infinite; }
     @keyframes loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+    
+    .month-selector { transition: all 0.2s ease; }
+    .month-selector.selected { border-color: #0284c7; background: #f0f9ff; transform: scale(1.02); }
+    .month-selector:hover:not(.disabled) { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    
+    .discount-badge { background: linear-gradient(135deg, #10b981, #059669); color: white; }
   </style>
 </head>
 <body class="min-h-screen flex flex-col">
@@ -94,7 +100,6 @@
 
     <!-- Dynamic Breakdown Container -->
     <div id="breakdownContainer" class="space-y-6">
-      <!-- Skeleton Loading State -->
       <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 card-enter">
         <div class="loading-skeleton h-6 w-48 rounded mb-4"></div>
         <div class="space-y-3">
@@ -104,7 +109,85 @@
       </div>
     </div>
 
-    <!-- Payment Section (Hidden until loaded) -->
+    <!-- Payment Customization Section -->
+    <div id="paymentCustomization" class="hidden mt-8 bg-white rounded-2xl border border-slate-200 shadow-lg overflow-hidden card-enter">
+      <div class="px-6 py-4 bg-gradient-to-r from-slate-800 to-slate-900 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <span class="bg-white/20 backdrop-blur px-3 py-1 rounded-full text-white text-xs font-semibold">CUSTOMIZE PAYMENT</span>
+          <h3 class="text-white text-lg font-bold">Choose Payment Duration</h3>
+        </div>
+        <div class="flex items-center gap-2 text-white/90 text-sm">
+          <span class="w-2 h-2 bg-emerald-400 rounded-full live-dot"></span>
+          Live & Active
+        </div>
+      </div>
+      
+      <div class="p-6">
+        <p class="text-sm text-slate-600 mb-4">Select how many months you'd like to pay for. Longer durations include special discounts!</p>
+        
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" id="monthSelector">
+          <!-- 1 Month -->
+          <button type="button" class="month-selector selected flex flex-col items-center p-4 bg-white border-2 border-slate-200 rounded-xl focus:outline-none" onclick="selectMonths(1, this)">
+            <span class="text-2xl font-bold text-slate-900">1</span>
+            <span class="text-xs text-slate-500 mt-1">Month</span>
+            <span class="text-sm font-semibold text-slate-700 mt-2" id="price1m">UGX 0</span>
+          </button>
+          
+          <!-- 3 Months -->
+          <button type="button" class="month-selector flex flex-col items-center p-4 bg-white border-2 border-slate-200 rounded-xl focus:outline-none relative" onclick="selectMonths(3, this)">
+            <span class="discount-badge absolute -top-2 -right-2 text-[10px] px-2 py-1 rounded-full font-bold">5% OFF</span>
+            <span class="text-2xl font-bold text-slate-900">3</span>
+            <span class="text-xs text-slate-500 mt-1">Months</span>
+            <span class="text-sm font-semibold text-slate-700 mt-2" id="price3m">UGX 0</span>
+            <span class="text-[10px] text-emerald-600 mt-1" id="savings3m">Save UGX 0</span>
+          </button>
+          
+          <!-- 6 Months -->
+          <button type="button" class="month-selector flex flex-col items-center p-4 bg-white border-2 border-slate-200 rounded-xl focus:outline-none relative" onclick="selectMonths(6, this)">
+            <span class="discount-badge absolute -top-2 -right-2 text-[10px] px-2 py-1 rounded-full font-bold">10% OFF</span>
+            <span class="text-2xl font-bold text-slate-900">6</span>
+            <span class="text-xs text-slate-500 mt-1">Months</span>
+            <span class="text-sm font-semibold text-slate-700 mt-2" id="price6m">UGX 0</span>
+            <span class="text-[10px] text-emerald-600 mt-1" id="savings6m">Save UGX 0</span>
+          </button>
+          
+          <!-- 12 Months -->
+          <button type="button" class="month-selector flex flex-col items-center p-4 bg-white border-2 border-slate-200 rounded-xl focus:outline-none relative" onclick="selectMonths(12, this)">
+            <span class="discount-badge absolute -top-2 -right-2 text-[10px] px-2 py-1 rounded-full font-bold">15% OFF</span>
+            <span class="text-2xl font-bold text-slate-900">12</span>
+            <span class="text-xs text-slate-500 mt-1">Months (Annual)</span>
+            <span class="text-sm font-semibold text-slate-700 mt-2" id="price12m">UGX 0</span>
+            <span class="text-[10px] text-emerald-600 mt-1" id="savings12m">Save UGX 0</span>
+          </button>
+        </div>
+
+        <!-- Summary -->
+        <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 mb-6">
+          <div class="flex justify-between items-center mb-2">
+            <span class="text-sm text-slate-600">Monthly Rate:</span>
+            <span class="text-sm font-semibold" id="summaryMonthlyRate">UGX 0</span>
+          </div>
+          <div class="flex justify-between items-center mb-2">
+            <span class="text-sm text-slate-600">Duration:</span>
+            <span class="text-sm font-semibold" id="summaryDuration">1 Month</span>
+          </div>
+          <div class="flex justify-between items-center mb-2">
+            <span class="text-sm text-slate-600">Subtotal:</span>
+            <span class="text-sm font-semibold" id="summarySubtotal">UGX 0</span>
+          </div>
+          <div class="flex justify-between items-center mb-2 text-emerald-600">
+            <span class="text-sm font-medium">Discount:</span>
+            <span class="text-sm font-semibold" id="summaryDiscount">- UGX 0</span>
+          </div>
+          <div class="border-t border-slate-300 pt-2 mt-2 flex justify-between items-center">
+            <span class="text-base font-bold text-slate-900">Total to Pay:</span>
+            <span class="text-2xl font-extrabold text-slate-900" id="summaryTotal">UGX 0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Payment Section -->
     <div id="paymentSection" class="hidden mt-8 bg-white rounded-2xl border-2 border-brand-600/30 shadow-lg overflow-hidden card-enter">
       <div class="px-6 py-4 bg-gradient-to-r from-brand-600 to-blue-700 flex items-center justify-between">
         <div class="flex items-center gap-3">
@@ -199,9 +282,24 @@
     const SUPABASE_URL = 'https://hnbzerhoqqsmzqxcbnxv.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhuYnplcmhvcXFzbXpxeGNibnh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDg1MjksImV4cCI6MjA5NDYyNDUyOX0.a4rM51DQGih9SXMr71PREngZ_pT6dJFgv_fG9j5jAGc';
     const BASE_EXCHANGE_RATE = 3775;
-    const RELPAY_URL = 'https://relpay.relworx.com/payment_links/6a2211f5c7377826ae83/mobile_money_requests/new';
+    
+    // RELWORX CREDENTIALS - From your dashboard
+    const RELWORX_CONFIG = {
+      accountNumber: 'REL2801FF091A',
+      apiKey: '8eb6c6d03f1f42.2ZhYP-Ve0L7uV3eacw8dGw',
+      webhookSigningKey: 'db12b3d096c5c955e0fe714c34',
+      businessName: 'Abihusha General Electronics',
+      email: 'asmanbashir24@gmail.com',
+      mobile: '0781841396',
+      webhookUrl: 'https://amc-app-gamma.vercel.app/api/relworx-webhook',
+      // Relworx API endpoints
+      apiBaseUrl: 'https://api.relworx.com/api/v1',
+      requestPaymentUrl: 'https://api.relworx.com/api/v1/payment-requests',
+      mobileMoneyUrl: 'https://api.relworx.com/api/v1/mobile-money'
+    };
 
-    let supabaseClient, currentTotalUGX = 0, selectedMethod = 'mtn', projectIds = [];
+    let supabaseClient, currentTotalUGX = 0, selectedMethod = 'mtn', projectIds = [], selectedMonths = 1;
+    let monthlyRate = 0, projectsData = [], clientData = {};
 
     function formatUGX(n) { return 'UGX ' + (Number(n)||0).toLocaleString(); }
     function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
@@ -212,7 +310,6 @@
         return;
       }
       
-      // Initialize Supabase client
       supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
       const params = new URLSearchParams(window.location.search);
@@ -226,7 +323,6 @@
       }
 
       try {
-        // 1. Fetch Projects
         let projects = [];
         if (projectId) {
           const { data } = await supabaseClient.from('projects').select('*').eq('id', projectId);
@@ -236,7 +332,6 @@
           projects = data || [];
         }
         
-        // Fallback: if client_name is passed or projects not found by ID, search by name
         if (projects.length === 0 && clientName) {
           const { data } = await supabaseClient.from('projects').select('*').eq('client', clientName);
           projects = data || [];
@@ -247,30 +342,26 @@
           return;
         }
 
+        projectsData = projects;
         projectIds = projects.map(p => p.id);
         
-        // 2. Fetch Client Info
-        let clientData = { name: 'Valued Client', email: '', phone: '' };
+        monthlyRate = projects.reduce((sum, p) => sum + (parseFloat(p.monthly_rate) || 0), 0);
+        
         if (clientId) {
           const { data: c } = await supabaseClient.from('clients').select('*').eq('id', clientId).single();
           if (c) clientData = c;
         } else if (projects[0].client) {
-          clientData.name = projects[0].client;
+          clientData = { name: projects[0].client, email: '', phone: '' };
         }
 
-        // 3. Fetch Payments
         const { data: payments } = await supabaseClient.from('payments').select('*').in('project_id', projectIds).order('created_at', { ascending: false });
         const paidAmount = (payments || []).filter(p => p.status === 'paid').reduce((sum, p) => sum + (p.amount || 0), 0);
 
-        // 4. Render Breakdown
         const container = document.getElementById('breakdownContainer');
         container.innerHTML = '';
-        currentTotalUGX = 0;
 
         projects.forEach(p => {
           const due = parseFloat(p.amount_due || 0);
-          currentTotalUGX += due;
-          
           const statusColor = p.status === 'active' ? 'text-emerald-600' : (p.status === 'paused' ? 'text-amber-600' : 'text-slate-500');
           
           const item = document.createElement('div');
@@ -289,34 +380,16 @@
           container.appendChild(item);
         });
 
-        // If total due is 0, show a message
-        if (currentTotalUGX === 0) {
-          container.innerHTML = `
-            <div class="bg-emerald-50 border border-emerald-200 rounded-xl p-6 text-center card-enter">
-              <i class="fas fa-check-circle text-3xl text-emerald-500 mb-2"></i>
-              <h3 class="text-lg font-bold text-emerald-800">All Caught Up!</h3>
-              <p class="text-sm text-emerald-600">There are no pending payments for this client.</p>
-            </div>
-          `;
-          document.getElementById('paymentSection').classList.add('hidden');
-        } else {
-          document.getElementById('paymentSection').classList.remove('hidden');
-        }
-
-        // Update UI Totals
         document.getElementById('clientNameDisplay').textContent = clientData.name;
         document.getElementById('invoiceRef').textContent = `INV-${clientData.name.substring(0,4).toUpperCase()}-${Date.now().toString().slice(-6)}`;
-        document.getElementById('dynamicTotalUGX').textContent = formatUGX(currentTotalUGX);
-        document.getElementById('ugxTotalDisplay').textContent = '/ ' + formatUGX(currentTotalUGX);
-        document.getElementById('payBtnText').textContent = `Pay ${formatUGX(currentTotalUGX)} Now`;
         
         if (payments && payments.length > 0) {
           document.getElementById('paymentHistorySummary').innerHTML = `<i class="fas fa-history mr-1"></i> Previous payments: ${formatUGX(paidAmount)} total paid across ${payments.length} transaction(s).`;
         }
 
-        // Fetch exchange rate
-        const currentRate = await fetchExchangeRate();
-        updateUSDDisplay(currentTotalUGX, currentRate);
+        document.getElementById('paymentCustomization').classList.remove('hidden');
+        updateMonthPricing();
+        selectMonths(1, document.querySelector('.month-selector'));
 
       } catch (err) {
         console.error(err);
@@ -324,30 +397,105 @@
       }
     }
 
-    function calculateUSD(ugxAmount, exchangeRate) {
-      return (ugxAmount / exchangeRate).toFixed(2);
+    function updateMonthPricing() {
+      const discounts = { 1: 0, 3: 0.05, 6: 0.10, 12: 0.15 };
+      
+      [1, 3, 6, 12].forEach(months => {
+        const subtotal = monthlyRate * months;
+        const discount = subtotal * discounts[months];
+        const total = subtotal - discount;
+        
+        document.getElementById(`price${months}m`).textContent = formatUGX(total);
+        if (months > 1) {
+          document.getElementById(`savings${months}m`).textContent = `Save ${formatUGX(discount)}`;
+        }
+      });
     }
-    
-    function updateUSDDisplay(ugxAmount, exchangeRate) {
-      const usdTotal = calculateUSD(ugxAmount, exchangeRate);
+
+    window.selectMonths = function(months, element) {
+      selectedMonths = months;
+      document.querySelectorAll('.month-selector').forEach(el => el.classList.remove('selected'));
+      element.classList.add('selected');
+      
+      const discounts = { 1: 0, 3: 0.05, 6: 0.10, 12: 0.15 };
+      const subtotal = monthlyRate * months;
+      const discount = subtotal * discounts[months];
+      const total = subtotal - discount;
+      
+      currentTotalUGX = total;
+      
+      document.getElementById('summaryMonthlyRate').textContent = formatUGX(monthlyRate);
+      document.getElementById('summaryDuration').textContent = `${months} Month${months > 1 ? 's' : ''}`;
+      document.getElementById('summarySubtotal').textContent = formatUGX(subtotal);
+      document.getElementById('summaryDiscount').textContent = `- ${formatUGX(discount)}`;
+      document.getElementById('summaryTotal').textContent = formatUGX(total);
+      
+      document.getElementById('dynamicTotalUGX').textContent = formatUGX(total);
+      document.getElementById('ugxTotalDisplay').textContent = '/ ' + formatUGX(total);
+      document.getElementById('payBtnText').textContent = `Pay ${formatUGX(total)} Now`;
+      
+      const currentRate = BASE_EXCHANGE_RATE + (Math.random() - 0.5) * 20;
+      const usdTotal = (total / currentRate).toFixed(2);
       document.getElementById('usdTotal').textContent = `$${usdTotal}`;
-      document.getElementById('exchangeNote').innerHTML = `Exchange: 1 USD = ${exchangeRate.toLocaleString()} UGX • USD amount updates with market rates`;
-    }
-    
-    async function fetchExchangeRate() {
-      try {
-        const fluctuation = (Math.random() - 0.5) * 20;
-        return BASE_EXCHANGE_RATE + fluctuation;
-      } catch (error) {
-        return BASE_EXCHANGE_RATE;
-      }
-    }
+      document.getElementById('exchangeNote').innerHTML = `Exchange: 1 USD = ${currentRate.toLocaleString()} UGX • USD amount updates with market rates`;
+      
+      document.getElementById('paymentSection').classList.remove('hidden');
+    };
 
     window.selectPayment = function(el, method) {
       document.querySelectorAll('.payment-option').forEach(c => c.classList.remove('selected'));
       el.classList.add('selected');
       selectedMethod = method;
     };
+
+    // Create Relworx payment request
+    async function createRelworxPayment() {
+      const reference = `INV-${Date.now()}`;
+      
+      const paymentData = {
+        account_number: RELWORX_CONFIG.accountNumber,
+        amount: currentTotalUGX,
+        currency: 'UGX',
+        reference: reference,
+        description: `Enterprise Platform Subscription - ${selectedMonths} Month${selectedMonths > 1 ? 's' : ''}`,
+        customer: {
+          name: clientData.name,
+          email: clientData.email || RELWORX_CONFIG.email,
+          phone: clientData.phone || RELWORX_CONFIG.mobile
+        },
+        payment_method: selectedMethod === 'mtn' ? 'MTN_MOBILE_MONEY' : 'AIRTEL_MOBILE_MONEY',
+        callback_url: RELWORX_CONFIG.webhookUrl,
+        metadata: {
+          project_ids: projectIds.join(','),
+          months_covered: selectedMonths,
+          monthly_rate: monthlyRate,
+          client_name: clientData.name
+        }
+      };
+
+      try {
+        const response = await fetch(RELWORX_CONFIG.mobileMoneyUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${RELWORX_CONFIG.apiKey}`,
+            'X-Account-Number': RELWORX_CONFIG.accountNumber
+          },
+          body: JSON.stringify(paymentData)
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || 'Failed to create payment request');
+        }
+
+        const result = await response.json();
+        return result;
+      } catch (error) {
+        console.error('Relworx API Error:', error);
+        throw error;
+      }
+    }
 
     document.getElementById('payNowBtn').addEventListener('click', async function() {
       const btn = this;
@@ -356,30 +504,39 @@
       btn.innerHTML = '<i class="fas fa-spinner animate-spin mr-2"></i> Processing...';
 
       try {
-        // 1. Record pending payment in Supabase for tracking
+        // Record pending payment in Supabase
         const reference = `INV-${Date.now()}`;
         const { error: payErr } = await supabaseClient.from('payments').insert({
-          project_id: projectIds[0], // Links to primary project (can be expanded for multiple)
+          project_id: projectIds[0],
           amount: currentTotalUGX,
           status: 'pending',
           due_date: new Date().toISOString(),
           payment_method: selectedMethod === 'mtn' ? 'MTN Mobile Money' : 'Airtel Mobile Money',
-          reference: reference
+          reference: reference,
+          months_covered: selectedMonths
         });
 
         if (payErr) throw payErr;
 
-        // 2. Redirect to RelPay with dynamic amount
-        const redirectUrl = new URL(RELPAY_URL);
-        redirectUrl.searchParams.append('amount', currentTotalUGX);
-        redirectUrl.searchParams.append('currency', 'UGX');
-        redirectUrl.searchParams.append('provider', selectedMethod);
-        redirectUrl.searchParams.append('reference', reference);
-        redirectUrl.searchParams.append('description', 'Enterprise Platform Subscription Payment');
-
-        setTimeout(() => {
-          window.location.href = redirectUrl.toString();
-        }, 1500);
+        // Create Relworx payment request
+        showToast('Initializing payment with Relworx...', 'info');
+        const paymentResult = await createRelworxPayment();
+        
+        // If Relworx returns a payment URL or USSD code
+        if (paymentResult.payment_url) {
+          setTimeout(() => {
+            window.location.href = paymentResult.payment_url;
+          }, 1500);
+        } else if (paymentResult.ussd_code) {
+          showToast(`Dial: ${paymentResult.ussd_code}`, 'info');
+          btn.disabled = false;
+          btn.innerHTML = originalText;
+        } else {
+          showToast('Payment request created. Check your phone to complete payment.', 'success');
+          setTimeout(() => {
+            window.location.href = 'projects.html';
+          }, 3000);
+        }
 
       } catch (err) {
         console.error(err);
@@ -388,6 +545,21 @@
         btn.innerHTML = originalText;
       }
     });
+
+    function showToast(msg, type='success') {
+      const c = document.getElementById('toastContainer') || document.createElement('div');
+      c.id = 'toastContainer';
+      c.className = 'fixed top-100 right-16 z-300 flex flex-col gap-2';
+      if (!document.getElementById('toastContainer')) {
+        document.body.appendChild(c);
+      }
+      
+      const t = document.createElement('div');
+      t.className = `bg-white border-l-4 ${type === 'success' ? 'border-emerald-500' : type === 'error' ? 'border-red-500' : 'border-blue-500'} shadow-lg rounded px-4 py-3 text-sm`;
+      t.textContent = msg;
+      c.appendChild(t);
+      setTimeout(() => t.remove(), 4000);
+    }
 
     document.addEventListener('DOMContentLoaded', initInvoice);
   </script>
