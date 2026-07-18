@@ -89,6 +89,7 @@
       <div>
         <h2 class="text-2xl font-bold text-slate-900">Subscription Invoices</h2>
         <p class="text-slate-500 mt-1">Invoice Reference: <span id="invoiceRef" class="font-mono text-slate-700">Loading...</span></p>
+        <p class="text-sm text-slate-600 mt-2" id="projectsCountDisplay"></p>
       </div>
       <div class="text-right">
         <p class="text-xs text-slate-500">Total Amount Due</p>
@@ -123,6 +124,13 @@
       </div>
       
       <div class="p-6">
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+          <p class="text-sm text-blue-800">
+            <i class="fas fa-info-circle mr-2"></i>
+            <strong>Bundle Payment:</strong> This payment covers <span id="bundleProjectsCount" class="font-bold">all</span> projects for this client. All projects will be activated together.
+          </p>
+        </div>
+        
         <p class="text-sm text-slate-600 mb-4">Select how many months you'd like to pay for. Longer durations include special discounts!</p>
         
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6" id="monthSelector">
@@ -164,7 +172,7 @@
         <!-- Summary -->
         <div class="bg-slate-50 rounded-xl p-4 border border-slate-200 mb-6">
           <div class="flex justify-between items-center mb-2">
-            <span class="text-sm text-slate-600">Monthly Rate:</span>
+            <span class="text-sm text-slate-600">Combined Monthly Rate (All Projects):</span>
             <span class="text-sm font-semibold" id="summaryMonthlyRate">UGX 0</span>
           </div>
           <div class="flex justify-between items-center mb-2">
@@ -283,7 +291,7 @@
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhuYnplcmhvcXFzbXpxeGNibnh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDg1MjksImV4cCI6MjA5NDYyNDUyOX0.a4rM51DQGih9SXMr71PREngZ_pT6dJFgv_fG9j5jAGc';
     const BASE_EXCHANGE_RATE = 3775;
     
-    // RELWORX CREDENTIALS - From your dashboard
+    // RELWORX CREDENTIALS
     const RELWORX_CONFIG = {
       accountNumber: 'REL2801FF091A',
       apiKey: '8eb6c6d03f1f42.2ZhYP-Ve0L7uV3eacw8dGw',
@@ -291,15 +299,12 @@
       businessName: 'Abihusha General Electronics',
       email: 'asmanbashir24@gmail.com',
       mobile: '0781841396',
-      webhookUrl: 'https://amc-app-gamma.vercel.app/api/relworx-webhook',
-      // Relworx API endpoints
-      apiBaseUrl: 'https://api.relworx.com/api/v1',
-      requestPaymentUrl: 'https://api.relworx.com/api/v1/payment-requests',
+      webhookUrl: 'https://drafts-platform-five.vercel.app/api/relworx-webhook',
       mobileMoneyUrl: 'https://api.relworx.com/api/v1/mobile-money'
     };
 
     let supabaseClient, currentTotalUGX = 0, selectedMethod = 'mtn', projectIds = [], selectedMonths = 1;
-    let monthlyRate = 0, projectsData = [], clientData = {};
+    let monthlyRate = 0, projectsData = [], clientData = {}, clientId = null;
 
     function formatUGX(n) { return 'UGX ' + (Number(n)||0).toLocaleString(); }
     function escapeHtml(str) { if(!str) return ''; return str.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
@@ -313,40 +318,52 @@
       supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
       const params = new URLSearchParams(window.location.search);
-      const clientId = params.get('client_id');
       const projectId = params.get('project_id');
       const clientName = params.get('client_name');
 
-      if (!clientId && !projectId && !clientName) {
-        document.body.innerHTML = '<div class="min-h-screen flex items-center justify-center"><p class="text-red-600">Invalid invoice link. Missing client or project ID.</p></div>';
+      if (!clientName && !projectId) {
+        document.body.innerHTML = '<div class="min-h-screen flex items-center justify-center"><p class="text-red-600">Invalid invoice link. Missing client information.</p></div>';
         return;
       }
 
       try {
+        // ALWAYS fetch ALL projects for the client (not just one)
         let projects = [];
-        if (projectId) {
-          const { data } = await supabaseClient.from('projects').select('*').eq('id', projectId);
-          projects = data || [];
-        } else if (clientId) {
-          const { data } = await supabaseClient.from('projects').select('*').eq('client_id', clientId);
-          projects = data || [];
-        }
         
-        if (projects.length === 0 && clientName) {
+        if (clientName) {
+          // Search by client name
           const { data } = await supabaseClient.from('projects').select('*').eq('client', clientName);
           projects = data || [];
+          
+          // Also get client_id if available
+          if (projects.length > 0 && projects[0].client_id) {
+            clientId = projects[0].client_id;
+          }
+        } else if (projectId) {
+          // Get project by ID, then find all projects for that client
+          const { data: singleProject } = await supabaseClient.from('projects').select('*').eq('id', projectId).single();
+          if (singleProject) {
+            clientId = singleProject.client_id;
+            const clientNameFromProject = singleProject.client;
+            
+            // Fetch all projects for this client
+            const { data } = await supabaseClient.from('projects').select('*').eq('client', clientNameFromProject);
+            projects = data || [];
+          }
         }
 
         if (!projects || projects.length === 0) {
-          document.body.innerHTML = '<div class="min-h-screen flex items-center justify-center"><p class="text-red-600">No projects found for this invoice.</p></div>';
+          document.body.innerHTML = '<div class="min-h-screen flex items-center justify-center"><p class="text-red-600">No projects found for this client.</p></div>';
           return;
         }
 
         projectsData = projects;
         projectIds = projects.map(p => p.id);
         
+        // Calculate TOTAL monthly rate across ALL projects
         monthlyRate = projects.reduce((sum, p) => sum + (parseFloat(p.monthly_rate) || 0), 0);
         
+        // Get client info
         if (clientId) {
           const { data: c } = await supabaseClient.from('clients').select('*').eq('id', clientId).single();
           if (c) clientData = c;
@@ -354,18 +371,25 @@
           clientData = { name: projects[0].client, email: '', phone: '' };
         }
 
+        // Fetch payment history for all projects
         const { data: payments } = await supabaseClient.from('payments').select('*').in('project_id', projectIds).order('created_at', { ascending: false });
         const paidAmount = (payments || []).filter(p => p.status === 'paid').reduce((sum, p) => sum + (p.amount || 0), 0);
 
+        // Render ALL projects breakdown
         const container = document.getElementById('breakdownContainer');
         container.innerHTML = '';
+        
+        // Show count of projects
+        document.getElementById('projectsCountDisplay').textContent = `${projects.length} project${projects.length > 1 ? 's' : ''} included in this bundle`;
+        document.getElementById('bundleProjectsCount').textContent = projects.length;
 
-        projects.forEach(p => {
+        projects.forEach((p, index) => {
           const due = parseFloat(p.amount_due || 0);
           const statusColor = p.status === 'active' ? 'text-emerald-600' : (p.status === 'paused' ? 'text-amber-600' : 'text-slate-500');
           
           const item = document.createElement('div');
           item.className = 'flex flex-col sm:flex-row sm:justify-between sm:items-center p-4 bg-slate-50 rounded-xl border border-slate-200 mb-3 card-enter';
+          item.style.animationDelay = `${index * 0.1}s`;
           item.innerHTML = `
             <div class="mb-2 sm:mb-0">
               <p class="text-sm font-bold text-slate-900">${escapeHtml(p.name)}</p>
@@ -457,7 +481,7 @@
         amount: currentTotalUGX,
         currency: 'UGX',
         reference: reference,
-        description: `Enterprise Platform Subscription - ${selectedMonths} Month${selectedMonths > 1 ? 's' : ''}`,
+        description: `Enterprise Platform Subscription - ${selectedMonths} Month${selectedMonths > 1 ? 's' : ''} (${projectsData.length} projects)`,
         customer: {
           name: clientData.name,
           email: clientData.email || RELWORX_CONFIG.email,
@@ -466,10 +490,12 @@
         payment_method: selectedMethod === 'mtn' ? 'MTN_MOBILE_MONEY' : 'AIRTEL_MOBILE_MONEY',
         callback_url: RELWORX_CONFIG.webhookUrl,
         metadata: {
+          client_id: clientId || '',
+          client_name: clientData.name,
           project_ids: projectIds.join(','),
           months_covered: selectedMonths,
           monthly_rate: monthlyRate,
-          client_name: clientData.name
+          total_projects: projectsData.length
         }
       };
 
@@ -504,25 +530,27 @@
       btn.innerHTML = '<i class="fas fa-spinner animate-spin mr-2"></i> Processing...';
 
       try {
-        // Record pending payment in Supabase
+        // Record pending payment for the FIRST project (webhook will handle all)
         const reference = `INV-${Date.now()}`;
         const { error: payErr } = await supabaseClient.from('payments').insert({
-          project_id: projectIds[0],
+          project_id: projectIds[0], // Primary project
           amount: currentTotalUGX,
           status: 'pending',
           due_date: new Date().toISOString(),
           payment_method: selectedMethod === 'mtn' ? 'MTN Mobile Money' : 'Airtel Mobile Money',
           reference: reference,
-          months_covered: selectedMonths
+          months_covered: selectedMonths,
+          metadata: {
+            all_project_ids: projectIds.join(','),
+            client_name: clientData.name
+          }
         });
 
         if (payErr) throw payErr;
 
-        // Create Relworx payment request
         showToast('Initializing payment with Relworx...', 'info');
         const paymentResult = await createRelworxPayment();
         
-        // If Relworx returns a payment URL or USSD code
         if (paymentResult.payment_url) {
           setTimeout(() => {
             window.location.href = paymentResult.payment_url;
@@ -549,13 +577,13 @@
     function showToast(msg, type='success') {
       const c = document.getElementById('toastContainer') || document.createElement('div');
       c.id = 'toastContainer';
-      c.className = 'fixed top-100 right-16 z-300 flex flex-col gap-2';
+      c.className = 'fixed top-20 right-4 z-300 flex flex-col gap-2';
       if (!document.getElementById('toastContainer')) {
         document.body.appendChild(c);
       }
       
       const t = document.createElement('div');
-      t.className = `bg-white border-l-4 ${type === 'success' ? 'border-emerald-500' : type === 'error' ? 'border-red-500' : 'border-blue-500'} shadow-lg rounded px-4 py-3 text-sm`;
+      t.className = `bg-white border-l-4 ${type === 'success' ? 'border-emerald-500' : type === 'error' ? 'border-red-500' : 'border-blue-500'} shadow-lg rounded px-4 py-3 text-sm max-w-sm`;
       t.textContent = msg;
       c.appendChild(t);
       setTimeout(() => t.remove(), 4000);
