@@ -5,124 +5,617 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Drafts — Employee Portal</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js">
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js">
+  </script>
   <style>
     /* ── reset & base ── */
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
     body {
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-      min-height: 100vh; display: flex; align-items: center; justify-content: center;
-      padding: 20px; background: #f6f8fb; position: relative;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: #f6f8fb;
+      position: relative;
     }
     body::before {
-      content: ''; position: fixed; inset: 0;
+      content: '';
+      position: fixed;
+      inset: 0;
       background: radial-gradient(ellipse at 20% 50%, rgba(200, 162, 74, 0.08) 0%, transparent 60%),
-                  radial-gradient(ellipse at 80% 50%, rgba(37, 99, 235, 0.06) 0%, transparent 60%),
-                  linear-gradient(180deg, #f8fafc 0%, #eef1f7 100%);
+        radial-gradient(ellipse at 80% 50%, rgba(37, 99, 235, 0.06) 0%, transparent 60%),
+        linear-gradient(180deg, #f8fafc 0%, #eef1f7 100%);
       z-index: -1;
     }
     body::after {
-      content: ''; position: fixed; top: -50%; right: -20%; width: 600px; height: 600px;
+      content: '';
+      position: fixed;
+      top: -50%;
+      right: -20%;
+      width: 600px;
+      height: 600px;
       background: radial-gradient(circle, rgba(200, 162, 74, 0.06) 0%, transparent 70%);
-      border-radius: 50%; z-index: -1;
+      border-radius: 50%;
+      z-index: -1;
     }
 
     /* APP MODE OVERRIDES */
-    body.app-mode { display: block; align-items: initial; justify-content: initial; padding: 0; }
-    body.app-mode::before, body.app-mode::after { display: none; }
+    body.app-mode {
+      display: block;
+      align-items: initial;
+      justify-content: initial;
+      padding: 0;
+    }
+    body.app-mode::before,
+    body.app-mode::after {
+      display: none;
+    }
 
     /* ── LOGIN STYLES (YOUR TEMPLATE) ── */
-    .login-container { width: 100%; max-width: 480px; animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; transform: translateY(20px); }
-    @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
-    .login-card { background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 25px 80px rgba(11, 21, 38, 0.35); border: 1px solid rgba(255, 255, 255, 0.8); }
-    .login-header { background: #ffffff; padding: 40px 40px 32px; text-align: center; border-bottom: 3px solid #c8a24a; }
-    .logo-wrapper img { height: 72px; width: auto; }
-    .login-body { padding: 36px 40px 40px; }
-    .welcome-text { font-size: 0.95rem; color: #16233a; font-weight: 600; margin-bottom: 4px; }
-    .welcome-sub { font-size: 0.82rem; color: #64748b; margin-bottom: 24px; }
-    .form-group { margin-bottom: 20px; }
-    .form-group label { display: block; font-size: 0.78rem; font-weight: 600; color: #33415c; margin-bottom: 6px; letter-spacing: 0.3px; }
-    .form-group label .required { color: #dc2626; margin-left: 2px; }
-    .input-wrapper { position: relative; }
-    .input-wrapper .input-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 1.1rem; opacity: 0.5; z-index: 1; }
-    .input-wrapper input, .app-input { width: 100%; padding: 12px 14px 12px 44px; border: 2px solid #e8ecf3; border-radius: 10px; font-family: 'Inter', sans-serif; font-size: 0.9rem; transition: all 0.3s ease; background: #fafbfc; color: #16233a; }
-    .app-input { padding-left: 14px; }
-    .input-wrapper input:focus, .app-input:focus { outline: none; border-color: #c8a24a; background: #ffffff; box-shadow: 0 0 0 4px rgba(200, 162, 74, 0.1); }
-    .input-wrapper input::placeholder { color: #b0bccf; font-weight: 400; }
-    .input-wrapper input[type="password"] { padding-right: 44px; }
-    .toggle-password { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; font-size: 1rem; opacity: 0.4; transition: opacity 0.2s; padding: 4px; z-index: 1; }
-    .toggle-password:hover { opacity: 0.8; }
-    .login-options { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; font-size: 0.82rem; }
-    .remember-me { display: flex; align-items: center; gap: 8px; color: #64748b; cursor: pointer; font-weight: 500; }
-    .remember-me input[type="checkbox"] { width: 16px; height: 16px; accent-color: #c8a24a; cursor: pointer; border-radius: 4px; }
-    .forgot-link { color: #c8a24a; text-decoration: none; font-weight: 600; transition: color 0.2s; cursor: pointer; }
-    .login-btn, .btn-gold { width: 100%; padding: 14px; background: linear-gradient(135deg, #c8a24a, #b08d3e); border: none; border-radius: 10px; color: #ffffff; font-family: 'Inter', sans-serif; font-size: 0.95rem; font-weight: 700; cursor: pointer; transition: all 0.3s ease; position: relative; overflow: hidden; letter-spacing: 0.5px; }
-    .login-btn:hover, .btn-gold:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(200, 162, 74, 0.35); }
-    .login-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
-    .create-account-section { margin-top: 16px; display: flex; justify-content: center; }
-    .create-account-btn { width: 100%; padding: 12px; background: transparent; border: 2px solid #c8a24a; border-radius: 10px; color: #c8a24a; font-family: 'Inter', sans-serif; font-size: 0.9rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease; background: rgba(200, 162, 74, 0.05); }
-    .create-account-btn:hover { background: #c8a24a; color: #ffffff; transform: translateY(-2px); }
-    .divider { display: flex; align-items: center; margin: 20px 0 16px; gap: 16px; }
-    .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, #e5eaf1, transparent); }
-    .divider span { color: #64748b; font-size: 0.75rem; font-weight: 500; letter-spacing: 1px; text-transform: uppercase; }
-    .error-message { margin-top: 14px; padding: 10px 14px; background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; color: #dc2626; font-size: 0.82rem; font-weight: 500; display: none; }
-    .error-message.show { display: block; animation: shake 0.4s ease; }
-    @keyframes shake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
-    .spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(255, 255, 255, 0.3); border-radius: 50%; border-top-color: #ffffff; animation: spin 0.8s ease-in-out infinite; vertical-align: middle; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    .login-container {
+      width: 100%;
+      max-width: 480px;
+      animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    @keyframes fadeUp {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .login-card {
+      background: #ffffff;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 25px 80px rgba(11, 21, 38, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+    }
+    .login-header {
+      background: #ffffff;
+      padding: 40px 40px 32px;
+      text-align: center;
+      border-bottom: 3px solid #c8a24a;
+    }
+    .logo-wrapper img {
+      height: 72px;
+      width: auto;
+    }
+    .login-body {
+      padding: 36px 40px 40px;
+    }
+    .welcome-text {
+      font-size: 0.95rem;
+      color: #16233a;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .welcome-sub {
+      font-size: 0.82rem;
+      color: #64748b;
+      margin-bottom: 24px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #33415c;
+      margin-bottom: 6px;
+      letter-spacing: 0.3px;
+    }
+    .form-group label .required {
+      color: #dc2626;
+      margin-left: 2px;
+    }
+    .input-wrapper {
+      position: relative;
+    }
+    .input-wrapper .input-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 1.1rem;
+      opacity: 0.5;
+      z-index: 1;
+    }
+    .input-wrapper input,
+    .app-input {
+      width: 100%;
+      padding: 12px 14px 12px 44px;
+      border: 2px solid #e8ecf3;
+      border-radius: 10px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      transition: all 0.3s ease;
+      background: #fafbfc;
+      color: #16233a;
+    }
+    .app-input {
+      padding-left: 14px;
+    }
+    .input-wrapper input:focus,
+    .app-input:focus {
+      outline: none;
+      border-color: #c8a24a;
+      background: #ffffff;
+      box-shadow: 0 0 0 4px rgba(200, 162, 74, 0.1);
+    }
+    .input-wrapper input::placeholder {
+      color: #b0bccf;
+      font-weight: 400;
+    }
+    .input-wrapper input[type="password"] {
+      padding-right: 44px;
+    }
+    .toggle-password {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      opacity: 0.4;
+      transition: opacity 0.2s;
+      padding: 4px;
+      z-index: 1;
+    }
+    .toggle-password:hover {
+      opacity: 0.8;
+    }
+    .login-options {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      font-size: 0.82rem;
+    }
+    .remember-me {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #64748b;
+      cursor: pointer;
+      font-weight: 500;
+    }
+    .remember-me input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: #c8a24a;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    .forgot-link {
+      color: #c8a24a;
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.2s;
+      cursor: pointer;
+    }
+    .login-btn,
+    .btn-gold {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #c8a24a, #b08d3e);
+      border: none;
+      border-radius: 10px;
+      color: #ffffff;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      letter-spacing: 0.5px;
+    }
+    .login-btn:hover,
+    .btn-gold:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(200, 162, 74, 0.35);
+    }
+    .login-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .create-account-section {
+      margin-top: 16px;
+      display: flex;
+      justify-content: center;
+    }
+    .create-account-btn {
+      width: 100%;
+      padding: 12px;
+      background: transparent;
+      border: 2px solid #c8a24a;
+      border-radius: 10px;
+      color: #c8a24a;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      background: rgba(200, 162, 74, 0.05);
+    }
+    .create-account-btn:hover {
+      background: #c8a24a;
+      color: #ffffff;
+      transform: translateY(-2px);
+    }
+    .divider {
+      display: flex;
+      align-items: center;
+      margin: 20px 0 16px;
+      gap: 16px;
+    }
+    .divider::before,
+    .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #e5eaf1, transparent);
+    }
+    .divider span {
+      color: #64748b;
+      font-size: 0.75rem;
+      font-weight: 500;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+    .error-message {
+      margin-top: 14px;
+      padding: 10px 14px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+      color: #dc2626;
+      font-size: 0.82rem;
+      font-weight: 500;
+      display: none;
+    }
+    .error-message.show {
+      display: block;
+      animation: shake 0.4s ease;
+    }
+    @keyframes shake {
+      0%,
+      100% {
+        transform: translateX(0);
+      }
+      25% {
+        transform: translateX(-6px);
+      }
+      75% {
+        transform: translateX(6px);
+      }
+    }
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: #ffffff;
+      animation: spin 0.8s ease-in-out infinite;
+      vertical-align: middle;
+    }
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
 
     /* MODAL */
-    .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(11, 21, 38, 0.6); backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center; padding: 20px; }
-    .modal-overlay.active { display: flex; }
-    .modal-content { background: #ffffff; border-radius: 16px; padding: 40px; max-width: 440px; width: 100%; box-shadow: 0 30px 80px rgba(0, 0, 0, 0.4); animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); max-height: 90vh; overflow-y: auto; }
-    @keyframes slideUp { from { opacity: 0; transform: translateY(30px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
-    .modal-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
-    .modal-header h2 { font-family: 'Playfair Display', serif; color: #0b1526; font-size: 1.5rem; }
-    .modal-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748b; }
-    .success-message { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; padding: 12px; border-radius: 8px; font-size: 0.85rem; margin-top: 12px; display: none; }
-    .success-message.show { display: block; }
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(11, 21, 38, 0.6);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .modal-overlay.active {
+      display: flex;
+    }
+    .modal-content {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 40px;
+      max-width: 440px;
+      width: 100%;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.4);
+      animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 24px;
+    }
+    .modal-header h2 {
+      font-family: 'Playfair Display', serif;
+      color: #0b1526;
+      font-size: 1.5rem;
+    }
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #64748b;
+    }
+    .success-message {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #166534;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      margin-top: 12px;
+      display: none;
+    }
+    .success-message.show {
+      display: block;
+    }
 
     /* ── APP DASHBOARD STYLES ── */
-    .app-top { position: sticky; top: 0; z-index: 50; background: #fff; border-bottom: 1px solid #e5eaf1; display: flex; align-items: center; justify-content: space-between; padding: 12px 24px; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
-    .app-top img { height: 42px; }
-    .app-user { text-align: right; }
-    .app-user b { font-size: 0.95rem; color: #0b1526; display: block; }
-    .app-user span { font-size: 0.75rem; color: #64748b; }
-    .app-nav { display: flex; gap: 8px; overflow-x: auto; padding: 14px 24px; background: #fff; border-bottom: 1px solid #e5eaf1; }
-    .app-nav button { white-space: nowrap; padding: 10px 18px; border-radius: 99px; border: 1px solid #e5eaf1; background: #fafbfc; font-size: 0.85rem; font-weight: 600; color: #64748b; cursor: pointer; transition: all 0.2s; font-family: inherit; }
-    .app-nav button.on { background: linear-gradient(135deg, #c8a24a, #b08d3e); color: #fff; border-color: #c8a24a; box-shadow: 0 4px 12px rgba(200,162,74,0.2); }
-    .app-wrap { max-width: 1100px; margin: 0 auto; padding: 24px; }
-    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
-    .stat { background: #fff; border: 1px solid #e5eaf1; border-radius: 14px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.02); }
-    .stat .k { font-size: 0.72rem; letter-spacing: 1px; text-transform: uppercase; color: #64748b; font-weight: 700; }
-    .stat .v { font-size: 1.5rem; font-weight: 800; color: #0b1526; margin-top: 6px; }
-    .stat .s { font-size: 0.78rem; color: #64748b; margin-top: 2px; }
-    .card { background: #fff; border: 1px solid #e5eaf1; border-radius: 14px; padding: 24px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.02); }
-    .card h3 { font-size: 1.05rem; color: #0b1526; margin-bottom: 16px; font-weight: 700; }
-    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
-    th, td { padding: 12px 8px; border-bottom: 1px solid #f1f5f9; text-align: left; vertical-align: top; }
-    th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; font-weight: 600; }
-    .badge { display: inline-block; padding: 4px 12px; border-radius: 99px; font-size: 0.72rem; font-weight: 700; color: #fff; }
-    .chip { display: inline-block; background: rgba(37,99,235,0.08); color: #2563eb; border-radius: 99px; padding: 4px 10px; font-size: 0.75rem; margin: 2px; font-weight: 500; }
-    .desc { background: #f8fafc; border: 1px solid #e5eaf1; border-radius: 10px; padding: 14px; font-size: 0.88rem; white-space: pre-wrap; color: #33415c; margin: 10px 0; }
-    .hint { font-size: 0.78rem; color: #64748b; margin-top: 4px; }
-    .row { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
-    .btn-blue { background: #2563eb; color: #fff; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: inherit; font-size: 0.88rem; }
-    .btn-green { background: #059669; color: #fff; border: none; padding: 10px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: inherit; font-size: 0.88rem; }
-    .btn-ghost { background: #fff; border: 1px solid #e5eaf1; color: #33415c; padding: 10px 18px; border-radius: 8px; font-weight: 600; cursor: pointer; font-family: inherit; font-size: 0.88rem; }
-    
-    @media (max-width: 800px) { 
-      .stats { grid-template-columns: repeat(2, 1fr); } 
-      .grid2 { grid-template-columns: 1fr; } 
-      .app-wrap { padding: 16px; }
+    .app-top {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: #fff;
+      border-bottom: 1px solid #e5eaf1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 24px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
     }
-    @media (max-width: 500px) { 
-      .login-header { padding: 30px 24px 24px; } 
-      .login-body { padding: 24px 24px 28px; } 
-      .logo-wrapper img { height: 56px; } 
-      .stats { grid-template-columns: 1fr; }
+    .app-top img {
+      height: 42px;
+    }
+    .app-user {
+      text-align: right;
+    }
+    .app-user b {
+      font-size: 0.95rem;
+      color: #0b1526;
+      display: block;
+    }
+    .app-user span {
+      font-size: 0.75rem;
+      color: #64748b;
+    }
+    .app-nav {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding: 14px 24px;
+      background: #fff;
+      border-bottom: 1px solid #e5eaf1;
+    }
+    .app-nav button {
+      white-space: nowrap;
+      padding: 10px 18px;
+      border-radius: 99px;
+      border: 1px solid #e5eaf1;
+      background: #fafbfc;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #64748b;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    .app-nav button.on {
+      background: linear-gradient(135deg, #c8a24a, #b08d3e);
+      color: #fff;
+      border-color: #c8a24a;
+      box-shadow: 0 4px 12px rgba(200, 162, 74, 0.2);
+    }
+    .app-wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .stat {
+      background: #fff;
+      border: 1px solid #e5eaf1;
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+    }
+    .stat .k {
+      font-size: 0.72rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #64748b;
+      font-weight: 700;
+    }
+    .stat .v {
+      font-size: 1.5rem;
+      font-weight: 800;
+      color: #0b1526;
+      margin-top: 6px;
+    }
+    .stat .s {
+      font-size: 0.78rem;
+      color: #64748b;
+      margin-top: 2px;
+    }
+    .card {
+      background: #fff;
+      border: 1px solid #e5eaf1;
+      border-radius: 14px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+    }
+    .card h3 {
+      font-size: 1.05rem;
+      color: #0b1526;
+      margin-bottom: 16px;
+      font-weight: 700;
+    }
+    .grid2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+    }
+    th,
+    td {
+      padding: 12px 8px;
+      border-bottom: 1px solid #f1f5f9;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #64748b;
+      font-weight: 600;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 99px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    .chip {
+      display: inline-block;
+      background: rgba(37, 99, 235, 0.08);
+      color: #2563eb;
+      border-radius: 99px;
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      margin: 2px;
+      font-weight: 500;
+    }
+    .desc {
+      background: #f8fafc;
+      border: 1px solid #e5eaf1;
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 0.88rem;
+      white-space: pre-wrap;
+      color: #33415c;
+      margin: 10px 0;
+    }
+    .hint {
+      font-size: 0.78rem;
+      color: #64748b;
+      margin-top: 4px;
+    }
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .btn-blue {
+      background: #2563eb;
+      color: #fff;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.88rem;
+    }
+    .btn-green {
+      background: #059669;
+      color: #fff;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.88rem;
+    }
+    .btn-ghost {
+      background: #fff;
+      border: 1px solid #e5eaf1;
+      color: #33415c;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.88rem;
+    }
+
+    @media (max-width: 800px) {
+      .stats {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .grid2 {
+        grid-template-columns: 1fr;
+      }
+      .app-wrap {
+        padding: 16px;
+      }
+    }
+    @media (max-width: 500px) {
+      .login-header {
+        padding: 30px 24px 24px;
+      }
+      .login-body {
+        padding: 24px 24px 28px;
+      }
+      .logo-wrapper img {
+        height: 56px;
+      }
+      .stats {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
@@ -131,25 +624,37 @@
 
   <script>
     const SUPABASE_URL = 'https://hnbzerhoqqsmzqxcbnxv.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhuYnplcmhvcXFzbXpxeGNibnh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDg1MjksImV4cCI6MjA5NDYyNDUyOX0.a4rM51DQGih9SXMr71PREngZ_pT6dJFgv_fG9j5jAGc';
+    const SUPABASE_KEY =
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhuYnplcmhvcXFzbXpxeGNibnh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDg1MjksImV4cCI6MjA5NDYyNDUyOX0.a4rM51DQGih9SXMr71PREngZ_pT6dJFgv_fG9j5jAGc';
     const LOGO = 'https://i.ibb.co/p6GCfY1x/Screenshot-2026-05-30-at-17-06-41.png';
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     const $ = s => document.querySelector(s);
     const UGX = n => 'UGX ' + Number(n || 0).toLocaleString();
     const USD = n => '≈ $' + (Number(n || 0) / 3700).toFixed(2);
-    const sha256 = async (t) => { const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)); return [...new Uint8Array(d)].map(b => b.toString(16).padStart(2, '0')).join(''); };
-    
+    const sha256 = async (t) => {
+      const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t));
+      return [...new Uint8Array(d)].map(b => b.toString(16).padStart(2, '0')).join('');
+    };
+
     const ROLE_RATE = 33000;
     const SECTORS = [
       { name: 'Corporate / Enterprise', roles: ['CEO', 'General Manager', 'Finance', 'HR', 'Admin', 'Staff'] },
-      { name: 'Schools & Education', roles: ['Director', 'Principal', 'DOS', 'Bursar', 'Secretary', 'Teacher', 'Parent Portal'] },
-      { name: 'Churches & Mosques', roles: ['Lead Pastor / Imam', 'Treasury', 'Admin', 'Ministry Leaders', 'Member Portal'] },
-      { name: 'Factories & Industry', roles: ['Plant Manager', 'Production', 'Inventory', 'Maintenance', 'HR', 'QC'] },
+      { name: 'Schools & Education', roles: ['Director', 'Principal', 'DOS', 'Bursar', 'Secretary', 'Teacher',
+          'Parent Portal'
+        ] },
+      { name: 'Churches & Mosques', roles: ['Lead Pastor / Imam', 'Treasury', 'Admin', 'Ministry Leaders',
+          'Member Portal'
+        ] },
+      { name: 'Factories & Industry', roles: ['Plant Manager', 'Production', 'Inventory', 'Maintenance', 'HR',
+          'QC'
+        ] },
       { name: 'SACCOs & Investments', roles: ['Board', 'Credit Officer', 'Treasurer', 'Auditor', 'Member Portal'] },
       { name: 'NGOs & Non-Profits', roles: ['Country Director', 'Project Mgr', 'M&E Officer', 'Grants Mgr'] }
     ];
-    const BADGE = { intake: ['Intake', '#2563eb'], building: ['Building', '#b45309'], active: ['Active', '#047857'], paused: ['Paused', '#b91c1c'] };
-    let ME = null, CH = [];
+    const BADGE = { intake: ['Intake', '#2563eb'], building: ['Building', '#b45309'], active: ['Active', '#047857'],
+      paused: ['Paused', '#b91c1c'] };
+    let ME = null,
+      CH = [];
 
     async function boot() {
       const id = localStorage.getItem('employee_id');
@@ -212,47 +717,90 @@
     }
 
     function bindLoginEvents() {
-      const form = $('#loginForm'), uInput = $('#username'), pInput = $('#password'), lBtn = $('#loginBtn'), eMsg = $('#errorMessage'), eTxt = $('#errorText');
-      const modal = $('#createAccountModal'), cBtn = $('#createAccountBtn'), cSubmit = $('#createAccountSubmit');
-      
-      $('.toggle-password').onclick = () => { const t = pInput.type === 'password' ? 'text' : 'password'; pInput.type = t; $('.toggle-password').textContent = t === 'password' ? '👁️' : '👁️‍🗨️'; };
-      cBtn.onclick = () => { modal.classList.add('active'); $('#createError').style.display = 'none'; $('#successMessage').classList.remove('show'); };
+      const form = $('#loginForm'),
+        uInput = $('#username'),
+        pInput = $('#password'),
+        lBtn = $('#loginBtn'),
+        eMsg = $('#errorMessage'),
+        eTxt = $('#errorText');
+      const modal = $('#createAccountModal'),
+        cBtn = $('#createAccountBtn'),
+        cSubmit = $('#createAccountSubmit');
+
+      $('.toggle-password').onclick = () => { const t = pInput.type === 'password' ? 'text' : 'password';
+        pInput.type = t;
+        $('.toggle-password').textContent = t === 'password' ? '👁️' : '👁️‍🗨️'; };
+      cBtn.onclick = () => { modal.classList.add('active');
+        $('#createError').style.display = 'none';
+        $('#successMessage').classList.remove('show'); };
       $('#modalClose').onclick = () => modal.classList.remove('active');
-      
+
       form.onsubmit = async (e) => {
         e.preventDefault();
-        const u = uInput.value.trim().toLowerCase(), p = pInput.value.trim();
-        if (!u || !p) { eTxt.textContent = 'Please enter both fields'; eMsg.classList.add('show'); return; }
-        lBtn.disabled = true; lBtn.innerHTML = '<span class="spinner"></span> Signing in...'; eMsg.classList.remove('show');
+        const u = uInput.value.trim().toLowerCase(),
+          p = pInput.value.trim();
+        if (!u || !p) { eTxt.textContent = 'Please enter both fields';
+          eMsg.classList.add('show'); return; }
+        lBtn.disabled = true;
+        lBtn.innerHTML = '<span class="spinner"></span> Signing in...';
+        eMsg.classList.remove('show');
         const { data: c } = await sb.from('employee_credentials').select('*').eq('username', u).maybeSingle();
-        if (!c) { eTxt.textContent = 'Account not found.'; eMsg.classList.add('show'); lBtn.disabled = false; lBtn.innerHTML = 'Sign In →'; return; }
+        if (!c) { eTxt.textContent = 'Account not found.';
+          eMsg.classList.add('show');
+          lBtn.disabled = false;
+          lBtn.innerHTML = 'Sign In →'; return; }
         const h = await sha256(p);
-        if (c.password_hash !== h && c.password_hash !== p) { eTxt.textContent = 'Invalid password.'; eMsg.classList.add('show'); lBtn.disabled = false; lBtn.innerHTML = 'Sign In →'; return; }
+        if (c.password_hash !== h && c.password_hash !== p) { eTxt.textContent = 'Invalid password.';
+          eMsg.classList.add('show');
+          lBtn.disabled = false;
+          lBtn.innerHTML = 'Sign In →'; return; }
         localStorage.setItem('employee_id', c.employee_id);
         location.reload();
       };
 
       cSubmit.onclick = async () => {
-        const name = $('#newName').value.trim(), phone = $('#newPhone').value.trim(), pw = $('#newPassword').value, cpw = $('#newPasswordConfirm').value;
-        const err = $('#createError'), suc = $('#successMessage');
-        err.style.display = 'none'; suc.classList.remove('show');
-        if (!name || !phone || !pw || !cpw) { err.textContent = 'Fill in all fields.'; err.style.display = 'block'; return; }
-        if (pw.length < 6) { err.textContent = 'Password min 6 chars.'; err.style.display = 'block'; return; }
-        if (pw !== cpw) { err.textContent = 'Passwords do not match.'; err.style.display = 'block'; return; }
-        
-        cSubmit.disabled = true; cSubmit.textContent = 'Creating...';
+        const name = $('#newName').value.trim(),
+          phone = $('#newPhone').value.trim(),
+          pw = $('#newPassword').value,
+          cpw = $('#newPasswordConfirm').value;
+        const err = $('#createError'),
+          suc = $('#successMessage');
+        err.style.display = 'none';
+        suc.classList.remove('show');
+        if (!name || !phone || !pw || !cpw) { err.textContent = 'Fill in all fields.';
+          err.style.display = 'block'; return; }
+        if (pw.length < 6) { err.textContent = 'Password min 6 chars.';
+          err.style.display = 'block'; return; }
+        if (pw !== cpw) { err.textContent = 'Passwords do not match.';
+          err.style.display = 'block'; return; }
+
+        cSubmit.disabled = true;
+        cSubmit.textContent = 'Creating...';
         const { data: ex } = await sb.from('employee_credentials').select('id').eq('username', phone).maybeSingle();
-        if (ex) { err.textContent = 'Phone already registered.'; err.style.display = 'block'; cSubmit.disabled = false; cSubmit.textContent = 'Create Account'; return; }
-        
-        const { data: codes } = await sb.from('employees').select('employee_code').order('employee_code', { ascending: false }).limit(1);
-        const code = 'EMP-' + String((codes && codes[0] ? parseInt(codes[0].employee_code.replace('EMP-', ''), 10) : 0) + 1).padStart(3, '0');
-        
-        const { data: emp, error: e1 } = await sb.from('employees').insert({ name, phone, title: 'Field Agent', employee_code: code }).select().single();
-        if (e1) { err.textContent = 'Error: ' + e1.message; err.style.display = 'block'; cSubmit.disabled = false; cSubmit.textContent = 'Create Account'; return; }
-        
-        const { error: e2 } = await sb.from('employee_credentials').insert({ employee_id: emp.id, username: phone, password_hash: await sha256(pw) });
-        if (e2) { err.textContent = 'Error: ' + e2.message; err.style.display = 'block'; cSubmit.disabled = false; cSubmit.textContent = 'Create Account'; return; }
-        
+        if (ex) { err.textContent = 'Phone already registered.';
+          err.style.display = 'block';
+          cSubmit.disabled = false;
+          cSubmit.textContent = 'Create Account'; return; }
+
+        const { data: codes } = await sb.from('employees').select('employee_code').order('employee_code', { ascending: false })
+          .limit(1);
+        const code = 'EMP-' + String((codes && codes[0] ? parseInt(codes[0].employee_code.replace('EMP-', ''), 10) : 0) + 1)
+          .padStart(3, '0');
+
+        const { data: emp, error: e1 } = await sb.from('employees').insert({ name, phone, title: 'Field Agent',
+          employee_code: code }).select().single();
+        if (e1) { err.textContent = 'Error: ' + e1.message;
+          err.style.display = 'block';
+          cSubmit.disabled = false;
+          cSubmit.textContent = 'Create Account'; return; }
+
+        const { error: e2 } = await sb.from('employee_credentials').insert({ employee_id: emp.id, username: phone,
+          password_hash: await sha256(pw) });
+        if (e2) { err.textContent = 'Error: ' + e2.message;
+          err.style.display = 'block';
+          cSubmit.disabled = false;
+          cSubmit.textContent = 'Create Account'; return; }
+
         suc.classList.add('show');
         localStorage.setItem('employee_id', emp.id);
         setTimeout(() => location.reload(), 1500);
@@ -277,12 +825,15 @@
         <div class="app-wrap" id="view"></div>`;
       document.querySelectorAll('#nav button').forEach(b => b.onclick = () => {
         document.querySelectorAll('#nav button').forEach(x => x.classList.remove('on'));
-        b.classList.add('on'); show(b.dataset.t);
+        b.classList.add('on');
+        show(b.dataset.t);
       });
       show('dash');
     }
 
-    function show(t) { CH.forEach(c => c.destroy()); CH = []; ({ dash: vDash, projects: vProj, intake: vIntake, earn: vEarn, acct: vAcct })[t](); }
+    function show(t) { CH.forEach(c => c.destroy());
+      CH = [];
+      ({ dash: vDash, projects: vProj, intake: vIntake, earn: vEarn, acct: vAcct })[t](); }
 
     async function fetchData() {
       const [p, e, s] = await Promise.all([
@@ -296,7 +847,8 @@
     async function vDash() {
       const { P, E, S } = await fetchData();
       const bal = S ? Number(S.account_balance || 0) : E.reduce((s, r) => s + Number(r.amount || 0), 0);
-      const earned = S ? Number(S.total_commissions || 0) + Number(S.total_salary || 0) : E.reduce((s, r) => s + Number(r.amount || 0), 0);
+      const earned = S ? Number(S.total_commissions || 0) + Number(S.total_salary || 0) : E.reduce((s, r) => s + Number(r
+        .amount || 0), 0);
       $('#view').innerHTML = `
         <div class="card row"><div><h3 style="margin:0">Welcome back, ${ME.name.split(' ')[0]} 👋</h3><p class="hint" style="margin-top:4px">Every payment on your projects earns you 20%.</p></div>
         <button class="btn-gold" style="width:auto; padding:10px 20px" onclick="document.querySelector('[data-t=intake]').click()">➕ Bring in Project</button></div>
@@ -310,10 +862,19 @@
           <div class="card"><h3>Project pipeline</h3><canvas id="c1" height="150"></canvas></div>
           <div class="card"><h3>Commission trend</h3><canvas id="c2" height="150"></canvas></div>
         </div>`;
-      const by = {}; P.forEach(r => by[r.status] = (by[r.status] || 0) + 1);
-      CH.push(new Chart($('#c1'), { type: 'doughnut', data: { labels: Object.keys(by).length ? Object.keys(by) : ['none'], datasets: [{ data: Object.keys(by).length ? Object.values(by) : [1], backgroundColor: ['#2563eb', '#b45309', '#047857', '#b91c1c'] }] }, options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } } }));
-      const mo = new Array(12).fill(0); E.forEach(r => { const d = new Date(r.created_at || Date.now()); if (d.getFullYear() === new Date().getFullYear()) mo[d.getMonth()] += Number(r.amount || 0); });
-      CH.push(new Chart($('#c2'), { type: 'bar', data: { labels: ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O', 'N', 'D'], datasets: [{ data: mo, backgroundColor: '#c8a24a', borderRadius: 5 }] }, options: { maintainAspectRatio: false, plugins: { legend: { display: false } } } }));
+      const by = {};
+      P.forEach(r => by[r.status] = (by[r.status] || 0) + 1);
+      CH.push(new Chart($('#c1'), { type: 'doughnut', data: { labels: Object.keys(by).length ? Object.keys(by) : ['none'],
+          datasets: [{ data: Object.keys(by).length ? Object.values(by) : [1], backgroundColor: ['#2563eb',
+              '#b45309', '#047857', '#b91c1c'
+            ] }] }, options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } } }));
+      const mo = new Array(12).fill(0);
+      E.forEach(r => { const d = new Date(r.created_at || Date.now()); if (d.getFullYear() === new Date().getFullYear())
+          mo[d.getMonth()] += Number(r.amount || 0); });
+      CH.push(new Chart($('#c2'), { type: 'bar', data: { labels: ['J', 'F', 'M', 'A', 'M', 'J', 'J', 'A', 'S', 'O',
+            'N', 'D'
+          ], datasets: [{ data: mo, backgroundColor: '#c8a24a', borderRadius: 5 }] }, options: { maintainAspectRatio: false,
+          plugins: { legend: { display: false } } } }));
     }
 
     async function vProj() {
@@ -338,17 +899,35 @@
       <p id="in-msg" style="margin-top:12px; font-weight:600"></p></div>`;
       let chosen = [];
       $('#in-sector').onchange = e => {
-        const s = SECTORS[+e.target.value]; if (!s) return;
-        $('#in-roles').innerHTML = `<p class="hint" style="margin:10px 0">Dashboards included (33,000 UGX / $9 each — un-tick to remove):</p>` + s.roles.map(r => `<label style="display:flex;gap:8px;align-items:center;font-weight:500; margin-bottom:6px"><input type="checkbox" value="${r}" checked style="width:auto; accent-color:#c8a24a"> ${r}</label>`).join('');
-        document.querySelectorAll('#in-roles input').forEach(cb => cb.onchange = upd); upd();
+        const s = SECTORS[+e.target.value];
+        if (!s) return;
+        $('#in-roles').innerHTML =
+          `<p class="hint" style="margin:10px 0">Dashboards included (33,000 UGX / $9 each — un-tick to remove):</p>` +
+          s.roles.map(r =>
+            `<label style="display:flex;gap:8px;align-items:center;font-weight:500; margin-bottom:6px"><input type="checkbox" value="${r}" checked style="width:auto; accent-color:#c8a24a"> ${r}</label>`
+            ).join('');
+        document.querySelectorAll('#in-roles input').forEach(cb => cb.onchange = upd);
+        upd();
       };
-      function upd() { chosen = [...document.querySelectorAll('#in-roles input:checked')].map(c => c.value); $('#in-total').textContent = chosen.length ? `Monthly: ${UGX(chosen.length * ROLE_RATE)} · your 20%/payment: ${UGX(chosen.length * ROLE_RATE * 0.2)}` : ''; }
+
+      function upd() { chosen = [...document.querySelectorAll('#in-roles input:checked')].map(c => c.value);
+        $('#in-total').textContent = chosen.length ?
+          `Monthly: ${UGX(chosen.length * ROLE_RATE)} · your 20%/payment: ${UGX(chosen.length * ROLE_RATE * 0.2)}` :
+        ''; }
       $('#in-submit').onclick = async () => {
-        const v = id => $(id).value.trim(); const sec = $('#in-sector'); $('#in-msg').style.color = '#dc2626';
-        if (!v('#in-org') || !v('#in-person') || !v('#in-phone') || sec.value === '' || !chosen.length || !v('#in-desc') || !$('#in-consent').checked) return $('#in-msg').textContent = 'Complete all required fields and tick consent.';
-        const { error } = await sb.from('projects').insert({ name: v('#in-org') + ' — ' + SECTORS[+sec.value].name, client: v('#in-org'), rate: chosen.length * ROLE_RATE, sector: SECTORS[+sec.value].name, roles: chosen, description: v('#in-desc'), contact_person: v('#in-person'), contact_phone: v('#in-phone'), town: v('#in-town'), status: 'intake', referred_employee_id: ME.id });
+        const v = id => $(id).value.trim();
+        const sec = $('#in-sector');
+        $('#in-msg').style.color = '#dc2626';
+        if (!v('#in-org') || !v('#in-person') || !v('#in-phone') || sec.value === '' || !chosen.length || !v(
+            '#in-desc') || !$('#in-consent').checked) return $('#in-msg').textContent =
+          'Complete all required fields and tick consent.';
+        const { error } = await sb.from('projects').insert({ name: v('#in-org') + ' — ' + SECTORS[+sec.value].name,
+          client: v('#in-org'), rate: chosen.length * ROLE_RATE, sector: SECTORS[+sec.value].name, roles: chosen,
+          description: v('#in-desc'), contact_person: v('#in-person'), contact_phone: v('#in-phone'),
+          town: v('#in-town'), status: 'intake', referred_employee_id: ME.id });
         if (error) return $('#in-msg').textContent = 'Error: ' + error.message;
-        $('#in-msg').style.color = '#059669'; $('#in-msg').textContent = '✔ Sent to HQ. You earn 20% of every payment.';
+        $('#in-msg').style.color = '#059669';
+        $('#in-msg').textContent = '✔ Sent to HQ. You earn 20% of every payment.';
         setTimeout(() => document.querySelector('[data-t=projects]').click(), 1200);
       };
     }
@@ -384,23 +963,31 @@
         <label class="hint" style="margin-bottom:6px">New password</label><input class="app-input" id="pw-new" type="password">
         <button class="btn-ghost" style="margin-top:12px" id="pw-go">Change password</button><p id="pw-msg" style="margin-top:10px; font-weight:600"></p></div>
       <div class="card"><button class="btn-ghost" style="width:100%; color:#dc2626; border-color:#fecaca" id="lo">Log out</button></div>`;
-      
-      $('#lo').onclick = () => { localStorage.clear(); location.reload(); };
-      $('#wd-open').onclick = () => { $('#wd-form').style.display = $('#wd-form').style.display === 'none' ? '' : 'none'; };
+
+      $('#lo').onclick = () => { localStorage.clear();
+        location.reload(); };
+      $('#wd-open').onclick = () => { $('#wd-form').style.display = $('#wd-form').style.display === 'none' ? '' :
+        'none'; };
       $('#wd-go').onclick = async () => {
-        const a = Number($('#wd-amt').value); $('#wd-msg').style.color = '#dc2626';
+        const a = Number($('#wd-amt').value);
+        $('#wd-msg').style.color = '#dc2626';
         if (!a || a <= 0) return $('#wd-msg').textContent = 'Enter a valid amount.';
         if (a > bal) return $('#wd-msg').textContent = 'Amount exceeds available balance.';
-        const { error } = await sb.from('withdrawal_requests').insert({ employee_id: ME.id, amount: a, status: 'pending' });
+        const { error } = await sb.from('withdrawal_requests').insert({ employee_id: ME.id, amount: a,
+          status: 'pending' });
         if (error) return $('#wd-msg').textContent = 'Error: ' + error.message;
-        $('#wd-msg').style.color = '#059669'; $('#wd-msg').textContent = '✔ Withdrawal requested — HQ will process it.';
+        $('#wd-msg').style.color = '#059669';
+        $('#wd-msg').textContent = '✔ Withdrawal requested — HQ will process it.';
         setTimeout(vAcct, 1200);
       };
       $('#pw-go').onclick = async () => {
-        const p = $('#pw-new').value; $('#pw-msg').style.color = '#dc2626';
+        const p = $('#pw-new').value;
+        $('#pw-msg').style.color = '#dc2626';
         if (p.length < 6) return $('#pw-msg').textContent = '6+ characters required.';
-        const { error } = await sb.from('employee_credentials').update({ password_hash: await sha256(p) }).eq('employee_id', ME.id);
-        $('#pw-msg').style.color = error ? '#dc2626' : '#059669'; $('#pw-msg').textContent = error ? error.message : '✔ Password updated.';
+        const { error } = await sb.from('employee_credentials').update({ password_hash: await sha256(p) }).eq(
+          'employee_id', ME.id);
+        $('#pw-msg').style.color = error ? '#dc2626' : '#059669';
+        $('#pw-msg').textContent = error ? error.message : '✔ Password updated.';
       };
     }
 
