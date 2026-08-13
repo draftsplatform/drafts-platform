@@ -1,812 +1,219 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard — Drafts</title>
-  
-  <!-- Google Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  
-  <!-- Supabase JS (v2) -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  
-  <style>
-    :root {
-      --bg: #f8fafc; --surface: #ffffff; --card: #ffffff; --card-hover: #f1f5f9;
-      --border: #e2e8f0; --primary: #2563eb; --primary-glow: rgba(37,99,235,.1);
-      --accent: #059669; --accent-glow: rgba(5,150,105,.1);
-      --warning: #d97706; --danger: #dc2626;
-      --text: #1e293b; --text-secondary: #475569; --text-muted: #64748b;
-      --radius: 12px; --radius-sm: 8px;
-      --shadow: 0 4px 24px rgba(0,0,0,.08); --shadow-hover: 0 8px 32px rgba(0,0,0,.12);
-      --transition: .2s cubic-bezier(.4,0,.2,1);
-    }
-    * { margin:0; padding:0; box-sizing:border-box; }
-    body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-      background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.5;
-      -webkit-tap-highlight-color: transparent;
-    }
-    ::-webkit-scrollbar { width:6px; }
-    ::-webkit-scrollbar-track { background:transparent; }
-    ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
-    
-    /* HEADER */
-    .header {
-      position: sticky; top: 0; z-index: 100;
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 0 2rem; height: 88px;
-      background: rgba(255,255,255,.95); backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border);
-      box-shadow: 0 1px 0 rgba(0,0,0,.02);
-    }
-    .logo { display: flex; align-items: center; gap: 16px; cursor: pointer; user-select: none; }
-    .logo-img { height: 64px; width: auto; object-fit: contain; }
-    .logo-text { font-size: 1.6rem; font-weight: 800; letter-spacing: -.3px; color: var(--text); }
-    .logo-subtitle { font-size: .65rem; color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase; margin-top: -4px; }
-    
-    /* DESKTOP NAV */
-    .nav { display: flex; gap: 4px; }
-    .nav-btn {
-      position: relative; padding: 10px 18px; border: none; background: transparent;
-      color: var(--text-secondary); font-size: .88rem; font-weight: 500;
-      border-radius: var(--radius-sm); cursor: pointer; transition: var(--transition);
-      text-decoration: none;
-    }
-    .nav-btn:hover { background: var(--primary-glow); color: var(--primary); }
-    .nav-btn.active { background: var(--primary-glow); color: var(--primary); font-weight: 600; }
-    .nav-btn.active::after {
-      content: ''; position: absolute; bottom: -1px; left: 50%;
-      transform: translateX(-50%); width: 60%; height: 2px;
-      background: var(--primary); border-radius: 1px;
-    }
-    .header-right { display: flex; align-items: center; gap: 12px; }
-    .status-dot { width: 8px; height: 8px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 8px rgba(5,150,105,.4); }
-    .status-text { font-size: .75rem; color: var(--accent); font-weight: 600; }
-
-    /* 📱 MOBILE NAV TOGGLE */
-    .mobile-nav-toggle {
-      display: none; background: none; border: 1px solid var(--border);
-      font-size: 1.3rem; cursor: pointer; padding: 6px 10px;
-      color: var(--text); border-radius: var(--radius-sm);
-      transition: var(--transition); line-height: 1;
-    }
-    .mobile-nav-toggle:hover { background: var(--primary-glow); border-color: var(--primary); color: var(--primary); }
-
-    /* 📱 MOBILE NAV DRAWER */
-    .nav-drawer-overlay {
-      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(15,23,42,.5); backdrop-filter: blur(4px);
-      z-index: 200; opacity: 0; transition: opacity .3s;
-    }
-    .nav-drawer-overlay.active { display: block; opacity: 1; }
-    .nav-drawer {
-      position: fixed; top: 0; left: -300px; width: 280px; height: 100vh; height: 100dvh;
-      background: var(--surface); z-index: 201;
-      transition: left .3s cubic-bezier(.4,0,.2,1);
-      box-shadow: 4px 0 32px rgba(0,0,0,.15);
-      padding: 1.5rem 1rem; display: flex; flex-direction: column; gap: 4px;
-      overflow-y: auto;
-    }
-    .nav-drawer.active { left: 0; }
-    .nav-drawer-header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 0 8px 16px; border-bottom: 1px solid var(--border); margin-bottom: 8px;
-    }
-    .nav-drawer-title { font-size: 1rem; font-weight: 700; color: var(--text); }
-    .nav-drawer-close {
-      background: none; border: none; font-size: 1.4rem; cursor: pointer;
-      color: var(--text-muted); padding: 4px 8px; border-radius: var(--radius-sm);
-      transition: var(--transition); line-height: 1;
-    }
-    .nav-drawer-close:hover { background: var(--card-hover); color: var(--text); }
-    .nav-drawer .nav-btn {
-      display: flex; align-items: center; padding: 14px 16px;
-      font-size: .95rem; border-radius: var(--radius-sm); width: 100%; text-align: left;
-    }
-    .nav-drawer .nav-btn.active::after { display: none; }
-    .nav-drawer .nav-btn.active { background: var(--primary); color: #fff; }
-
-    /* MAIN CONTENT */
-    .main { padding: 2rem; max-width: 1440px; margin: 0 auto; }
-    .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem; }
-    .page-title { font-size: 1.5rem; font-weight: 700; letter-spacing: -.3px; color: var(--text); }
-    .page-desc { font-size: .85rem; color: var(--text-muted); margin-top: 2px; }
-    
-    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border: none; border-radius: var(--radius-sm); font-size: .85rem; font-weight: 600; cursor: pointer; transition: var(--transition); text-decoration: none; }
-    .btn-primary { background: var(--primary); color: #fff; box-shadow: 0 2px 8px rgba(37,99,235,.2); }
-    .btn-primary:hover { background: #1d4ed8; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37,99,235,.3); }
-    .btn-outline { background: transparent; color: var(--text-secondary); border: 1px solid var(--border); }
-    .btn-outline:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-glow); }
-    
-    /* CARDS */
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; transition: var(--transition); box-shadow: var(--shadow); }
-    .card:hover { border-color: rgba(37,99,235,.3); box-shadow: var(--shadow-hover); }
-    .card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
-    .card-title { font-size: .8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
-    .card-value { font-size: 1.8rem; font-weight: 800; letter-spacing: -.5px; color: var(--text); }
-    .card-sub { font-size: .78rem; color: var(--text-muted); margin-top: 4px; }
-    
-    /* GRIDS */
-    .grid { display: grid; gap: 1rem; }
-    .grid-4 { grid-template-columns: repeat(4, 1fr); }
-    .grid-3 { grid-template-columns: repeat(3, 1fr); }
-    .grid-2 { grid-template-columns: repeat(2, 1fr); }
-    
-    /* BADGES */
-    .badge { display: inline-flex; align-items: center; gap: 5px; padding: 4px 10px; border-radius: 20px; font-size: .72rem; font-weight: 600; letter-spacing: .3px; }
-    .badge-green { background: var(--accent-glow); color: var(--accent); }
-    .badge-yellow { background: rgba(217,119,6,.12); color: var(--warning); }
-    .badge-red { background: rgba(220,38,38,.12); color: var(--danger); }
-    .badge-blue { background: var(--primary-glow); color: var(--primary); }
-    .badge-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-    
-    .price-main { font-weight: 700; font-size: .88rem; color: var(--text); }
-    .price-sub { font-size: .7rem; color: var(--text-muted); margin-left: 4px; }
-    
-    /* CHART CONTAINER */
-    .chart-container { position: relative; height: 260px; width: 100%; margin-top: 8px; }
-    
-    /* 🏆 LEADERBOARD */
-    .leaderboard { display: flex; flex-direction: column; gap: 2px; max-height: 320px; overflow-y: auto; }
-    .leaderboard-item {
-      display: flex; align-items: center; gap: 12px;
-      padding: 10px 12px; border-radius: var(--radius-sm);
-      transition: var(--transition); cursor: default;
-    }
-    .leaderboard-item:hover { background: var(--card-hover); }
-    .leaderboard-rank {
-      width: 32px; height: 32px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: .75rem; font-weight: 700; flex-shrink: 0;
-      background: var(--border); color: var(--text-secondary);
-    }
-    .leaderboard-rank.gold { background: linear-gradient(135deg, #fef3c7, #fde68a); color: #92400e; box-shadow: 0 2px 8px rgba(234,179,8,.25); }
-    .leaderboard-rank.silver { background: linear-gradient(135deg, #f1f5f9, #e2e8f0); color: #475569; }
-    .leaderboard-rank.bronze { background: linear-gradient(135deg, #fed7aa, #fdba74); color: #9a3412; }
-    .leaderboard-info { flex: 1; min-width: 0; }
-    .leaderboard-name { font-size: .85rem; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .leaderboard-meta { font-size: .72rem; color: var(--text-muted); margin-top: 2px; }
-    .leaderboard-amount { text-align: right; flex-shrink: 0; }
-    .leaderboard-total { font-size: .85rem; font-weight: 700; color: var(--accent); }
-    .leaderboard-usd { font-size: .7rem; color: var(--text-muted); }
-
-    /* 💰 PAYOUT LIST */
-    .payout-list { display: flex; flex-direction: column; max-height: 320px; overflow-y: auto; }
-    .payout-item {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 12px; border-bottom: 1px solid var(--border);
-      transition: var(--transition); gap: 12px;
-    }
-    .payout-item:last-child { border-bottom: none; }
-    .payout-item:hover { background: var(--card-hover); }
-    .payout-info { min-width: 0; flex: 1; }
-    .payout-employee { font-size: .84rem; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .payout-date { font-size: .72rem; color: var(--text-muted); margin-top: 2px; }
-    .payout-amount-wrap { text-align: right; flex-shrink: 0; }
-    .payout-amount { font-size: .84rem; font-weight: 700; color: var(--accent); }
-    .payout-usd { font-size: .7rem; color: var(--text-muted); }
-
-    /* EMPTY STATE */
-    .empty-state { text-align: center; padding: 2rem 1rem; }
-    .empty-state-icon { font-size: 2.2rem; margin-bottom: 8px; }
-    .empty-state-title { font-size: .88rem; font-weight: 600; color: var(--text); }
-    .empty-state-desc { font-size: .75rem; color: var(--text-muted); margin-top: 4px; }
-
-    /* TIMELINE */
-    .timeline { position: relative; padding-left: 24px; max-height: 260px; overflow-y: auto; }
-    .timeline::before { content: ''; position: absolute; left: 7px; top: 4px; bottom: 4px; width: 2px; background: var(--border); }
-    .timeline-item { position: relative; padding-bottom: 1.25rem; }
-    .timeline-dot { position: absolute; left: -24px; top: 3px; width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--primary); background: var(--surface); }
-    .timeline-dot.green { border-color: var(--accent); }
-    .timeline-dot.yellow { border-color: var(--warning); }
-    .timeline-dot.red { border-color: var(--danger); }
-    .timeline-title { font-size: .85rem; font-weight: 600; color: var(--text); }
-    .timeline-desc { font-size: .78rem; color: var(--text-muted); margin-top: 2px; }
-    .timeline-date { font-size: .7rem; color: var(--text-muted); margin-top: 4px; }
-    
-    /* TOAST */
-    .toast-container { position: fixed; top: 100px; right: 16px; z-index: 300; display: flex; flex-direction: column; gap: 8px; }
-    .toast { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: var(--radius-sm); padding: 12px 16px; font-size: .82rem; box-shadow: var(--shadow-hover); animation: slideIn .3s ease; max-width: 320px; color: var(--text); }
-    .toast.success { border-left-color: var(--accent); }
-    .toast.error { border-left-color: var(--danger); }
-    @keyframes slideIn { from { opacity: 0; transform: translateX(20px); } to { opacity: 1; transform: translateX(0); } }
-    
-    .text-green { color: var(--accent); }
-    .text-yellow { color: var(--warning); }
-    .text-red { color: var(--danger); }
-    .text-blue { color: var(--primary); }
-    .text-muted { color: var(--text-muted); }
-    .fw-700 { font-weight: 700; }
-    .mb-1 { margin-bottom: .5rem; }
-    .mb-2 { margin-bottom: 1rem; }
-
-    /* 📱 RESPONSIVE: TABLET */
-    @media (max-width: 1024px) {
-      .grid-4 { grid-template-columns: repeat(2, 1fr); }
-      .grid-3 { grid-template-columns: 1fr; }
-      .header { padding: 0 1rem; height: 80px; }
-      .logo-img { height: 52px; }
-      .nav { gap: 0; flex-wrap: wrap; }
-      .nav-btn { padding: 8px 12px; font-size: .78rem; }
-      .main { padding: 1rem; }
-    }
-
-    /* 📱 RESPONSIVE: MOBILE */
-    @media (max-width: 768px) {
-      .header { padding: 0 1rem; height: 64px; }
-      .logo-img { height: 44px; }
-      .logo-subtitle { display: none; }
-      .nav { display: none; }
-      .mobile-nav-toggle { display: flex; align-items: center; justify-content: center; }
-      .main { padding: 1rem; padding-bottom: 2rem; }
-      .page-header { margin-bottom: 1rem; }
-      .page-title { font-size: 1.25rem; }
-      .page-desc { font-size: .78rem; }
-      .btn { padding: 8px 16px; font-size: .8rem; }
-      .card { padding: 1rem; }
-      .card-header { margin-bottom: .75rem; }
-      .card-value { font-size: 1.4rem; }
-      .card-sub { font-size: .72rem; }
-      .chart-container { height: 220px; }
-      .grid-2 { grid-template-columns: 1fr; }
-      .grid-3 .card:first-child { grid-column: span 1; }
-    }
-
-    /* 📱 RESPONSIVE: SMALL MOBILE */
-    @media (max-width: 640px) {
-      .grid-4 { grid-template-columns: repeat(2, 1fr); gap: .75rem; }
-      .grid-4 .card { padding: .85rem; }
-      .grid-4 .card-title { font-size: .65rem; letter-spacing: .5px; }
-      .grid-4 .card-value { font-size: 1.15rem; }
-      .grid-4 .card-sub { font-size: .65rem; margin-top: 2px; }
-      .grid-4 .badge { font-size: .6rem; padding: 3px 6px; gap: 3px; }
-      .grid-4 .badge-dot { width: 5px; height: 5px; }
-      .price-main { font-size: .78rem; }
-      .price-sub { display: block; margin-left: 0; margin-top: 2px; font-size: .65rem; }
-      .grid-4 .card-value { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .leaderboard-item { padding: 8px 10px; gap: 10px; }
-      .leaderboard-rank { width: 28px; height: 28px; font-size: .7rem; }
-      .leaderboard-name { font-size: .8rem; }
-      .leaderboard-total { font-size: .8rem; }
-      .payout-item { padding: 10px; }
-      .payout-employee { font-size: .8rem; }
-      .payout-amount { font-size: .8rem; }
-    }
-
-    /* 📱 VERY SMALL MOBILE */
-    @media (max-width: 380px) {
-      .grid-4 { grid-template-columns: 1fr; }
-      .main { padding: .75rem; }
-    }
-  </style>
-</head>
-<body>
-
-<!-- HEADER -->
-<header class="header">
-  <div class="logo" id="logoBtn">
-    <img src="https://i.ibb.co/p6GCfY1x/Screenshot-2026-05-30-at-17-06-41.png" alt="Drafts Dashboard Logo" class="logo-img" loading="lazy">
-  </div>
-  <nav class="nav">
-    <a href="index.html" class="nav-btn active">Dashboard</a>
-    <a href="projects.html" class="nav-btn">Projects</a>
-    <a href="payments.html" class="nav-btn">Payments</a>
-    <a href="clients.html" class="nav-btn">Clients</a>
-    <a href="reports.html" class="nav-btn">Reports</a>
-    <a href="performance.html" class="nav-btn">Performance</a>
-    <a href="finance.html" class="nav-btn">Finance</a>
-    <a href="employees.html" class="nav-btn">Employees</a>
-  </nav>
-  <div class="header-right">
-    <button class="mobile-nav-toggle" id="mobileNavToggle" aria-label="Open navigation menu">☰</button>
-    <div class="status-dot"></div>
-    <span class="status-text">Online</span>
-  </div>
-</header>
-
-<!-- 📱 MOBILE NAV DRAWER -->
-<div class="nav-drawer-overlay" id="navDrawerOverlay"></div>
-<div class="nav-drawer" id="navDrawer" role="dialog" aria-label="Navigation menu">
-  <div class="nav-drawer-header">
-    <span class="nav-drawer-title">Menu</span>
-    <button class="nav-drawer-close" id="navDrawerClose" aria-label="Close menu">✕</button>
-  </div>
-  <a href="index.html" class="nav-btn active">📊 Dashboard</a>
-  <a href="projects.html" class="nav-btn">📁 Projects</a>
-  <a href="payments.html" class="nav-btn">💳 Payments</a>
-  <a href="clients.html" class="nav-btn">👥 Clients</a>
-  <a href="reports.html" class="nav-btn">📈 Reports</a>
-  <a href="performance.html" class="nav-btn">⚡ Performance</a>
-  <a href="finance.html" class="nav-btn">💰 Finance</a>
-  <a href="employees.html" class="nav-btn">🧑‍💼 Employees</a>
-</div>
-
-<div class="toast-container" id="toastContainer"></div>
-
-<main class="main">
-  <div class="page-header">
-    <div>
-      <h1 class="page-title">Dashboard</h1>
-      <p class="page-desc">Overview of all projects and financial health</p>
-    </div>
-    <a href="projects.html" class="btn btn-primary">＋ New Project</a>
-  </div>
-
-  <!-- SUMMARY CARDS -->
-  <div class="grid grid-4 mb-2">
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">Active Projects</span>
-        <span class="badge badge-blue"><span class="badge-dot"></span> Live</span>
-      </div>
-      <div class="card-value" id="dashActiveProjects">0</div>
-      <div class="card-sub" id="dashActiveProjectsSub">Calculating health...</div>
-    </div>
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">Total Revenue</span>
-        <span class="badge badge-green"><span class="badge-dot"></span> Collected</span>
-      </div>
-      <div class="card-value" id="dashRevenue"><span class="price-main">UGX 0</span><span class="price-sub">$0.00</span></div>
-      <div class="card-sub" id="dashRevenueSub">All-time collected payments</div>
-    </div>
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">Commissions Paid</span>
-        <span class="badge badge-blue"><span class="badge-dot"></span> Payouts</span>
-      </div>
-      <div class="card-value" id="dashCommission"><span class="price-main">UGX 0</span><span class="price-sub">$0.00</span></div>
-      <div class="card-sub" id="dashCommissionSub">Total paid to employees</div>
-    </div>
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">Top Referrer</span>
-        <span class="badge badge-green"><span class="badge-dot"></span> Star</span>
-      </div>
-      <div class="card-value" id="dashTopReferrer" style="font-size:1.4rem">—</div>
-      <div class="card-sub" id="dashTopReferrerStats">0 projects • UGX 0 earned</div>
-    </div>
-  </div>
-
-  <!-- 🏆 TOP REFERRERS & 💰 COMMISSION PAYOUTS -->
-  <div class="grid grid-2 mb-2">
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">🏆 Top Referrers</span>
-        <span class="badge badge-yellow"><span class="badge-dot"></span> Leaderboard</span>
-      </div>
-      <div class="leaderboard" id="referrersLeaderboard">
-        <div class="empty-state">
-          <div class="empty-state-icon">🏆</div>
-          <div class="empty-state-title">Loading leaderboard...</div>
-        </div>
-      </div>
-    </div>
-    
-    <div class="card">
-      <div class="card-header">
-        <span class="card-title">💰 Commission Payouts</span>
-        <span class="badge badge-green"><span class="badge-dot"></span> Recent</span>
-      </div>
-      <div class="payout-list" id="commissionPayouts">
-        <div class="empty-state">
-          <div class="empty-state-icon">💰</div>
-          <div class="empty-state-title">Loading payouts...</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- CHARTS -->
-  <div class="grid grid-3 mb-2">
-    <div class="card" style="grid-column: span 2;">
-      <div class="card-title mb-1">Monthly Revenue Trend</div>
-      <div class="chart-container">
-        <canvas id="monthlyRevenueChart"></canvas>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-title mb-1">Payment Status</div>
-      <div class="chart-container">
-        <canvas id="paymentStatusChart"></canvas>
-      </div>
-    </div>
-  </div>
-
-  <div class="grid grid-2">
-    <div class="card">
-      <div class="card-title mb-1">Top Clients by Revenue</div>
-      <div class="chart-container">
-        <canvas id="clientRevenueChart"></canvas>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-title mb-1">Recent Activity</div>
-      <div class="timeline" id="dashTimeline">
-        <div class="timeline-item">
-          <div class="timeline-dot green"></div>
-          <div class="timeline-title">Welcome to Drafts</div>
-          <div class="timeline-desc">Start adding projects to track payments</div>
-        </div>
-      </div>
-    </div>
-  </div>
-</main>
-
+<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Drafts Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+:root{--bg:#f8fafc;--surface:#fff;--border:#e2e8f0;--primary:#2563eb;--accent:#059669;--warning:#d97706;--danger:#dc2626;--text:#1e293b;--text-muted:#64748b;--radius:12px;--radius-sm:8px;--shadow:0 4px 24px rgba(0,0,0,.08)}
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+.header{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 2rem;height:88px;background:rgba(255,255,255,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);box-shadow:0 1px 0 rgba(0,0,0,.02)}
+.logo{display:flex;align-items:center;gap:16px;cursor:pointer;user-select:none}.logo-img{height:64px;width:auto;object-fit:contain}.logo-text{font-size:1.6rem;font-weight:800;letter-spacing:-.3px;color:var(--text)}.logo-subtitle{font-size:.65rem;color:var(--text-muted);letter-spacing:2px;text-transform:uppercase;margin-top:-4px}
+.nav{display:flex;gap:4px}.nav-btn{position:relative;padding:10px 18px;border:none;background:transparent;color:#475569;font-size:.88rem;font-weight:500;border-radius:var(--radius-sm);cursor:pointer;transition:.2s;text-decoration:none}.nav-btn:hover,.nav-btn.active{background:rgba(37,99,235,.1);color:var(--primary);font-weight:600}
+.header-right{display:flex;align-items:center;gap:12px}.status-dot{width:8px;height:8px;background:var(--accent);border-radius:50%;box-shadow:0 0 8px rgba(5,150,105,.4)}.status-text{font-size:.75rem;color:var(--accent);font-weight:600}
+.main{padding:2rem;max-width:1440px;margin:0 auto}
+.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem}
+.page-title{font-size:1.5rem;font-weight:700;letter-spacing:-.3px;color:var(--text)}.page-desc{font-size:.85rem;color:var(--text-muted);margin-top:2px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border:none;border-radius:var(--radius-sm);font-size:.85rem;font-weight:600;cursor:pointer;transition:.2s;text-decoration:none}.btn-primary{background:var(--primary);color:#fff;box-shadow:0 2px 8px rgba(37,99,235,.2)}.btn-primary:hover{background:#1d4ed8;transform:translateY(-1px)}.btn-outline{background:transparent;color:#475569;border:1px solid var(--border)}.btn-outline:hover{border-color:var(--primary);color:var(--primary);background:rgba(37,99,235,.1)}.btn-danger{background:var(--danger);color:#fff}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;transition:.2s;box-shadow:var(--shadow);margin-bottom:1rem}.card:hover{border-color:rgba(37,99,235,.3);box-shadow:0 8px 32px rgba(0,0,0,.12)}
+.grid{display:grid;gap:1rem}.grid-4{grid-template-columns:repeat(4,1fr)}.grid-3{grid-template-columns:repeat(3,1fr)}.grid-2{grid-template-columns:repeat(2,1fr)}
+.badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:.72rem;font-weight:600}.badge-green{background:rgba(5,150,105,.1);color:var(--accent)}.badge-blue{background:rgba(37,99,235,.1);color:var(--primary)}.badge-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.chip{display:inline-block;background:rgba(37,99,235,.1);color:var(--primary);border-radius:99px;padding:2px 8px;font-size:.7rem;margin:2px}
+.desc{background:#f1f5f9;border-radius:8px;padding:10px;font-size:.85rem;white-space:pre-wrap;margin:8px 0}
+.meta{font-size:.78rem;color:var(--text-muted);margin:4px 0}
+label{display:block;margin:8px 0;font-size:14px;color:#334155}
+input,select,textarea{width:100%;box-sizing:border-box;padding:8px;border:1px solid #cbd5e1;border-radius:8px;margin-top:4px;font-family:inherit;font-size:14px}
+.chk{display:flex;gap:6px;align-items:center;font-size:.85rem}.chk input{width:auto}
+.tabs{display:flex;gap:8px;margin-bottom:8px}.tabs button{flex:1;padding:8px;border:1px solid #cbd5e1;background:#fff;border-radius:8px;cursor:pointer}.tabs button.on{background:var(--primary);color:#fff}
+#msg{color:var(--danger);font-size:14px;margin-top:8px}
+table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:8px;border-bottom:1px solid var(--border);vertical-align:top}
+.hint{font-size:12px;color:#64748b}
+.login-wrap{max-width:420px;margin:40px auto}
+a.wa{color:var(--accent);font-weight:600;text-decoration:none}
+.hidden{display:none}
+@media(max-width:1024px){.grid-4{grid-template-columns:repeat(2,1fr)}.grid-3{grid-template-columns:1fr}.header{padding:0 1rem;height:80px}.logo-img{height:52px}.nav{gap:0;flex-wrap:wrap}.nav-btn{padding:8px 12px;font-size:.78rem}.main{padding:1rem}}
+@media(max-width:768px){.header{padding:0 1rem;height:64px}.logo-img{height:44px}.logo-subtitle{display:none}.nav{display:none}.main{padding:1rem;padding-bottom:2rem}.grid-2,.grid-3,.grid-4{grid-template-columns:1fr}}
+</style></head><body>
+<div id="app"></div>
 <script>
-  (function() {
-    'use strict';
-    
-    const SUPABASE_URL = 'https://hnbzerhoqqsmzqxcbnxv.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhuYnplcmhvcXFzbXpxeGNibnh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDg1MjksImV4cCI6MjA5NDYyNDUyOX0.a4rM51DQGih9SXMr71PREngZ_pT6dJFgv_fG9j5jAGc';
-    const USD_RATE = 0.00027;
+(function(){
+'use strict';
+const SUPABASE_URL='https://hnbzerhoqqsmzqxcbnxv.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhuYnplcmhvcXFzbXpxeGNibnh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDg1MjksImV4cCI6MjA5NDYyNDUyOX0.a4rM51DQGih9SXMr71PREngZ_pT6dJFgv_fG9j5jAGc';
+const USD_RATE=0.00027;
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const app=document.getElementById('app');
+const sha256=async t=>{const d=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));return[...new Uint8Array(d)].map(b=>b.toString(16).padStart(2,'0')).join('')};
 
-    Chart.defaults.font.family = "'Inter', sans-serif";
-    Chart.defaults.color = '#64748b';
-    Chart.defaults.borderColor = '#e2e8f0';
+const ROLE_RATE_UGX=33000;
+const SECTORS=[
+  {name:'Corporate / Enterprise',roles:['CEO','General Manager','Finance','HR','Admin','Staff']},
+  {name:'Schools & Education',roles:['Director','Principal','DOS','Bursar','Secretary','Teacher','Parent Portal']},
+  {name:'Churches & Mosques',roles:['Lead Pastor / Imam','Treasury','Admin','Ministry Leaders','Member Portal']},
+  {name:'Factories & Industry',roles:['Plant Manager','Production','Inventory','Maintenance','HR','QC']},
+  {name:'SACCOs & Investments',roles:['Board','Credit Officer','Treasurer','Auditor','Member Portal']},
+  {name:'NGOs & Non-Profits',roles:['Country Director','Project Mgr','M&E Officer','Grants Mgr']}
+];
 
-    document.addEventListener('DOMContentLoaded', async function() {
-      if (!window.supabase) {
-        showToast('Database SDK failed to load', 'error');
-        return;
-      }
+const ADMIN_EMAILS=['admin@drafts.com','hq@drafts.com']; // Add your admin emails here
 
-      const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-      let monthlyChart, statusChart, clientChart;
+async function checkAuth(){
+  const empId=localStorage.getItem('employee_id');
+  if(!empId)return null;
+  const {data:emp}=await sb.from('employees').select('*').eq('id',empId).maybeSingle();
+  return emp;
+}
 
-      // === MOBILE NAV DRAWER ===
-      const navToggle = document.getElementById('mobileNavToggle');
-      const navDrawer = document.getElementById('navDrawer');
-      const navOverlay = document.getElementById('navDrawerOverlay');
-      const navClose = document.getElementById('navDrawerClose');
+async function logout(){localStorage.clear();location.reload();}
 
-      function openDrawer() {
-        navDrawer.classList.add('active');
-        navOverlay.classList.add('active');
-        document.body.style.overflow = 'hidden';
-      }
-      function closeDrawer() {
-        navDrawer.classList.remove('active');
-        navOverlay.classList.remove('active');
-        document.body.style.overflow = '';
-      }
+function fmt(n){if(!n&&n!==0)return'UGX 0';return'UGX '+Number(n).toLocaleString()+' (≈ $'+(n*USD_RATE).toFixed(2)+')';}
 
-      navToggle.addEventListener('click', openDrawer);
-      navClose.addEventListener('click', closeDrawer);
-      navOverlay.addEventListener('click', closeDrawer);
-      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
+async function renderLogin(){
+  app.innerHTML=`
+<header class="header">
+  <div class="logo"><img src="https://i.ibb.co/p6GCfY1x/Screenshot-2026-05-30-at-17-06-41.png" alt="Drafts" class="logo-img"></div>
+  <div class="header-right"><div class="status-dot"></div><span class="status-text">Online</span></div>
+</header>
+<div class="login-wrap"><div class="card">
+  <h2>Drafts Platform</h2>
+  <div class="tabs"><button id="t-login" class="on">Log in</button><button id="t-signup">Create account</button></div>
+  <div id="f-login"><label>Username (phone/email)<input id="li-user"></label><label>Password<input id="li-pw" type="password"></label></div>
+  <div id="f-signup" class="hidden"><label>Full name *<input id="su-name"></label><label>Phone (WhatsApp) *<input id="su-phone"></label><label>Password * (6+ chars)<input id="su-pw" type="password"></label></div>
+  <button class="btn btn-primary" style="width:100%;margin-top:12px" id="go">Continue</button>
+  <p id="msg"></p>
+</div></div>`;
+  let mode='login';
+  const $=id=>document.getElementById(id);
+  $('t-login').onclick=()=>{mode='login';$('t-login').classList.add('on');$('t-signup').classList.remove('on');$('f-login').classList.remove('hidden');$('f-signup').classList.add('hidden')};
+  $('t-signup').onclick=()=>{mode='signup';$('t-signup').classList.add('on');$('t-login').classList.remove('on');$('f-signup').classList.remove('hidden');$('f-login').classList.add('hidden')};
+  $('go').onclick=async()=>{$('msg').textContent='';
+    if(mode==='login'){
+      const u=$('li-user').value.trim().toLowerCase();
+      const {data:cred}=await sb.from('employee_credentials').select('*').eq('username',u).maybeSingle();
+      if(!cred){$('msg').textContent='Account not found.';return}
+      const h=await sha256($('li-pw').value);
+      if(cred.password_hash!==h&&cred.password_hash!==$('li-pw').value){$('msg').textContent='Wrong password.';return}
+      localStorage.setItem('employee_id',cred.employee_id);
+      location.reload();
+    }else{
+      const name=$('su-name').value.trim(),phone=$('su-phone').value.trim(),pw=$('su-pw').value;
+      if(!name||!phone||pw.length<6){$('msg').textContent='Name, phone and a 6+ char password are required.';return}
+      const {data:codes}=await sb.from('employees').select('employee_code').order('employee_code',{ascending:false}).limit(1);
+      const code='EMP-'+String((codes&&codes[0]?parseInt(codes[0].employee_code.replace('EMP-',''),10):0)+1).padStart(3,'0');
+      const {data:emp,error:e1}=await sb.from('employees').insert({name,phone,title:'Field Agent',employee_code:code}).select().single();
+      if(e1){$('msg').textContent='Signup error: '+e1.message;return}
+      const {error:e2}=await sb.from('employee_credentials').insert({employee_id:emp.id,username:phone.toLowerCase(),password_hash:await sha256(pw)});
+      if(e2){$('msg').textContent='Account created but login setup failed: '+e2.message;return}
+      localStorage.setItem('employee_id',emp.id);
+      location.reload();
+  }};
+}
 
-      // === HELPERS ===
-      function formatUGX(n) { if (!n && n !== 0) return 'UGX 0'; return 'UGX ' + Number(n).toLocaleString(); }
-      function formatUSD(n) { if (!n && n !== 0) return '$0.00'; return '$' + (n * USD_RATE).toFixed(2); }
-      function priceHTML(ugx) { return `<span class="price-main">${formatUGX(ugx)}</span><span class="price-sub">${formatUSD(ugx)}</span>`; }
-      
-      function showToast(msg, type = 'success') {
-        const c = document.getElementById('toastContainer');
-        const t = document.createElement('div');
-        t.className = `toast ${type}`;
-        t.textContent = msg;
-        c.appendChild(t);
-        setTimeout(() => t.remove(), 3500);
-      }
+async function renderEmployeeDashboard(emp){
+  const {data:p=[]}=await sb.from('projects').select('*').eq('referred_employee_id',emp.id);
+  const {data:e=[]}=await sb.from('employee_earnings').select('*').eq('employee_id',emp.id);
+  const {data:sum}=await sb.from('employee_earnings_summary').select('*').eq('id',emp.id).maybeSingle();
+  const bal=sum?Number(sum.account_balance||0):e.reduce((s,r)=>s+Number(r.amount||0),0);
+  const BADGE={intake:['Intake','#2563eb'],building:['Building','#b45309'],active:['Active','#047857'],paused:['Paused','#b91c1c']};
+  app.innerHTML=`
+<header class="header">
+  <div class="logo"><img src="https://i.ibb.co/p6GCfY1x/Screenshot-2026-05-30-at-17-06-41.png" alt="Drafts" class="logo-img"><div><div class="logo-text">${emp.name}</div><div class="logo-subtitle">${emp.employee_code}</div></div></div>
+  <div class="header-right"><button class="btn btn-outline" onclick="window.__logout()">Log out</button></div>
+</header>
+<main class="main">
+  <div class="page-header"><div><h1 class="page-title">My Dashboard</h1><p class="page-desc">Your projects and earnings</p></div>
+  <button class="btn btn-primary" id="new">+ Bring in Project</button></div>
+  <div class="grid grid-3">
+    <div class="card"><div class="card-title" style="font-size:.8rem;color:var(--text-muted)">Balance (20% commissions)</div><h3 style="font-size:1.8rem;font-weight:800">${fmt(bal)}</h3></div>
+    <div class="card"><div class="card-title" style="font-size:.8rem;color:var(--text-muted)">Active projects</div><h3 style="font-size:1.8rem;font-weight:800">${p.filter(r=>r.status==='active').length}</h3></div>
+    <div class="card"><div class="card-title" style="font-size:.8rem;color:var(--text-muted)">In pipeline</div><h3 style="font-size:1.8rem;font-weight:800">${p.filter(r=>['intake','building'].includes(r.status)).length}</h3></div>
+  </div>
+  <div id="intake"></div>
+  <div class="card"><h3>My Projects</h3><table><tr><th>Project</th><th>Status</th><th>Monthly</th><th>Valid until</th></tr><tbody id="proj"></tbody></table></div>
+  <div class="card"><h3>Commission Earnings</h3><table><tr><th>Date</th><th>Amount (20%)</th></tr><tbody id="earn"></tbody></table></div>
+</main>`;
+  window.__logout=logout;
+  document.getElementById('new').onclick=()=>renderIntakeForm(document.getElementById('intake'),emp,()=>location.reload());
+  document.getElementById('proj').innerHTML=p.map(r=>{const b=BADGE[r.status]||[r.status,'#64748b'];const days=r.valid_until?` · ${Math.max(0,Math.ceil((new Date(r.valid_until)-Date.now())/864e5))}d left`:'';
+    return`<tr><td><b>${r.name}</b><br><span class="hint">${r.client||''}</span></td><td><span class="badge" style="background:${b[1]};color:#fff">${b[0]}</span>${days}</td><td>UGX ${Number(r.rate||0).toLocaleString()}</td><td>${r.valid_until?new Date(r.valid_until).toLocaleDateString():'—'}</td></tr>`}).join('')||'<tr><td colspan="4" class="hint">No projects yet — tap "+ Bring in Project".</td></tr>';
+  document.getElementById('earn').innerHTML=e.slice(0,15).map(r=>`<tr><td>${new Date(r.created_at||Date.now()).toLocaleDateString()}</td><td>UGX ${Number(r.amount||0).toLocaleString()}</td></tr>`).join('')||'<tr><td colspan="2" class="hint">You earn 20% of every payment on your projects.</td></tr>';
+}
 
-      function formatDate(dateStr) {
-        if (!dateStr) return '—';
-        const d = new Date(dateStr);
-        if (isNaN(d.getTime())) return '—';
-        return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-      }
+function renderIntakeForm(mount,emp,onDone){
+  mount.innerHTML=`<div class="card"><h3>Bring in a Project</h3>
+<label>Organisation / client name *<input id="in-org" placeholder="e.g. St. Mary's Church"></label>
+<label>Contact person *<input id="in-person" placeholder="Full name"></label>
+<label>WhatsApp / phone *<input id="in-phone" placeholder="07xx xxx xxx"></label>
+<label>Town / address<input id="in-town" placeholder="e.g. Kampala"></label>
+<label>Sector *<select id="in-sector"><option value="">— choose —</option>${SECTORS.map((s,i)=>`<option value="${i}">${s.name}</option>`).join('')}</select></label>
+<div id="in-roles"></div>
+<label>What should the system do? (HQ builds from this — be specific) *<textarea id="in-desc" rows="4" placeholder="e.g. Track members & donations, print receipts, monthly treasurer report…"></textarea></label>
+<label class="chk"><input type="checkbox" id="in-consent"> Client approves the price and description *</label>
+<div class="row" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px"><strong id="in-total"></strong><button id="in-submit" class="btn btn-primary">Submit to HQ</button></div>
+<p id="in-msg" style="margin-top:8px"></p></div>`;
+  let chosen=[];
+  const rolesBox=mount.querySelector('#in-roles');
+  mount.querySelector('#in-sector').onchange=e=>{const s=SECTORS[+e.target.value];if(!s)return;
+    rolesBox.innerHTML=`<p class="hint">Dashboards included (un-tick to remove — 33,000 UGX / $9 each):</p>`+s.roles.map(r=>`<label class="chk"><input type="checkbox" value="${r}" checked> ${r}</label>`).join('');
+    rolesBox.querySelectorAll('input').forEach(cb=>cb.onchange=update);update()};
+  function update(){chosen=[...rolesBox.querySelectorAll('input:checked')].map(cb=>cb.value);
+    mount.querySelector('#in-total').textContent=chosen.length?`Monthly: UGX ${(chosen.length*ROLE_RATE_UGX).toLocaleString()} (≈ $${chosen.length*9}) · your 20% per payment: UGX ${(chosen.length*ROLE_RATE_UGX*0.2).toLocaleString()}`:''}
+  mount.querySelector('#in-submit').onclick=async()=>{
+    const v=id=>mount.querySelector(id).value.trim();
+    const sec=mount.querySelector('#in-sector');
+    if(!v('#in-org')||!v('#in-person')||!v('#in-phone')||sec.value===''||!chosen.length||!v('#in-desc')||!mount.querySelector('#in-consent').checked){
+      mount.querySelector('#in-msg').textContent='Please complete all required fields and tick consent.';return}
+    const {error}=await sb.from('projects').insert({name:v('#in-org')+' — '+SECTORS[+sec.value].name,client:v('#in-org'),rate:chosen.length*ROLE_RATE_UGX,
+      sector:SECTORS[+sec.value].name,roles:chosen,description:v('#in-desc'),contact_person:v('#in-person'),contact_phone:v('#in-phone'),town:v('#in-town'),status:'intake',referred_employee_id:emp.id});
+    mount.querySelector('#in-msg').textContent=error?'Error: '+error.message:'✔ Sent to HQ. You earn 20% of every payment on this project.';
+    if(!error&&onDone)setTimeout(onDone,1500)};
+}
 
-      // === MAIN LOAD ===
-      async function loadDashboard() {
-        try {
-          const [projRes, payRes] = await Promise.all([
-            supabase.from('projects').select('*'),
-            supabase.from('payments').select('*')
-          ]);
-          
-          if (projRes.error) throw projRes.error;
-          if (payRes.error) throw payRes.error;
+async function renderAdminDashboard(){
+  const {data:projects=[]}=await sb.from('projects').select('*');
+  const {data:payments=[]}=await sb.from('payments').select('*');
+  const {data:employees=[]}=await sb.from('employees').select('*');
+  const paid=payments.filter(p=>p.status==='paid');
+  const totalRevenue=paid.reduce((s,p)=>s+(p.amount||0),0);
+  const activeProjects=projects.filter(p=>p.status==='active').length;
+  const intakeProjects=projects.filter(p=>p.status==='intake');
+  const em={};employees.forEach(e=>em[e.id]=`${e.name} (${e.employee_code})`);
+  app.innerHTML=`
+<header class="header">
+  <div class="logo"><img src="https://i.ibb.co/p6GCfY1x/Screenshot-2026-05-30-at-17-06-41.png" alt="Drafts" class="logo-img"><div><div class="logo-text">Drafts HQ</div><div class="logo-subtitle">Admin Dashboard</div></div></div>
+  <div class="header-right"><button class="btn btn-outline" onclick="window.__logout()">Log out</button></div>
+</header>
+<main class="main">
+  <div class="page-header"><div><h1 class="page-title">Admin Dashboard</h1><p class="page-desc">Overview & intake queue</p></div></div>
+  <div class="grid grid-3">
+    <div class="card"><div class="card-title" style="font-size:.8rem;color:var(--text-muted)">Active Projects</div><h3 style="font-size:1.8rem;font-weight:800">${activeProjects}</h3></div>
+    <div class="card"><div class="card-title" style="font-size:.8rem;color:var(--text-muted)">Total Revenue</div><h3 style="font-size:1.8rem;font-weight:800">${fmt(totalRevenue)}</h3></div>
+    <div class="card"><div class="card-title" style="font-size:.8rem;color:var(--text-muted)">Intake Queue</div><h3 style="font-size:1.8rem;font-weight:800">${intakeProjects.length}</h3></div>
+  </div>
+  <div class="card"><h3>📥 Intake Queue — projects brought in by employees</h3><div id="intake-list"></div></div>
+  <div class="card"><h3>All Projects</h3><table><tr><th>Project</th><th>Client</th><th>Status</th><th>Referred by</th><th>Monthly</th></tr><tbody id="all-proj"></tbody></table></div>
+</main>`;
+  window.__logout=logout;
+  const BADGE={intake:['New intake','#2563eb'],building:['Building','#b45309'],active:['Active','#047857'],paused:['Paused','#dc2626']};
+  document.getElementById('intake-list').innerHTML=intakeProjects.map(r=>{
+    const b=BADGE[r.status]||[r.status||'—','#64748b'];
+    return`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><b>${r.name}</b><span class="badge" style="background:${b[1]};color:#fff">${b[0]}</span></div>
+<p class="meta">Client: ${r.client||'—'} · ${r.sector||''} · Monthly UGX ${Number(r.rate||0).toLocaleString()}</p>
+<p class="meta">Brought in by: <b>${em[r.referred_employee_id]||'—'}</b> · Contact: ${r.contact_person||'—'} · <a class="wa" target="_blank" href="https://wa.me/${(r.contact_phone||'').replace(/\D/g,'')}">WhatsApp ${r.contact_phone||''}</a> · ${r.town||''}</p>
+<div>${(r.roles||[]).map(x=>`<span class="chip">${x}</span>`).join('')}</div>
+<div class="desc">${r.description||'No description.'}</div>
+<button class="btn btn-primary" onclick="window.__startBuild('${r.id}')">▶ Start building</button></div>`}).join('')||'<p class="hint">No intake projects yet.</p>';
+  document.getElementById('all-proj').innerHTML=projects.map(r=>{const b=BADGE[r.status]||[r.status||'—','#64748b'];
+    return`<tr><td>${r.name}</td><td>${r.client||'—'}</td><td><span class="badge" style="background:${b[1]};color:#fff">${b[0]}</span></td><td>${em[r.referred_employee_id]||'—'}</td><td>UGX ${Number(r.rate||0).toLocaleString()}</td></tr>`}).join('');
+  window.__startBuild=async id=>{await sb.from('projects').update({status:'building'}).eq('id',id);location.reload()};
+}
 
-          const projects = projRes.data || [];
-          const payments = payRes.data || [];
-          
-          const projectMap = {};
-          projects.forEach(p => { projectMap[p.id] = p; });
-          
-          const paid = payments.filter(p => p.status === 'paid');
-          const pending = payments.filter(p => p.status === 'pending');
-          const overdue = payments.filter(p => p.status === 'overdue');
-
-          // === 1. PROJECT HEALTH --- UPDATED LOGIC: Based on Due Date ===
-          const now = new Date();
-          const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          const activeProjects = projects.filter(p => p.status === 'active');
-          let healthyCount = 0, overdueCount = 0;
-
-          activeProjects.forEach(p => {
-            const projectPayments = paid.filter(pay => pay.project_id === p.id && pay.due_date);
-            let maxDueDate = null;
-            projectPayments.forEach(pay => {
-                const dDate = new Date(pay.due_date + 'T00:00:00');
-                if (!maxDueDate || dDate > maxDueDate) maxDueDate = dDate;
-            });
-            
-            const start = new Date(p.start_date + 'T00:00:00');
-            
-            if (maxDueDate) {
-                if (today <= maxDueDate) healthyCount++;
-                else overdueCount++;
-            } else {
-                if (today <= start) healthyCount++;
-                else overdueCount++;
-            }
-          });
-
-          document.getElementById('dashActiveProjects').textContent = activeProjects.length;
-          document.getElementById('dashActiveProjectsSub').innerHTML = 
-            `<span class="text-green fw-700">${healthyCount} healthy</span> • <span class="text-red fw-700">${overdueCount} overdue</span>`;
-
-          // === 2. REVENUE ===
-          const totalRevenue = paid.reduce((s, p) => s + (p.amount || 0), 0);
-          const totalPending = pending.reduce((s, p) => s + (p.amount || 0), 0);
-          const totalOverdue = overdue.reduce((s, p) => s + (p.amount || 0), 0);
-
-          document.getElementById('dashRevenue').innerHTML = priceHTML(totalRevenue);
-          document.getElementById('dashRevenueSub').innerHTML = 
-            `Collected • <span class="text-yellow fw-700">${formatUGX(totalPending)}</span> pending • <span class="text-red fw-700">${formatUGX(totalOverdue)}</span> overdue`;
-
-          // === 3. COMMISSIONS & REFERRERS ===
-          let commissionsList = [];
-          try {
-            const { data: allCommissions, error } = await supabase
-              .from('employee_earnings')
-              .select('*')
-              .eq('type', 'commission')
-              .eq('status', 'paid')
-              .order('created_at', { ascending: false });
-            
-            if (!error) commissionsList = allCommissions || [];
-          } catch (e) { console.warn('Could not fetch employee_earnings', e); }
-
-          const totalCommission = commissionsList.reduce((s, c) => s + (c.amount || 0), 0);
-          document.getElementById('dashCommission').innerHTML = priceHTML(totalCommission);
-          document.getElementById('dashCommissionSub').textContent = `${commissionsList.length} payout${commissionsList.length !== 1 ? 's' : ''} to employees`;
-
-          const empIds = [...new Set(commissionsList.map(c => c.employee_id).filter(Boolean))];
-          let empNames = {};
-          if (empIds.length > 0) {
-            try {
-              const { data: emps } = await supabase.from('employees').select('id, name').in('id', empIds);
-              (emps || []).forEach(e => { empNames[e.id] = e.name; });
-            } catch(e) {}
-          }
-
-          const empMap = {};
-          commissionsList.forEach(c => {
-            if (c.employee_id) {
-              if (!empMap[c.employee_id]) {
-                empMap[c.employee_id] = { name: empNames[c.employee_id] || 'Unknown', total: 0, count: 0 };
-              }
-              empMap[c.employee_id].total += (c.amount || 0);
-              empMap[c.employee_id].count++;
-            }
-          });
-
-          const leaderboard = Object.entries(empMap)
-            .map(([id, data]) => ({ id, ...data }))
-            .sort((a, b) => b.total - a.total)
-            .slice(0, 5);
-
-          const lbContainer = document.getElementById('referrersLeaderboard');
-          if (leaderboard.length === 0) {
-            lbContainer.innerHTML = `<div class="empty-state">
-              <div class="empty-state-icon">🏆</div>
-              <div class="empty-state-title">No referrers yet</div>
-              <div class="empty-state-desc">Commission payouts will appear here as a leaderboard</div>
-            </div>`;
-          } else {
-            lbContainer.innerHTML = leaderboard.map((emp, i) => {
-              const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-              const medal = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : '';
-              return `<div class="leaderboard-item">
-                <div class="leaderboard-rank ${rankClass}">${medal || (i + 1)}</div>
-                <div class="leaderboard-info">
-                  <div class="leaderboard-name">${emp.name}</div>
-                  <div class="leaderboard-meta">${emp.count} project${emp.count !== 1 ? 's' : ''} referred</div>
-                </div>
-                <div class="leaderboard-amount">
-                  <div class="leaderboard-total">${formatUGX(emp.total)}</div>
-                  <div class="leaderboard-usd">${formatUSD(emp.total)}</div>
-                </div>
-              </div>`;
-            }).join('');
-          }
-
-          if (leaderboard.length > 0) {
-            const top = leaderboard[0];
-            document.getElementById('dashTopReferrer').textContent = top.name;
-            document.getElementById('dashTopReferrerStats').textContent = 
-              `${top.count} project${top.count !== 1 ? 's' : ''} • ${formatUGX(top.total)} earned`;
-          } else {
-            document.getElementById('dashTopReferrer').textContent = '—';
-            document.getElementById('dashTopReferrerStats').textContent = '0 projects • UGX 0 earned';
-          }
-
-          const payoutsContainer = document.getElementById('commissionPayouts');
-          const recentPayouts = commissionsList.slice(0, 8);
-          if (recentPayouts.length === 0) {
-            payoutsContainer.innerHTML = `<div class="empty-state">
-              <div class="empty-state-icon">💰</div>
-              <div class="empty-state-title">No payouts yet</div>
-              <div class="empty-state-desc">Commission transactions will appear here</div>
-            </div>`;
-          } else {
-            payoutsContainer.innerHTML = recentPayouts.map(p => {
-              const empName = empNames[p.employee_id] || 'Unknown Employee';
-              const payoutDate = p.created_at || p.payment_date || p.earned_date;
-              return `<div class="payout-item">
-                <div class="payout-info">
-                  <div class="payout-employee">${empName}</div>
-                  <div class="payout-date">${formatDate(payoutDate)}</div>
-                </div>
-                <div class="payout-amount-wrap">
-                  <div class="payout-amount">+${formatUGX(p.amount)}</div>
-                  <div class="payout-usd">${formatUSD(p.amount)}</div>
-                </div>
-              </div>`;
-            }).join('');
-          }
-
-          // === 4. CHARTS ===
-          if (monthlyChart) monthlyChart.destroy();
-          if (statusChart) statusChart.destroy();
-          if (clientChart) clientChart.destroy();
-
-          const currentYear = new Date().getFullYear();
-          const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-          const monthlyTotals = new Array(12).fill(0);
-          
-          paid.forEach(p => {
-            const d = new Date(p.payment_date || p.created_at);
-            if (!isNaN(d.getTime()) && d.getFullYear() === currentYear) {
-              monthlyTotals[d.getMonth()] += (p.amount || 0);
-            }
-          });
-
-          const monthlyCtx = document.getElementById('monthlyRevenueChart').getContext('2d');
-          monthlyChart = new Chart(monthlyCtx, {
-            type: 'bar',
-            data: {
-              labels: months,
-              datasets: [{
-                label: `Revenue ${currentYear} (UGX)`,
-                data: monthlyTotals,
-                backgroundColor: 'rgba(37, 99, 235, 0.8)',
-                borderColor: '#2563eb', borderWidth: 1, borderRadius: 6,
-                hoverBackgroundColor: '#2563eb'
-              }]
-            },
-            options: {
-              responsive: true, maintainAspectRatio: false,
-              plugins: { 
-                legend: { display: false },
-                tooltip: {
-                  backgroundColor: '#1e293b', padding: 12, cornerRadius: 8,
-                  callbacks: { label: ctx => 'UGX ' + ctx.raw.toLocaleString() }
-                }
-              },
-              scales: {
-                y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { callback: v => v >= 1000000 ? (v/1000000) + 'M' : v >= 1000 ? (v/1000) + 'k' : v } },
-                x: { grid: { display: false } }
-              }
-            }
-          });
-
-          const statusCtx = document.getElementById('paymentStatusChart').getContext('2d');
-          statusChart = new Chart(statusCtx, {
-            type: 'doughnut',
-            data: {
-              labels: ['Paid', 'Pending', 'Overdue'],
-              datasets: [{
-                data: [totalRevenue, totalPending, totalOverdue],
-                backgroundColor: ['#059669', '#d97706', '#dc2626'],
-                borderWidth: 0, hoverOffset: 8
-              }]
-            },
-            options: {
-              responsive: true, maintainAspectRatio: false, cutout: '70%',
-              plugins: { 
-                legend: { position: 'bottom', labels: { boxWidth: 12, padding: 15, font: { size: 11 } } },
-                tooltip: {
-                  backgroundColor: '#1e293b', padding: 12, cornerRadius: 8,
-                  callbacks: { label: ctx => ' ' + ctx.label + ': UGX ' + ctx.raw.toLocaleString() }
-                }
-              }
-            }
-          });
-
-          const clientRevenue = {};
-          paid.forEach(p => {
-            const proj = projectMap[p.project_id];
-            const clientName = proj?.client || 'Unassigned';
-            clientRevenue[clientName] = (clientRevenue[clientName] || 0) + (p.amount || 0);
-          });
-          const sortedClients = Object.entries(clientRevenue).sort((a,b) => b[1] - a[1]).slice(0, 5);
-          const clientLabels = sortedClients.map(c => c[0]);
-          const clientData = sortedClients.map(c => c[1]);
-
-          const clientCtx = document.getElementById('clientRevenueChart').getContext('2d');
-          clientChart = new Chart(clientCtx, {
-            type: 'pie',
-            data: {
-              labels: clientLabels.length > 0 ? clientLabels : ['No Data'],
-              datasets: [{
-                data: clientData.length > 0 ? clientData : [1],
-                backgroundColor: clientData.length > 0 ? 
-                  ['#2563eb', '#059669', '#d97706', '#dc2626', '#8b5cf6', '#ec4899'] : ['#e2e8f0'],
-                borderWidth: 2, borderColor: '#fff'
-              }]
-            },
-            options: {
-              responsive: true, maintainAspectRatio: false,
-              plugins: { 
-                legend: { position: 'right', labels: { boxWidth: 12, padding: 10, font: { size: 11 } } },
-                tooltip: {
-                  backgroundColor: '#1e293b', padding: 12, cornerRadius: 8,
-                  callbacks: { label: ctx => ctx.label !== 'No Data' ? 'UGX ' + ctx.raw.toLocaleString() : '' }
-                }
-              }
-            }
-          });
-
-          // === 5. TIMELINE ===
-          const recent = [...payments]
-            .sort((a, b) => new Date(b.created_at || b.payment_date || 0) - new Date(a.created_at || a.payment_date || 0))
-            .slice(0, 5);
-          const tl = document.getElementById('dashTimeline');
-          
-          if (recent.length === 0) {
-            tl.innerHTML = `<div class="timeline-item"><div class="timeline-dot green"></div><div class="timeline-title">Welcome to Drafts</div><div class="timeline-desc">Start adding projects to track payments</div></div>`;
-          } else {
-            tl.innerHTML = recent.map(p => {
-              const dot = p.status === 'paid' ? 'green' : p.status === 'pending' ? 'yellow' : 'red';
-              const proj = projectMap[p.project_id];
-              const projName = proj?.name || 'Project';
-              const clientName = proj?.client ? `(${proj.client})` : '';
-              return `<div class="timeline-item">
-                <div class="timeline-dot ${dot}"></div>
-                <div class="timeline-title">${formatUGX(p.amount)} — ${p.status}</div>
-                <div class="timeline-desc">${projName} ${clientName} ${p.period ? '• ' + p.period : ''}</div>
-                <div class="timeline-date">${new Date(p.payment_date || p.created_at).toLocaleDateString()}</div>
-              </div>`;
-            }).join('');
-          }
-
-        } catch (err) {
-          console.error('Dashboard load error:', err);
-          showToast('Failed to load dashboard: ' + err.message, 'error');
-        }
-      }
-
-      document.getElementById('logoBtn').addEventListener('click', () => window.location.href = 'index.html');
-      
-      await loadDashboard();
-
-      // === REALTIME UPDATES ===
-      supabase.channel('dashboard-live')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, () => loadDashboard())
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => loadDashboard())
-        .subscribe();
-    });
-  })();
+(async()=>{
+  const emp=await checkAuth();
+  if(!emp)return renderLogin();
+  if(ADMIN_EMAILS.includes(emp.email)||ADMIN_EMAILS.includes(emp.phone))return renderAdminDashboard();
+  return renderEmployeeDashboard(emp);
+})();
+})();
 </script>
-</body>
-</html>
+</body></html>
