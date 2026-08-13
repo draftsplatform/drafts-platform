@@ -11,6 +11,7 @@
     --navy: #0b1526;
     --gold: #c8a24a;
     --gold-light: #e8d5a3;
+    --gold-hover: #b08d3e;
     --primary: #2563eb;
     --bg: #f6f8fb;
     --border: #e5eaf1;
@@ -32,12 +33,12 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: var(--bg);
     padding: 20px;
     position: relative;
+    background: var(--bg);
 }
 
-/* Premium background with subtle gradient and pattern */
+/* Premium background with subtle gradient */
 body::before {
     content: '';
     position: fixed;
@@ -52,7 +53,7 @@ body::before {
     z-index: -1;
 }
 
-/* Decorative geometric elements */
+/* Decorative elements */
 body::after {
     content: '';
     position: fixed;
@@ -85,34 +86,16 @@ body::after {
     border-radius: var(--radius);
     overflow: hidden;
     box-shadow: var(--shadow);
-    border: 1px solid rgba(255, 255, 255, 0.5);
-    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.8);
 }
 
-/* Header with gold accent */
+/* Header with gold accent and white background for logo visibility */
 .login-header {
-    background: var(--navy);
+    background: #ffffff;
     padding: 40px 40px 32px;
     text-align: center;
     position: relative;
-    overflow: hidden;
-}
-
-.login-header::after {
-    content: '';
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, transparent, var(--gold), var(--gold-light), var(--gold), transparent);
-    background-size: 200% 100%;
-    animation: shimmer 4s ease-in-out infinite;
-}
-
-@keyframes shimmer {
-    0%, 100% { background-position: 200% 0; }
-    50% { background-position: -200% 0; }
+    border-bottom: 3px solid var(--gold);
 }
 
 .logo-wrapper {
@@ -122,15 +105,13 @@ body::after {
 }
 
 .logo-wrapper img {
-    height: 56px;
+    height: 64px;
     width: auto;
-    filter: brightness(0) invert(1);
-    opacity: 0.9;
 }
 
 .login-title {
     font-family: 'Playfair Display', serif;
-    color: #ffffff;
+    color: var(--navy);
     font-size: 1.8rem;
     font-weight: 700;
     letter-spacing: -0.5px;
@@ -144,7 +125,6 @@ body::after {
     text-transform: uppercase;
     font-weight: 600;
     margin-top: 6px;
-    opacity: 0.8;
 }
 
 /* Login body */
@@ -155,7 +135,7 @@ body::after {
 .login-body .welcome-text {
     font-size: 0.95rem;
     color: var(--text);
-    font-weight: 500;
+    font-weight: 600;
     margin-bottom: 4px;
 }
 
@@ -195,6 +175,7 @@ body::after {
     transform: translateY(-50%);
     font-size: 1.1rem;
     opacity: 0.5;
+    z-index: 1;
 }
 
 .input-wrapper input {
@@ -237,6 +218,7 @@ body::after {
     opacity: 0.4;
     transition: opacity 0.2s;
     padding: 4px;
+    z-index: 1;
 }
 
 .toggle-password:hover {
@@ -277,7 +259,7 @@ body::after {
 }
 
 .forgot-link:hover {
-    color: #b08d3e;
+    color: var(--gold-hover);
     text-decoration: underline;
 }
 
@@ -285,7 +267,7 @@ body::after {
 .login-btn {
     width: 100%;
     padding: 14px;
-    background: linear-gradient(135deg, var(--gold), #b08d3e);
+    background: linear-gradient(135deg, var(--gold), var(--gold-hover));
     border: none;
     border-radius: 10px;
     color: #ffffff;
@@ -327,6 +309,65 @@ body::after {
     opacity: 0.6;
     cursor: not-allowed;
     transform: none;
+}
+
+/* Create Account Button */
+.create-account-section {
+    margin-top: 16px;
+    display: flex;
+    justify-content: center;
+}
+
+.create-account-btn {
+    width: 100%;
+    padding: 12px;
+    background: transparent;
+    border: 2px solid var(--gold);
+    border-radius: 10px;
+    color: var(--gold);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    letter-spacing: 0.3px;
+    background: rgba(200, 162, 74, 0.05);
+}
+
+.create-account-btn:hover {
+    background: var(--gold);
+    color: #ffffff;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(200, 162, 74, 0.25);
+}
+
+.create-account-btn:active {
+    transform: translateY(0);
+}
+
+/* Divider */
+.divider {
+    display: flex;
+    align-items: center;
+    margin: 20px 0 16px;
+    gap: 16px;
+}
+
+.divider::before,
+.divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border), transparent);
+}
+
+.divider span {
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    white-space: nowrap;
 }
 
 /* Error message */
@@ -375,7 +416,7 @@ body::after {
 }
 
 .login-footer .hint a:hover {
-    color: #b08d3e;
+    color: var(--gold-hover);
     text-decoration: underline;
 }
 
@@ -410,7 +451,7 @@ body::after {
     }
     
     .logo-wrapper img {
-        height: 44px;
+        height: 50px;
     }
     
     .login-options {
@@ -420,20 +461,115 @@ body::after {
     }
 }
 
-/* Decorative corner accents */
-.login-card::before {
-    content: '';
-    position: absolute;
+/* Modal for Create Account */
+.modal-overlay {
+    display: none;
+    position: fixed;
     top: 0;
-    right: 0;
-    width: 100px;
-    height: 100px;
-    background: radial-gradient(circle at top right, rgba(200, 162, 74, 0.06), transparent 70%);
-    pointer-events: none;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(11, 21, 38, 0.6);
+    backdrop-filter: blur(8px);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.3s ease;
 }
 
-.login-card {
-    position: relative;
+.modal-overlay.active {
+    display: flex;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.modal-content {
+    background: #ffffff;
+    border-radius: var(--radius);
+    padding: 40px;
+    max-width: 440px;
+    width: 100%;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.4);
+    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+}
+
+.modal-header h2 {
+    font-family: 'Playfair Display', serif;
+    color: var(--navy);
+    font-size: 1.5rem;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--muted);
+    padding: 4px 8px;
+    transition: color 0.2s;
+}
+
+.modal-close:hover {
+    color: var(--text);
+}
+
+.modal-body .form-group {
+    margin-bottom: 16px;
+}
+
+.modal-body .hint {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-top: 4px;
+}
+
+.modal-footer {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+}
+
+.modal-footer .btn-secondary {
+    width: 100%;
+    padding: 12px;
+    background: var(--gold);
+    border: none;
+    border-radius: 10px;
+    color: #ffffff;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+}
+
+.modal-footer .btn-secondary:hover {
+    background: var(--gold-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(200, 162, 74, 0.3);
 }
 </style>
 </head>
@@ -490,13 +626,25 @@ body::after {
                         <input type="checkbox" id="rememberMe">
                         Remember me
                     </label>
-                    <a href="#" class="forgot-link">Forgot password?</a>
+                    <a href="#" class="forgot-link" onclick="alert('Contact your administrator to reset your password.')">Forgot password?</a>
                 </div>
                 
                 <button type="submit" class="login-btn" id="loginBtn">
                     Sign In →
                 </button>
             </form>
+            
+            <!-- Divider -->
+            <div class="divider">
+                <span>or</span>
+            </div>
+            
+            <!-- Create Account Button -->
+            <div class="create-account-section">
+                <button class="create-account-btn" id="createAccountBtn">
+                    ✨ Create New Account
+                </button>
+            </div>
             
             <div class="error-message" id="errorMessage">
                 <span id="errorText">Invalid credentials</span>
@@ -511,9 +659,66 @@ body::after {
     </div>
 </div>
 
+<!-- Create Account Modal -->
+<div class="modal-overlay" id="createAccountModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>✨ Create Account</h2>
+            <button class="modal-close" id="modalClose">✕</button>
+        </div>
+        <div class="modal-body">
+            <p style="color: var(--muted); font-size: 0.9rem; margin-bottom: 20px;">
+                Create a new admin account. You'll need an employee ID to register.
+            </p>
+            <form id="createAccountForm">
+                <div class="form-group">
+                    <label>Employee ID <span class="required">*</span></label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">🆔</span>
+                        <input type="text" id="newEmployeeId" placeholder="Enter your employee ID" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Phone Number <span class="required">*</span></label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">📱</span>
+                        <input type="text" id="newPhone" placeholder="Enter your phone number" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Full Name <span class="required">*</span></label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">👤</span>
+                        <input type="text" id="newName" placeholder="Enter your full name" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Password <span class="required">*</span></label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">🔒</span>
+                        <input type="password" id="newPassword" placeholder="Create a password" required minlength="6">
+                    </div>
+                    <p class="hint">Minimum 6 characters</p>
+                </div>
+                <div class="form-group">
+                    <label>Confirm Password <span class="required">*</span></label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">✓</span>
+                        <input type="password" id="newPasswordConfirm" placeholder="Confirm your password" required>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn-secondary" id="createAccountSubmit">Create Account</button>
+            <p id="createError" style="color: #dc2626; font-size: 0.82rem; margin-top: 10px; display: none;"></p>
+        </div>
+    </div>
+</div>
+
 <script>
 const SUPABASE_URL = 'https://hnbzerhoqqsmzqxcbnxv.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhuYnplcmhvcXFzbXpxeGNibnh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDg1MjksImV4cCI6MjA5NDYyNDUyOX0.a4rM51DQGih9SXMr71PREngZ_pT6dJFgv_fG9j5jAGc';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhuYnplcmhvcXFzbXpxeGNibnh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDg1MjksImV4cCI6MjA5NDYyNDUyOX0.a4rM51DQGih9SXMr71PREngZ_pT6dJFgv_fG9j5jAGc';
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -535,6 +740,9 @@ const errorMessage = document.getElementById('errorMessage');
 const errorText = document.getElementById('errorText');
 const rememberMe = document.getElementById('rememberMe');
 const togglePassword = document.querySelector('.toggle-password');
+const createAccountBtn = document.getElementById('createAccountBtn');
+const modal = document.getElementById('createAccountModal');
+const modalClose = document.getElementById('modalClose');
 
 // Toggle password visibility
 togglePassword.addEventListener('click', () => {
@@ -542,6 +750,28 @@ togglePassword.addEventListener('click', () => {
     passwordInput.setAttribute('type', type);
     togglePassword.textContent = type === 'password' ? '👁️' : '👁️‍🗨️';
 });
+
+// Modal controls
+createAccountBtn.addEventListener('click', () => {
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+});
+
+modalClose.addEventListener('click', closeModal);
+
+modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal();
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeModal();
+});
+
+function closeModal() {
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+    document.getElementById('createError').style.display = 'none';
+}
 
 // Check for saved credentials on load
 document.addEventListener('DOMContentLoaded', () => {
@@ -559,19 +789,16 @@ form.addEventListener('submit', async (e) => {
     const username = usernameInput.value.trim().toLowerCase();
     const password = passwordInput.value.trim();
     
-    // Validation
     if (!username || !password) {
         showError('Please enter both username and password');
         return;
     }
     
-    // Show loading state
     loginBtn.disabled = true;
     loginBtn.innerHTML = '<span class="spinner"></span> Signing in...';
     hideError();
     
     try {
-        // Query employee credentials
         const { data: cred, error: credError } = await sb
             .from('employee_credentials')
             .select('*')
@@ -584,7 +811,6 @@ form.addEventListener('submit', async (e) => {
             return;
         }
         
-        // Verify password
         const hashedInput = await sha256(password);
         const isValid = cred.password_hash === hashedInput || cred.password_hash === password;
         
@@ -594,7 +820,6 @@ form.addEventListener('submit', async (e) => {
             return;
         }
         
-        // Check if user is admin
         const { data: employee, error: empError } = await sb
             .from('employees')
             .select('*')
@@ -607,17 +832,13 @@ form.addEventListener('submit', async (e) => {
             return;
         }
         
-        // Admin check - using a separate admin table or hardcoded list
-        // We'll check if the employee has admin role in their record
-        // You can modify this to check against an admin table
         const { data: adminCheck } = await sb
             .from('admin_users')
             .select('employee_id')
             .eq('employee_id', cred.employee_id)
             .maybeSingle();
         
-        // Hardcoded admin fallback
-        const ADMIN_PHONES = ['0700000000']; // Remove this and use database table instead
+        const ADMIN_PHONES = ['0700000000'];
         const isAdmin = adminCheck || ADMIN_PHONES.includes(employee.phone);
         
         if (!isAdmin) {
@@ -626,13 +847,11 @@ form.addEventListener('submit', async (e) => {
             return;
         }
         
-        // Save session
         localStorage.setItem('employee_id', cred.employee_id);
         if (rememberMe.checked) {
             localStorage.setItem('drafts_hq_username', username);
         }
         
-        // Redirect to admin dashboard
         window.location.href = 'admin.html';
         
     } catch (error) {
@@ -640,6 +859,109 @@ form.addEventListener('submit', async (e) => {
         showError('An error occurred during login. Please try again.');
         resetButton();
     }
+});
+
+// Create Account
+document.getElementById('createAccountSubmit').addEventListener('click', async () => {
+    const employeeId = document.getElementById('newEmployeeId').value.trim();
+    const phone = document.getElementById('newPhone').value.trim();
+    const name = document.getElementById('newName').value.trim();
+    const password = document.getElementById('newPassword').value;
+    const confirmPassword = document.getElementById('newPasswordConfirm').value;
+    const errorEl = document.getElementById('createError');
+    
+    // Validation
+    if (!employeeId || !phone || !name || !password || !confirmPassword) {
+        errorEl.textContent = 'Please fill in all fields.';
+        errorEl.style.display = 'block';
+        return;
+    }
+    
+    if (password.length < 6) {
+        errorEl.textContent = 'Password must be at least 6 characters.';
+        errorEl.style.display = 'block';
+        return;
+    }
+    
+    if (password !== confirmPassword) {
+        errorEl.textContent = 'Passwords do not match.';
+        errorEl.style.display = 'block';
+        return;
+    }
+    
+    errorEl.style.display = 'none';
+    const submitBtn = document.getElementById('createAccountSubmit');
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Creating...';
+    
+    try {
+        // Check if employee exists
+        const { data: emp } = await sb
+            .from('employees')
+            .select('id')
+            .eq('employee_code', employeeId)
+            .maybeSingle();
+        
+        if (!emp) {
+            errorEl.textContent = 'Employee ID not found. Please check with your administrator.';
+            errorEl.style.display = 'block';
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Create Account';
+            return;
+        }
+        
+        // Check if already has credentials
+        const { data: existing } = await sb
+            .from('employee_credentials')
+            .select('id')
+            .eq('employee_id', emp.id)
+            .maybeSingle();
+        
+        if (existing) {
+            errorEl.textContent = 'This employee already has an account.';
+            errorEl.style.display = 'block';
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Create Account';
+            return;
+        }
+        
+        // Hash password and create credentials
+        const hashedPassword = await sha256(password);
+        const { error: insertError } = await sb
+            .from('employee_credentials')
+            .insert([{
+                employee_id: emp.id,
+                username: phone,
+                password_hash: hashedPassword
+            }]);
+        
+        if (insertError) {
+            throw insertError;
+        }
+        
+        // Add to admin users
+        await sb
+            .from('admin_users')
+            .insert([{ employee_id: emp.id }]);
+        
+        // Success - close modal and show message
+        alert('✅ Account created successfully! You can now log in with your phone number.');
+        closeModal();
+        usernameInput.value = phone;
+        document.getElementById('newEmployeeId').value = '';
+        document.getElementById('newPhone').value = '';
+        document.getElementById('newName').value = '';
+        document.getElementById('newPassword').value = '';
+        document.getElementById('newPasswordConfirm').value = '';
+        
+    } catch (error) {
+        console.error('Create account error:', error);
+        errorEl.textContent = 'Error creating account. Please try again.';
+        errorEl.style.display = 'block';
+    }
+    
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Create Account';
 });
 
 function showError(message) {
@@ -656,7 +978,7 @@ function resetButton() {
     loginBtn.innerHTML = 'Sign In →';
 }
 
-// Handle Enter key on inputs
+// Enter key on inputs
 usernameInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') form.dispatchEvent(new Event('submit'));
 });
@@ -664,7 +986,7 @@ passwordInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') form.dispatchEvent(new Event('submit'));
 });
 
-// Auto-dismiss error after 5 seconds
+// Auto-dismiss error
 let errorTimeout;
 usernameInput.addEventListener('focus', () => {
     clearTimeout(errorTimeout);
