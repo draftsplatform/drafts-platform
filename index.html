@@ -1,1010 +1,962 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Drafts HQ — Employee Portal</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<style>
-:root {
-    --navy: #0b1526;
-    --gold: #c8a24a;
-    --gold-light: #e8d5a3;
-    --gold-hover: #b08d3e;
-    --primary: #2563eb;
-    --bg: #f6f8fb;
-    --border: #e5eaf1;
-    --muted: #64748b;
-    --text: #16233a;
-    --shadow: 0 25px 80px rgba(11, 21, 38, 0.35);
-    --radius: 16px;
-}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Drafts HQ — Employee Portal</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js">
+  </script>
+  <style>
+    /* ── reset & base ── */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: #f6f8fb;
+      position: relative;
+    }
 
-body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    min-height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    position: relative;
-    background: var(--bg);
-}
-
-body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: 
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
         radial-gradient(ellipse at 20% 50%, rgba(200, 162, 74, 0.08) 0%, transparent 60%),
         radial-gradient(ellipse at 80% 50%, rgba(37, 99, 235, 0.06) 0%, transparent 60%),
         linear-gradient(180deg, #f8fafc 0%, #eef1f7 100%);
-    z-index: -1;
-}
-
-body::after {
-    content: '';
-    position: fixed;
-    top: -50%;
-    right: -20%;
-    width: 600px;
-    height: 600px;
-    background: radial-gradient(circle, rgba(200, 162, 74, 0.06) 0%, transparent 70%);
-    border-radius: 50%;
-    z-index: -1;
-}
-
-.login-container {
-    width: 100%;
-    max-width: 480px;
-    animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    opacity: 0;
-    transform: translateY(20px);
-}
-
-@keyframes fadeUp {
-    to {
-        opacity: 1;
-        transform: translateY(0);
+      z-index: -1;
     }
-}
 
-.login-card {
-    background: #ffffff;
-    border-radius: var(--radius);
-    overflow: hidden;
-    box-shadow: var(--shadow);
-    border: 1px solid rgba(255, 255, 255, 0.8);
-}
+    body::after {
+      content: '';
+      position: fixed;
+      top: -50%;
+      right: -20%;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(200, 162, 74, 0.06) 0%, transparent 70%);
+      border-radius: 50%;
+      z-index: -1;
+    }
 
-.login-header {
-    background: #ffffff;
-    padding: 40px 40px 32px;
-    text-align: center;
-    position: relative;
-    border-bottom: 3px solid var(--gold);
-}
+    /* ── container & card ── */
+    .login-container {
+      width: 100%;
+      max-width: 480px;
+      animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      opacity: 0;
+      transform: translateY(20px);
+    }
 
-.logo-wrapper {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 12px;
-}
+    @keyframes fadeUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
 
-.logo-wrapper img {
-    height: 64px;
-    width: auto;
-}
+    .login-card {
+      background: #ffffff;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 25px 80px rgba(11, 21, 38, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+    }
 
-.login-title {
-    font-family: 'Playfair Display', serif;
-    color: var(--navy);
-    font-size: 1.8rem;
-    font-weight: 700;
-    letter-spacing: -0.5px;
-    margin-top: 4px;
-}
-
-.login-subtitle {
-    color: var(--gold);
-    font-size: 0.7rem;
-    letter-spacing: 4px;
-    text-transform: uppercase;
-    font-weight: 600;
-    margin-top: 6px;
-}
-
-.login-body {
-    padding: 36px 40px 40px;
-}
-
-.login-body .welcome-text {
-    font-size: 0.95rem;
-    color: var(--text);
-    font-weight: 600;
-    margin-bottom: 4px;
-}
-
-.login-body .welcome-sub {
-    font-size: 0.82rem;
-    color: var(--muted);
-    margin-bottom: 24px;
-}
-
-.form-group {
-    margin-bottom: 20px;
-}
-
-.form-group label {
-    display: block;
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: #33415c;
-    margin-bottom: 6px;
-    letter-spacing: 0.3px;
-}
-
-.form-group label .required {
-    color: #dc2626;
-    margin-left: 2px;
-}
-
-.input-wrapper {
-    position: relative;
-}
-
-.input-wrapper .input-icon {
-    position: absolute;
-    left: 14px;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 1.1rem;
-    opacity: 0.5;
-    z-index: 1;
-}
-
-.input-wrapper input {
-    width: 100%;
-    padding: 12px 14px 12px 44px;
-    border: 2px solid #e8ecf3;
-    border-radius: 10px;
-    font-family: 'Inter', sans-serif;
-    font-size: 0.9rem;
-    transition: all 0.3s ease;
-    background: #fafbfc;
-    color: var(--text);
-}
-
-.input-wrapper input:focus {
-    outline: none;
-    border-color: var(--gold);
-    background: #ffffff;
-    box-shadow: 0 0 0 4px rgba(200, 162, 74, 0.1);
-}
-
-.input-wrapper input::placeholder {
-    color: #b0bccf;
-    font-weight: 400;
-}
-
-.input-wrapper input[type="password"] {
-    padding-right: 44px;
-}
-
-.toggle-password {
-    position: absolute;
-    right: 14px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 1rem;
-    opacity: 0.4;
-    transition: opacity 0.2s;
-    padding: 4px;
-    z-index: 1;
-}
-
-.toggle-password:hover {
-    opacity: 0.8;
-}
-
-.login-options {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
-    font-size: 0.82rem;
-}
-
-.remember-me {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--muted);
-    cursor: pointer;
-    font-weight: 500;
-}
-
-.remember-me input[type="checkbox"] {
-    width: 16px;
-    height: 16px;
-    accent-color: var(--gold);
-    cursor: pointer;
-    border-radius: 4px;
-}
-
-.forgot-link {
-    color: var(--gold);
-    text-decoration: none;
-    font-weight: 600;
-    transition: color 0.2s;
-    cursor: pointer;
-}
-
-.forgot-link:hover {
-    color: var(--gold-hover);
-    text-decoration: underline;
-}
-
-.login-btn {
-    width: 100%;
-    padding: 14px;
-    background: linear-gradient(135deg, var(--gold), var(--gold-hover));
-    border: none;
-    border-radius: 10px;
-    color: #ffffff;
-    font-family: 'Inter', sans-serif;
-    font-size: 0.95rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    position: relative;
-    overflow: hidden;
-    letter-spacing: 0.5px;
-}
-
-.login-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(200, 162, 74, 0.35);
-}
-
-.login-btn:active {
-    transform: translateY(0);
-}
-
-.login-btn::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
-    transition: left 0.6s;
-}
-
-.login-btn:hover::after {
-    left: 100%;
-}
-
-.login-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
-}
-
-.create-account-section {
-    margin-top: 16px;
-    display: flex;
-    justify-content: center;
-}
-
-.create-account-btn {
-    width: 100%;
-    padding: 12px;
-    background: transparent;
-    border: 2px solid var(--gold);
-    border-radius: 10px;
-    color: var(--gold);
-    font-family: 'Inter', sans-serif;
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    letter-spacing: 0.3px;
-    background: rgba(200, 162, 74, 0.05);
-}
-
-.create-account-btn:hover {
-    background: var(--gold);
-    color: #ffffff;
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(200, 162, 74, 0.25);
-}
-
-.create-account-btn:active {
-    transform: translateY(0);
-}
-
-.divider {
-    display: flex;
-    align-items: center;
-    margin: 20px 0 16px;
-    gap: 16px;
-}
-
-.divider::before,
-.divider::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--border), transparent);
-}
-
-.divider span {
-    color: var(--muted);
-    font-size: 0.75rem;
-    font-weight: 500;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    white-space: nowrap;
-}
-
-.error-message {
-    margin-top: 14px;
-    padding: 10px 14px;
-    background: #fef2f2;
-    border: 1px solid #fecaca;
-    border-radius: 8px;
-    color: #dc2626;
-    font-size: 0.82rem;
-    font-weight: 500;
-    display: none;
-}
-
-.error-message.show {
-    display: block;
-    animation: shake 0.4s ease;
-}
-
-@keyframes shake {
-    0%, 100% { transform: translateX(0); }
-    25% { transform: translateX(-6px); }
-    75% { transform: translateX(6px); }
-}
-
-.login-footer {
-    text-align: center;
-    padding-top: 20px;
-    border-top: 1px solid #eef1f7;
-    margin-top: 20px;
-}
-
-.login-footer .hint {
-    font-size: 0.78rem;
-    color: var(--muted);
-    font-weight: 500;
-}
-
-.login-footer .hint a {
-    color: var(--gold);
-    text-decoration: none;
-    font-weight: 600;
-    transition: color 0.2s;
-    cursor: pointer;
-}
-
-.login-footer .hint a:hover {
-    color: var(--gold-hover);
-    text-decoration: underline;
-}
-
-.spinner {
-    display: inline-block;
-    width: 20px;
-    height: 20px;
-    border: 3px solid rgba(255, 255, 255, 0.3);
-    border-radius: 50%;
-    border-top-color: #ffffff;
-    animation: spin 0.8s ease-in-out infinite;
-    vertical-align: middle;
-}
-
-@keyframes spin {
-    to { transform: rotate(360deg); }
-}
-
-@media (max-width: 500px) {
+    /* ── header ── */
     .login-header {
-        padding: 30px 24px 24px;
+      background: #ffffff;
+      padding: 40px 40px 32px;
+      text-align: center;
+      border-bottom: 3px solid #c8a24a;
     }
-    
-    .login-body {
-        padding: 24px 24px 28px;
+
+    .logo-wrapper {
+      display: flex;
+      justify-content: center;
+      margin-bottom: 12px;
     }
-    
-    .login-title {
-        font-size: 1.5rem;
-    }
-    
+
     .logo-wrapper img {
-        height: 50px;
+      height: 64px;
+      width: auto;
     }
-    
+
+    .login-title {
+      font-family: 'Playfair Display', serif;
+      color: #0b1526;
+      font-size: 1.8rem;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-top: 4px;
+    }
+
+    .login-subtitle {
+      color: #c8a24a;
+      font-size: 0.7rem;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-top: 6px;
+    }
+
+    /* ── body ── */
+    .login-body {
+      padding: 36px 40px 40px;
+    }
+
+    .welcome-text {
+      font-size: 0.95rem;
+      color: #16233a;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .welcome-sub {
+      font-size: 0.82rem;
+      color: #64748b;
+      margin-bottom: 24px;
+    }
+
+    /* ── form elements ── */
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #33415c;
+      margin-bottom: 6px;
+      letter-spacing: 0.3px;
+    }
+
+    .form-group label .required {
+      color: #dc2626;
+      margin-left: 2px;
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    .input-wrapper .input-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 1.1rem;
+      opacity: 0.5;
+      z-index: 1;
+    }
+
+    .input-wrapper input {
+      width: 100%;
+      padding: 12px 14px 12px 44px;
+      border: 2px solid #e8ecf3;
+      border-radius: 10px;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      transition: all 0.3s ease;
+      background: #fafbfc;
+      color: #16233a;
+    }
+
+    .input-wrapper input:focus {
+      outline: none;
+      border-color: #c8a24a;
+      background: #ffffff;
+      box-shadow: 0 0 0 4px rgba(200, 162, 74, 0.1);
+    }
+
+    .input-wrapper input::placeholder {
+      color: #b0bccf;
+      font-weight: 400;
+    }
+
+    .input-wrapper input[type="password"] {
+      padding-right: 44px;
+    }
+
+    .toggle-password {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      opacity: 0.4;
+      transition: opacity 0.2s;
+      padding: 4px;
+      z-index: 1;
+    }
+
+    .toggle-password:hover {
+      opacity: 0.8;
+    }
+
     .login-options {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+      font-size: 0.82rem;
+    }
+
+    .remember-me {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #64748b;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .remember-me input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: #c8a24a;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    .forgot-link {
+      color: #c8a24a;
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.2s;
+      cursor: pointer;
+    }
+
+    .forgot-link:hover {
+      color: #b08d3e;
+      text-decoration: underline;
+    }
+
+    .login-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #c8a24a, #b08d3e);
+      border: none;
+      border-radius: 10px;
+      color: #ffffff;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      letter-spacing: 0.5px;
+    }
+
+    .login-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(200, 162, 74, 0.35);
+    }
+
+    .login-btn:active {
+      transform: translateY(0);
+    }
+
+    .login-btn::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+      transition: left 0.6s;
+    }
+
+    .login-btn:hover::after {
+      left: 100%;
+    }
+
+    .login-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .create-account-section {
+      margin-top: 16px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .create-account-btn {
+      width: 100%;
+      padding: 12px;
+      background: transparent;
+      border: 2px solid #c8a24a;
+      border-radius: 10px;
+      color: #c8a24a;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      letter-spacing: 0.3px;
+      background: rgba(200, 162, 74, 0.05);
+    }
+
+    .create-account-btn:hover {
+      background: #c8a24a;
+      color: #ffffff;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(200, 162, 74, 0.25);
+    }
+
+    .create-account-btn:active {
+      transform: translateY(0);
+    }
+
+    .divider {
+      display: flex;
+      align-items: center;
+      margin: 20px 0 16px;
+      gap: 16px;
+    }
+
+    .divider::before,
+    .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, #e5eaf1, transparent);
+    }
+
+    .divider span {
+      color: #64748b;
+      font-size: 0.75rem;
+      font-weight: 500;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .error-message {
+      margin-top: 14px;
+      padding: 10px 14px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 8px;
+      color: #dc2626;
+      font-size: 0.82rem;
+      font-weight: 500;
+      display: none;
+    }
+
+    .error-message.show {
+      display: block;
+      animation: shake 0.4s ease;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      25% { transform: translateX(-6px); }
+      75% { transform: translateX(6px); }
+    }
+
+    .login-footer {
+      text-align: center;
+      padding-top: 20px;
+      border-top: 1px solid #eef1f7;
+      margin-top: 20px;
+    }
+
+    .login-footer .hint {
+      font-size: 0.78rem;
+      color: #64748b;
+      font-weight: 500;
+    }
+
+    .login-footer .hint a {
+      color: #c8a24a;
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.2s;
+      cursor: pointer;
+    }
+
+    .login-footer .hint a:hover {
+      color: #b08d3e;
+      text-decoration: underline;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: #ffffff;
+      animation: spin 0.8s ease-in-out infinite;
+      vertical-align: middle;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 500px) {
+      .login-header {
+        padding: 30px 24px 24px;
+      }
+      .login-body {
+        padding: 24px 24px 28px;
+      }
+      .login-title {
+        font-size: 1.5rem;
+      }
+      .logo-wrapper img {
+        height: 50px;
+      }
+      .login-options {
         flex-direction: column;
         gap: 12px;
         align-items: flex-start;
+      }
     }
-}
 
-.modal-overlay {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(11, 21, 38, 0.6);
-    backdrop-filter: blur(8px);
-    z-index: 1000;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    animation: fadeIn 0.3s ease;
-}
+    /* ── modal ── */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(11, 21, 38, 0.6);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      animation: fadeIn 0.3s ease;
+    }
 
-.modal-overlay.active {
-    display: flex;
-}
+    .modal-overlay.active {
+      display: flex;
+    }
 
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
 
-.modal-content {
-    background: #ffffff;
-    border-radius: var(--radius);
-    padding: 40px;
-    max-width: 440px;
-    width: 100%;
-    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.4);
-    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-    max-height: 90vh;
-    overflow-y: auto;
-}
+    .modal-content {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 40px;
+      max-width: 440px;
+      width: 100%;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.4);
+      animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      max-height: 90vh;
+      overflow-y: auto;
+    }
 
-@keyframes slideUp {
-    from {
+    @keyframes slideUp {
+      from {
         opacity: 0;
         transform: translateY(30px) scale(0.95);
-    }
-    to {
+      }
+      to {
         opacity: 1;
         transform: translateY(0) scale(1);
+      }
     }
-}
 
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 24px;
-}
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 24px;
+    }
 
-.modal-header h2 {
-    font-family: 'Playfair Display', serif;
-    color: var(--navy);
-    font-size: 1.5rem;
-}
+    .modal-header h2 {
+      font-family: 'Playfair Display', serif;
+      color: #0b1526;
+      font-size: 1.5rem;
+    }
 
-.modal-close {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    cursor: pointer;
-    color: var(--muted);
-    padding: 4px 8px;
-    transition: color 0.2s;
-}
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: #64748b;
+      padding: 4px 8px;
+      transition: color 0.2s;
+    }
 
-.modal-close:hover {
-    color: var(--text);
-}
+    .modal-close:hover {
+      color: #16233a;
+    }
 
-.modal-body .form-group {
-    margin-bottom: 16px;
-}
+    .modal-body .form-group {
+      margin-bottom: 16px;
+    }
 
-.modal-body .hint {
-    font-size: 0.75rem;
-    color: var(--muted);
-    margin-top: 4px;
-}
+    .modal-body .hint {
+      font-size: 0.75rem;
+      color: #64748b;
+      margin-top: 4px;
+    }
 
-.modal-footer {
-    margin-top: 20px;
-    padding-top: 16px;
-    border-top: 1px solid var(--border);
-}
+    .modal-footer {
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid #e5eaf1;
+    }
 
-.modal-footer .btn-secondary {
-    width: 100%;
-    padding: 12px;
-    background: var(--gold);
-    border: none;
-    border-radius: 10px;
-    color: #ffffff;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-size: 0.9rem;
-}
+    .modal-footer .btn-secondary {
+      width: 100%;
+      padding: 12px;
+      background: #c8a24a;
+      border: none;
+      border-radius: 10px;
+      color: #ffffff;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 0.9rem;
+    }
 
-.modal-footer .btn-secondary:hover {
-    background: var(--gold-hover);
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(200, 162, 74, 0.3);
-}
+    .modal-footer .btn-secondary:hover {
+      background: #b08d3e;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(200, 162, 74, 0.3);
+    }
 
-.success-message {
-    background: #f0fdf4;
-    border: 1px solid #bbf7d0;
-    color: #166534;
-    padding: 12px;
-    border-radius: 8px;
-    font-size: 0.85rem;
-    margin-top: 12px;
-    display: none;
-}
+    .success-message {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #166534;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      margin-top: 12px;
+      display: none;
+    }
 
-.success-message.show {
-    display: block;
-}
-</style>
+    .success-message.show {
+      display: block;
+    }
+  </style>
 </head>
 <body>
 
-<div class="login-container">
+  <div class="login-container">
     <div class="login-card">
-        <div class="login-header">
-            <div class="logo-wrapper">
-                <img src="https://i.ibb.co/p6GCfY1x/Screenshot-2026-05-30-at-17-06-41.png" alt="Drafts HQ Logo">
-            </div>
-            
-        
-        <div class="login-body">
-            <div class="welcome-text">Welcome back</div>
-            <div class="welcome-sub">Sign in to access your dashboard</div>
-            
-            <form id="loginForm" autocomplete="off">
-                <div class="form-group">
-                    <label for="username">Phone Number <span class="required">*</span></label>
-                    <div class="input-wrapper">
-                        <span class="input-icon">📱</span>
-                        <input 
-                            type="text" 
-                            id="username" 
-                            placeholder="Enter your phone number"
-                            required
-                            autocomplete="username"
-                        >
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label for="password">Password <span class="required">*</span></label>
-                    <div class="input-wrapper">
-                        <span class="input-icon">🔒</span>
-                        <input 
-                            type="password" 
-                            id="password" 
-                            placeholder="Enter your password"
-                            required
-                            autocomplete="current-password"
-                        >
-                        <button type="button" class="toggle-password" aria-label="Toggle password visibility">
-                            👁️
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="login-options">
-                    <label class="remember-me">
-                        <input type="checkbox" id="rememberMe">
-                        Remember me
-                    </label>
-                    <span class="forgot-link" onclick="alert('Contact your administrator to reset your password.')">Forgot password?</span>
-                </div>
-                
-                <button type="submit" class="login-btn" id="loginBtn">
-                    Sign In →
-                </button>
-            </form>
-            
-            <div class="divider">
-                <span>or</span>
-            </div>
-            
-            <div class="create-account-section">
-                <button class="create-account-btn" id="createAccountBtn">
-                    ✨ Create New Account
-                </button>
-            </div>
-            
-            <div class="error-message" id="errorMessage">
-                <span id="errorText">Invalid credentials</span>
-            </div>
-            
-           
-                </p>
-            </div>
-        </div>
-    </div>
-</div>
 
-<!-- Create Account Modal -->
-<div class="modal-overlay" id="createAccountModal">
+      <!-- header -->
+      <div class="login-header">
+        <div class="logo-wrapper">
+          <img src="https://i.ibb.co/p6GCfY1x/Screenshot-2026-05-30-at-17-06-41.png" alt="Drafts HQ Logo">
+        </div>
+        <div class="login-title">Drafts HQ</div>
+        <div class="login-subtitle">Employee Portal</div>
+      </div>
+
+      <!-- body -->
+      <div class="login-body">
+        <div class="welcome-text">Welcome back</div>
+        <div class="welcome-sub">Sign in to access your dashboard</div>
+
+        <form id="loginForm" autocomplete="off">
+          <div class="form-group">
+            <label for="username">Phone Number <span class="required">*</span></label>
+            <div class="input-wrapper">
+              <span class="input-icon">📱</span>
+              <input type="text" id="username" placeholder="Enter your phone number" required autocomplete="username">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="password">Password <span class="required">*</span></label>
+            <div class="input-wrapper">
+              <span class="input-icon">🔒</span>
+              <input type="password" id="password" placeholder="Enter your password" required autocomplete="current-password">
+              <button type="button" class="toggle-password" aria-label="Toggle password visibility">👁️</button>
+            </div>
+          </div>
+
+          <div class="login-options">
+            <label class="remember-me">
+              <input type="checkbox" id="rememberMe"> Remember me
+            </label>
+            <span class="forgot-link" onclick="alert('Contact your administrator to reset your password.')">Forgot password?</span>
+          </div>
+
+          <button type="submit" class="login-btn" id="loginBtn">Sign In →</button>
+        </form>
+
+        <div class="divider"><span>or</span></div>
+
+        <div class="create-account-section">
+          <button class="create-account-btn" id="createAccountBtn">✨ Create New Account</button>
+        </div>
+
+        <div class="error-message" id="errorMessage">
+          <span id="errorText">Invalid credentials</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── Create Account Modal ─── -->
+  <div class="modal-overlay" id="createAccountModal">
     <div class="modal-content">
-        <div class="modal-header">
-            <h2>✨ Create Account</h2>
-            <button class="modal-close" id="modalClose">✕</button>
-        </div>
-        <div class="modal-body">
-            <p style="color: var(--muted); font-size: 0.9rem; margin-bottom: 20px;">
-                Create your employee account. You'll need your employee details.
-            </p>
-            <form id="createAccountForm">
-                <div class="form-group">
-                    <label>Full Name <span class="required">*</span></label>
-                    <div class="input-wrapper">
-                        <span class="input-icon">👤</span>
-                        <input type="text" id="newName" placeholder="Enter your full name" required>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Phone Number <span class="required">*</span></label>
-                    <div class="input-wrapper">
-                        <span class="input-icon">📱</span>
-                        <input type="text" id="newPhone" placeholder="Enter your phone number" required>
-                    </div>
-                    <p class="hint">This will be your username for login</p>
-                </div>
-                <div class="form-group">
-                    <label>Employee Code <span class="required">*</span></label>
-                    <div class="input-wrapper">
-                        <span class="input-icon">🆔</span>
-                        <input type="text" id="newEmployeeCode" placeholder="Enter your employee code" required>
-                    </div>
-                    <p class="hint">Your unique employee identifier</p>
-                </div>
-                <div class="form-group">
-                    <label>Password <span class="required">*</span></label>
-                    <div class="input-wrapper">
-                        <span class="input-icon">🔒</span>
-                        <input type="password" id="newPassword" placeholder="Create a password" required minlength="6">
-                    </div>
-                    <p class="hint">Minimum 6 characters</p>
-                </div>
-                <div class="form-group">
-                    <label>Confirm Password <span class="required">*</span></label>
-                    <div class="input-wrapper">
-                        <span class="input-icon">✓</span>
-                        <input type="password" id="newPasswordConfirm" placeholder="Confirm your password" required>
-                    </div>
-                </div>
-            </form>
-        </div>
-        <div class="modal-footer">
-            <button class="btn-secondary" id="createAccountSubmit">Create Account</button>
-            <div class="success-message" id="successMessage">
-                ✅ Account created successfully! You can now log in.
+      <div class="modal-header">
+        <h2>✨ Create Account</h2>
+        <button class="modal-close" id="modalClose">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 20px;">
+          Create your employee account. You'll need your employee details.
+        </p>
+
+        <form id="createAccountForm">
+          <!-- Full Name -->
+          <div class="form-group">
+            <label>Full Name <span class="required">*</span></label>
+            <div class="input-wrapper">
+              <span class="input-icon">👤</span>
+              <input type="text" id="newName" placeholder="Enter your full name" required>
             </div>
-            <p id="createError" style="color: #dc2626; font-size: 0.82rem; margin-top: 10px; display: none;"></p>
-        </div>
+          </div>
+
+          <!-- Phone Number (username) -->
+          <div class="form-group">
+            <label>Phone Number <span class="required">*</span></label>
+            <div class="input-wrapper">
+              <span class="input-icon">📱</span>
+              <input type="text" id="newPhone" placeholder="Enter your phone number" required>
+            </div>
+            <p class="hint">This will be your username for login</p>
+          </div>
+
+          <!-- Password -->
+          <div class="form-group">
+            <label>Password <span class="required">*</span></label>
+            <div class="input-wrapper">
+              <span class="input-icon">🔒</span>
+              <input type="password" id="newPassword" placeholder="Create a password" required minlength="6">
+            </div>
+            <p class="hint">Minimum 6 characters</p>
+          </div>
+
+          <!-- Confirm Password -->
+          <div class="form-group">
+            <label>Confirm Password <span class="required">*</span></label>
+            <div class="input-wrapper">
+              <span class="input-icon">✓</span>
+              <input type="password" id="newPasswordConfirm" placeholder="Confirm your password" required>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-secondary" id="createAccountSubmit">Create Account</button>
+        <div class="success-message" id="successMessage">✅ Account created successfully! You can now log in.</div>
+        <p id="createError" style="color: #dc2626; font-size: 0.82rem; margin-top: 10px; display: none;"></p>
+      </div>
     </div>
-</div>
+  </div>
 
-<script>
-const SUPABASE_URL = 'https://hnbzerhoqqsmzqxcbnxv.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhuYnplcmhvcXFzbXpxeGNibnh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDg1MjksImV4cCI6MjA5NDYyNDUyOX0.a4rM51DQGih9SXMr71PREngZ_pT6dJFgv_fG9j5jAGc';
+  <script>
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    //  Supabase client
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const SUPABASE_URL = 'https://hnbzerhoqqsmzqxcbnxv.supabase.co';
+    const SUPABASE_KEY =
+      'eyJhbGciOiJIUzI1NiIsR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhuYnplcmhvcXFzbXpxeGNibnh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDg1MjksImV4cCI6MjA5NDYyNDUyOX0.a4rM51DQGih9SXMr71PREngZ_pT6dJFgv_fG9j5jAGc';
 
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const sha256 = async (text) => {
-    const data = new TextEncoder().encode(text);
-    const hash = await crypto.subtle.digest('SHA-256', data);
-    return Array.from(new Uint8Array(hash))
+    const sha256 = async (text) => {
+      const data = new TextEncoder().encode(text);
+      const hash = await crypto.subtle.digest('SHA-256', data);
+      return Array.from(new Uint8Array(hash))
         .map(b => b.toString(16).padStart(2, '0'))
         .join('');
-};
+    };
 
-// DOM elements
-const form = document.getElementById('loginForm');
-const usernameInput = document.getElementById('username');
-const passwordInput = document.getElementById('password');
-const loginBtn = document.getElementById('loginBtn');
-const errorMessage = document.getElementById('errorMessage');
-const errorText = document.getElementById('errorText');
-const rememberMe = document.getElementById('rememberMe');
-const togglePassword = document.querySelector('.toggle-password');
-const createAccountBtn = document.getElementById('createAccountBtn');
-const modal = document.getElementById('createAccountModal');
-const modalClose = document.getElementById('modalClose');
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    //  DOM refs
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    const form = document.getElementById('loginForm');
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const loginBtn = document.getElementById('loginBtn');
+    const errorMessage = document.getElementById('errorMessage');
+    const errorText = document.getElementById('errorText');
+    const rememberMe = document.getElementById('rememberMe');
+    const togglePassword = document.querySelector('.toggle-password');
 
-// Toggle password visibility
-togglePassword.addEventListener('click', () => {
-    const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-    passwordInput.setAttribute('type', type);
-    togglePassword.textContent = type === 'password' ? '👁️' : '👁️‍🗨️';
-});
+    const createAccountBtn = document.getElementById('createAccountBtn');
+    const modal = document.getElementById('createAccountModal');
+    const modalClose = document.getElementById('modalClose');
+    const createSubmit = document.getElementById('createAccountSubmit');
 
-// Modal controls
-createAccountBtn.addEventListener('click', () => {
-    modal.classList.add('active');
-    document.body.style.overflow = 'hidden';
-    document.getElementById('createError').style.display = 'none';
-    document.getElementById('successMessage').classList.remove('show');
-});
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    //  Toggle password visibility
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    togglePassword.addEventListener('click', () => {
+      const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+      passwordInput.setAttribute('type', type);
+      togglePassword.textContent = type === 'password' ? '👁️' : '👁️‍🗨️';
+    });
 
-modalClose.addEventListener('click', closeModal);
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    //  Modal controls
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    createAccountBtn.addEventListener('click', () => {
+      modal.classList.add('active');
+      document.body.style.overflow = 'hidden';
+      document.getElementById('createError').style.display = 'none';
+      document.getElementById('successMessage').classList.remove('show');
+    });
 
-modal.addEventListener('click', (e) => {
-    if (e.target === modal) closeModal();
-});
+    modalClose.addEventListener('click', closeModal);
 
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeModal();
-});
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) closeModal();
+    });
 
-function closeModal() {
-    modal.classList.remove('active');
-    document.body.style.overflow = '';
-}
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeModal();
+    });
 
-// Check for saved credentials
-document.addEventListener('DOMContentLoaded', () => {
-    const saved = localStorage.getItem('drafts_employee_username');
-    if (saved) {
+    function closeModal() {
+      modal.classList.remove('active');
+      document.body.style.overflow = '';
+    }
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    //  Load saved credentials
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    document.addEventListener('DOMContentLoaded', () => {
+      const saved = localStorage.getItem('drafts_employee_username');
+      if (saved) {
         usernameInput.value = saved;
         rememberMe.checked = true;
-    }
-});
+      }
+    });
 
-// Login form submission
-form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const username = usernameInput.value.trim().toLowerCase();
-    const password = passwordInput.value.trim();
-    
-    if (!username || !password) {
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    //  Login
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const username = usernameInput.value.trim().toLowerCase();
+      const password = passwordInput.value.trim();
+
+      if (!username || !password) {
         showError('Please enter both username and password');
         return;
-    }
-    
-    loginBtn.disabled = true;
-    loginBtn.innerHTML = '<span class="spinner"></span> Signing in...';
-    hideError();
-    
-    try {
+      }
+
+      loginBtn.disabled = true;
+      loginBtn.innerHTML = '<span class="spinner"></span> Signing in...';
+      hideError();
+
+      try {
         const { data: cred, error: credError } = await sb
-            .from('employee_credentials')
-            .select('*')
-            .eq('username', username)
-            .maybeSingle();
-        
+          .from('employee_credentials')
+          .select('*')
+          .eq('username', username)
+          .maybeSingle();
+
         if (credError || !cred) {
-            showError('Account not found. Please check your credentials.');
-            resetButton();
-            return;
+          showError('Account not found. Please check your credentials.');
+          resetButton();
+          return;
         }
-        
+
         const hashedInput = await sha256(password);
         const isValid = cred.password_hash === hashedInput || cred.password_hash === password;
-        
+
         if (!isValid) {
-            showError('Invalid password. Please try again.');
-            resetButton();
-            return;
+          showError('Invalid password. Please try again.');
+          resetButton();
+          return;
         }
-        
+
         const { data: employee, error: empError } = await sb
-            .from('employees')
-            .select('*')
-            .eq('id', cred.employee_id)
-            .maybeSingle();
-        
+          .from('employees')
+          .select('*')
+          .eq('id', cred.employee_id)
+          .maybeSingle();
+
         if (empError || !employee) {
-            showError('Employee record not found.');
-            resetButton();
-            return;
+          showError('Employee record not found.');
+          resetButton();
+          return;
         }
-        
+
         localStorage.setItem('employee_id', cred.employee_id);
         if (rememberMe.checked) {
-            localStorage.setItem('drafts_employee_username', username);
+          localStorage.setItem('drafts_employee_username', username);
         }
-        
+
         window.location.href = 'employee-dashboard.html';
-        
-    } catch (error) {
+      } catch (error) {
         console.error('Login error:', error);
         showError('An error occurred during login. Please try again.');
         resetButton();
-    }
-});
+      }
+    });
 
-// Create Account
-document.getElementById('createAccountSubmit').addEventListener('click', async () => {
-    const name = document.getElementById('newName').value.trim();
-    const phone = document.getElementById('newPhone').value.trim();
-    const employeeCode = document.getElementById('newEmployeeCode').value.trim();
-    const password = document.getElementById('newPassword').value;
-    const confirmPassword = document.getElementById('newPasswordConfirm').value;
-    const errorEl = document.getElementById('createError');
-    const successEl = document.getElementById('successMessage');
-    
-    // Reset messages
-    errorEl.style.display = 'none';
-    successEl.classList.remove('show');
-    
-    // Validation
-    if (!name || !phone || !employeeCode || !password || !confirmPassword) {
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    //  Create account (employee_code removed)
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    createSubmit.addEventListener('click', async () => {
+      const name = document.getElementById('newName').value.trim();
+      const phone = document.getElementById('newPhone').value.trim();
+      const password = document.getElementById('newPassword').value;
+      const confirmPassword = document.getElementById('newPasswordConfirm').value;
+      const errorEl = document.getElementById('createError');
+      const successEl = document.getElementById('successMessage');
+
+      errorEl.style.display = 'none';
+      successEl.classList.remove('show');
+
+      if (!name || !phone || !password || !confirmPassword) {
         errorEl.textContent = 'Please fill in all fields.';
         errorEl.style.display = 'block';
         return;
-    }
-    
-    if (password.length < 6) {
+      }
+
+      if (password.length < 6) {
         errorEl.textContent = 'Password must be at least 6 characters.';
         errorEl.style.display = 'block';
         return;
-    }
-    
-    if (password !== confirmPassword) {
+      }
+
+      if (password !== confirmPassword) {
         errorEl.textContent = 'Passwords do not match.';
         errorEl.style.display = 'block';
         return;
-    }
-    
-    const submitBtn = document.getElementById('createAccountSubmit');
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Creating...';
-    
-    try {
+      }
+
+      createSubmit.disabled = true;
+      createSubmit.textContent = 'Creating...';
+
+      try {
         // Check if phone already registered
         const { data: existingPhone } = await sb
-            .from('employee_credentials')
-            .select('id')
-            .eq('username', phone)
-            .maybeSingle();
-        
+          .from('employee_credentials')
+          .select('id')
+          .eq('username', phone)
+          .maybeSingle();
+
         if (existingPhone) {
-            errorEl.textContent = 'This phone number is already registered.';
-            errorEl.style.display = 'block';
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Create Account';
-            return;
+          errorEl.textContent = 'This phone number is already registered.';
+          errorEl.style.display = 'block';
+          createSubmit.disabled = false;
+          createSubmit.textContent = 'Create Account';
+          return;
         }
-        
-        // Check if employee code already exists
-        const { data: existingCode } = await sb
-            .from('employees')
-            .select('id')
-            .eq('employee_code', employeeCode)
-            .maybeSingle();
-        
-        if (existingCode) {
-            errorEl.textContent = 'This employee code is already in use.';
-            errorEl.style.display = 'block';
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Create Account';
-            return;
-        }
-        
-        // Create employee record
+
+        // Create employee record (employee_code not required – we generate a fallback)
+        // Using phone as a unique identifier for the employee record.
         const { data: newEmployee, error: empError } = await sb
-            .from('employees')
-            .insert([{
-                name: name,
-                phone: phone,
-                employee_code: employeeCode,
-                created_at: new Date().toISOString()
-            }])
-            .select()
-            .single();
-        
-        if (empError) {
-            throw empError;
-        }
-        
+          .from('employees')
+          .insert([{
+            name: name,
+            phone: phone,
+            employee_code: phone, // use phone as employee_code to satisfy schema (unique)
+            created_at: new Date().toISOString()
+          }])
+          .select()
+          .single();
+
+        if (empError) throw empError;
+
         // Hash password and create credentials
         const hashedPassword = await sha256(password);
         const { error: credError } = await sb
-            .from('employee_credentials')
-            .insert([{
-                employee_id: newEmployee.id,
-                username: phone,
-                password_hash: hashedPassword
-            }]);
-        
-        if (credError) {
-            throw credError;
-        }
-        
-        // Success
+          .from('employee_credentials')
+          .insert([{
+            employee_id: newEmployee.id,
+            username: phone,
+            password_hash: hashedPassword
+          }]);
+
+        if (credError) throw credError;
+
         successEl.classList.add('show');
         document.getElementById('newName').value = '';
         document.getElementById('newPhone').value = '';
-        document.getElementById('newEmployeeCode').value = '';
         document.getElementById('newPassword').value = '';
         document.getElementById('newPasswordConfirm').value = '';
-        
-        // Auto-fill login form
+
+        // Auto-fill login form with new phone
         usernameInput.value = phone;
-        
+
         setTimeout(() => {
-            closeModal();
-            successEl.classList.remove('show');
+          closeModal();
+          successEl.classList.remove('show');
         }, 3000);
-        
-    } catch (error) {
+      } catch (error) {
         console.error('Create account error:', error);
         errorEl.textContent = 'Error creating account. Please try again.';
         errorEl.style.display = 'block';
+      }
+
+      createSubmit.disabled = false;
+      createSubmit.textContent = 'Create Account';
+    });
+
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    //  Helpers
+    // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    function showError(message) {
+      errorText.textContent = message;
+      errorMessage.classList.add('show');
     }
-    
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Create Account';
-});
 
-function showError(message) {
-    errorText.textContent = message;
-    errorMessage.classList.add('show');
-}
+    function hideError() {
+      errorMessage.classList.remove('show');
+    }
 
-function hideError() {
-    errorMessage.classList.remove('show');
-}
+    function resetButton() {
+      loginBtn.disabled = false;
+      loginBtn.innerHTML = 'Sign In →';
+    }
 
-function resetButton() {
-    loginBtn.disabled = false;
-    loginBtn.innerHTML = 'Sign In →';
-}
+    // Auto-hide error on focus
+    usernameInput.addEventListener('focus', () => {
+      clearTimeout(window.errorTimeout);
+      hideError();
+    });
+    passwordInput.addEventListener('focus', () => {
+      clearTimeout(window.errorTimeout);
+      hideError();
+    });
 
-// Enter key support
-usernameInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') form.dispatchEvent(new Event('submit'));
-});
-passwordInput.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') form.dispatchEvent(new Event('submit'));
-});
-
-usernameInput.addEventListener('focus', () => {
-    clearTimeout(errorTimeout);
-    hideError();
-});
-passwordInput.addEventListener('focus', () => {
-    clearTimeout(errorTimeout);
-    hideError();
-});
-
-let errorTimeout;
-</script>
-
+    // Enter key triggers login
+    usernameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') form.dispatchEvent(new Event('submit'));
+    });
+    passwordInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') form.dispatchEvent(new Event('submit'));
+    });
+  </script>
 </body>
 </html>
