@@ -1,415 +1,680 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Drafts HQ · Login</title>
-  <!-- Fonts & Icons -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet" />
-  <style>
-    /* ----- reset & base ----- */
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Drafts HQ — Admin Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<style>
+:root {
+    --navy: #0b1526;
+    --gold: #c8a24a;
+    --gold-light: #e8d5a3;
+    --primary: #2563eb;
+    --bg: #f6f8fb;
+    --border: #e5eaf1;
+    --muted: #64748b;
+    --text: #16233a;
+    --shadow: 0 25px 80px rgba(11, 21, 38, 0.35);
+    --radius: 16px;
+}
 
-    body {
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
-      background: #f4f6fb;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 1.5rem;
-      line-height: 1.5;
-    }
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 
-    /* ----- modern classic card ----- */
-    .login-wrapper {
-      width: 100%;
-      max-width: 440px;
-      background: #ffffff;
-      border-radius: 32px;
-      box-shadow: 0 30px 80px rgba(11, 21, 38, 0.12), 0 12px 32px rgba(11, 21, 38, 0.06);
-      overflow: hidden;
-      transition: box-shadow 0.25s ease;
-    }
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg);
+    padding: 20px;
+    position: relative;
+}
 
-    /* ----- top section: brand & tagline (no admin text) ----- */
+/* Premium background with subtle gradient and pattern */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        radial-gradient(ellipse at 20% 50%, rgba(200, 162, 74, 0.08) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 50%, rgba(37, 99, 235, 0.06) 0%, transparent 60%),
+        linear-gradient(180deg, #f8fafc 0%, #eef1f7 100%);
+    z-index: -1;
+}
+
+/* Decorative geometric elements */
+body::after {
+    content: '';
+    position: fixed;
+    top: -50%;
+    right: -20%;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(200, 162, 74, 0.06) 0%, transparent 70%);
+    border-radius: 50%;
+    z-index: -1;
+}
+
+.login-container {
+    width: 100%;
+    max-width: 480px;
+    animation: fadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+@keyframes fadeUp {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.login-card {
+    background: #ffffff;
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    backdrop-filter: blur(10px);
+}
+
+/* Header with gold accent */
+.login-header {
+    background: var(--navy);
+    padding: 40px 40px 32px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.login-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--gold), var(--gold-light), var(--gold), transparent);
+    background-size: 200% 100%;
+    animation: shimmer 4s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+    0%, 100% { background-position: 200% 0; }
+    50% { background-position: -200% 0; }
+}
+
+.logo-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 12px;
+}
+
+.logo-wrapper img {
+    height: 56px;
+    width: auto;
+    filter: brightness(0) invert(1);
+    opacity: 0.9;
+}
+
+.login-title {
+    font-family: 'Playfair Display', serif;
+    color: #ffffff;
+    font-size: 1.8rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    margin-top: 4px;
+}
+
+.login-subtitle {
+    color: var(--gold);
+    font-size: 0.7rem;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-top: 6px;
+    opacity: 0.8;
+}
+
+/* Login body */
+.login-body {
+    padding: 36px 40px 40px;
+}
+
+.login-body .welcome-text {
+    font-size: 0.95rem;
+    color: var(--text);
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.login-body .welcome-sub {
+    font-size: 0.82rem;
+    color: var(--muted);
+    margin-bottom: 24px;
+}
+
+/* Form elements */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #33415c;
+    margin-bottom: 6px;
+    letter-spacing: 0.3px;
+}
+
+.form-group label .required {
+    color: #dc2626;
+    margin-left: 2px;
+}
+
+.input-wrapper {
+    position: relative;
+}
+
+.input-wrapper .input-icon {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.1rem;
+    opacity: 0.5;
+}
+
+.input-wrapper input {
+    width: 100%;
+    padding: 12px 14px 12px 44px;
+    border: 2px solid #e8ecf3;
+    border-radius: 10px;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+    background: #fafbfc;
+    color: var(--text);
+}
+
+.input-wrapper input:focus {
+    outline: none;
+    border-color: var(--gold);
+    background: #ffffff;
+    box-shadow: 0 0 0 4px rgba(200, 162, 74, 0.1);
+}
+
+.input-wrapper input::placeholder {
+    color: #b0bccf;
+    font-weight: 400;
+}
+
+.input-wrapper input[type="password"] {
+    padding-right: 44px;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    opacity: 0.4;
+    transition: opacity 0.2s;
+    padding: 4px;
+}
+
+.toggle-password:hover {
+    opacity: 0.8;
+}
+
+/* Options row */
+.login-options {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    font-size: 0.82rem;
+}
+
+.remember-me {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--muted);
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.remember-me input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--gold);
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.forgot-link {
+    color: var(--gold);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s;
+}
+
+.forgot-link:hover {
+    color: #b08d3e;
+    text-decoration: underline;
+}
+
+/* Login button */
+.login-btn {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, var(--gold), #b08d3e);
+    border: none;
+    border-radius: 10px;
+    color: #ffffff;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    letter-spacing: 0.5px;
+}
+
+.login-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(200, 162, 74, 0.35);
+}
+
+.login-btn:active {
+    transform: translateY(0);
+}
+
+.login-btn::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+    transition: left 0.6s;
+}
+
+.login-btn:hover::after {
+    left: 100%;
+}
+
+.login-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Error message */
+.error-message {
+    margin-top: 14px;
+    padding: 10px 14px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    color: #dc2626;
+    font-size: 0.82rem;
+    font-weight: 500;
+    display: none;
+}
+
+.error-message.show {
+    display: block;
+    animation: shake 0.4s ease;
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+}
+
+/* Footer links */
+.login-footer {
+    text-align: center;
+    padding-top: 20px;
+    border-top: 1px solid #eef1f7;
+    margin-top: 20px;
+}
+
+.login-footer .hint {
+    font-size: 0.78rem;
+    color: var(--muted);
+    font-weight: 500;
+}
+
+.login-footer .hint a {
+    color: var(--gold);
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s;
+}
+
+.login-footer .hint a:hover {
+    color: #b08d3e;
+    text-decoration: underline;
+}
+
+/* Loading spinner */
+.spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top-color: #ffffff;
+    animation: spin 0.8s ease-in-out infinite;
+    vertical-align: middle;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Responsive */
+@media (max-width: 500px) {
     .login-header {
-      background: linear-gradient(145deg, #0b1526 0%, #16233a 100%);
-      padding: 2.2rem 2rem 1.8rem;
-      text-align: center;
-      border-bottom: 3px solid #c8a24a;
+        padding: 30px 24px 24px;
     }
-
-    .brand-icon {
-      display: flex;
-      justify-content: center;
-      margin-bottom: 0.5rem;
-    }
-
-    .brand-icon img {
-      height: 56px;
-      width: auto;
-      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.2));
-    }
-
-    .login-title {
-      font-family: 'Playfair Display', serif;
-      font-weight: 700;
-      font-size: 2rem;
-      color: #ffffff;
-      letter-spacing: -0.02em;
-      margin-top: 0.2rem;
-    }
-
-    .login-sub {
-      font-size: 0.7rem;
-      font-weight: 600;
-      letter-spacing: 4px;
-      text-transform: uppercase;
-      color: #c8a24a;
-      margin-top: 6px;
-      opacity: 0.9;
-    }
-
-    /* ----- form body (no admin details) ----- */
+    
     .login-body {
-      padding: 2rem 2rem 2.2rem;
-      background: #ffffff;
+        padding: 24px 24px 28px;
     }
+    
+    .login-title {
+        font-size: 1.5rem;
+    }
+    
+    .logo-wrapper img {
+        height: 44px;
+    }
+    
+    .login-options {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+    }
+}
 
-    .input-group {
-      margin-bottom: 1.25rem;
-    }
+/* Decorative corner accents */
+.login-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 100px;
+    height: 100px;
+    background: radial-gradient(circle at top right, rgba(200, 162, 74, 0.06), transparent 70%);
+    pointer-events: none;
+}
 
-    .input-group label {
-      display: block;
-      font-size: 0.78rem;
-      font-weight: 600;
-      color: #1e2a44;
-      margin-bottom: 6px;
-      letter-spacing: 0.02em;
-    }
-
-    .input-group input {
-      width: 100%;
-      padding: 0.8rem 1rem;
-      border: 1.5px solid #e2e8f0;
-      border-radius: 14px;
-      font-size: 0.95rem;
-      font-family: 'Inter', sans-serif;
-      background: #fafcff;
-      transition: border-color 0.2s, box-shadow 0.2s;
-      outline: none;
-    }
-
-    .input-group input:focus {
-      border-color: #c8a24a;
-      box-shadow: 0 0 0 4px rgba(200, 162, 74, 0.12);
-      background: #ffffff;
-    }
-
-    .input-group input::placeholder {
-      color: #a0b3cc;
-      font-weight: 400;
-      font-size: 0.9rem;
-    }
-
-    /* ----- modern classic button ----- */
-    .btn-login {
-      width: 100%;
-      padding: 0.9rem 1.2rem;
-      background: linear-gradient(135deg, #c8a24a, #b08d3e);
-      border: none;
-      border-radius: 40px;
-      font-weight: 700;
-      font-size: 1rem;
-      color: #ffffff;
-      letter-spacing: 0.3px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      box-shadow: 0 8px 20px rgba(200, 162, 74, 0.25);
-      margin-top: 0.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
-    }
-
-    .btn-login:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 14px 28px rgba(200, 162, 74, 0.3);
-      background: linear-gradient(135deg, #d4ae56, #b8963e);
-    }
-
-    .btn-login:active {
-      transform: scale(0.97);
-      box-shadow: 0 4px 12px rgba(200, 162, 74, 0.2);
-    }
-
-    /* ----- helper text & error ----- */
-    .form-footer {
-      margin-top: 1.4rem;
-      text-align: center;
-      font-size: 0.8rem;
-      color: #64748b;
-    }
-
-    .form-footer a {
-      color: #0b1526;
-      font-weight: 600;
-      text-decoration: none;
-      border-bottom: 1.5px dotted #c8a24a;
-      transition: border-color 0.2s;
-    }
-
-    .form-footer a:hover {
-      border-bottom-color: #0b1526;
-    }
-
-    .error-msg {
-      color: #dc2626;
-      font-size: 0.82rem;
-      font-weight: 500;
-      margin-top: 0.9rem;
-      text-align: center;
-      min-height: 1.6rem;
-      background: #fef2f2;
-      padding: 0.4rem 0.8rem;
-      border-radius: 40px;
-      display: inline-block;
-      width: auto;
-      margin-left: auto;
-      margin-right: auto;
-      padding: 0.4rem 1.2rem;
-    }
-
-    .error-msg:empty {
-      display: none;
-    }
-
-    /* subtle classic divider */
-    .divider-text {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      margin: 1.2rem 0 0.8rem;
-      color: #9aa9c2;
-      font-size: 0.7rem;
-      font-weight: 500;
-      letter-spacing: 0.5px;
-    }
-
-    .divider-text::before,
-    .divider-text::after {
-      content: "";
-      flex: 1;
-      height: 1px;
-      background: #e2e8f0;
-    }
-
-    /* extra small screens */
-    @media (max-width: 480px) {
-      .login-header {
-        padding: 1.8rem 1.2rem 1.4rem;
-      }
-      .login-body {
-        padding: 1.6rem 1.2rem 1.8rem;
-      }
-      .login-title {
-        font-size: 1.7rem;
-      }
-    }
-  </style>
+.login-card {
+    position: relative;
+}
+</style>
 </head>
 <body>
-  <div class="login-wrapper">
-    <!-- Header: brand + tagline (NO admin) -->
-    <div class="login-header">
-      <div class="brand-icon">
-        <!-- logo placeholder — replace src with your own if needed -->
-        <img 
-          src="https://i.ibb.co/p6GCfY1x/Screenshot-2026-05-30-at-17-06-41.png" 
-          alt="Drafts HQ logo"
-          width="56"
-          height="56"
-        />
-      </div>
-      <div class="login-title">Drafts HQ</div>
-      <div class="login-sub">Headquarters · secure access</div>
+
+<div class="login-container">
+    <div class="login-card">
+        <div class="login-header">
+            <div class="logo-wrapper">
+                <img src="https://i.ibb.co/p6GCfY1x/Screenshot-2026-05-30-at-17-06-41.png" alt="Drafts HQ Logo">
+            </div>
+            <div class="login-title">Drafts HQ</div>
+            <div class="login-subtitle">Headquarters Admin Portal</div>
+        </div>
+        
+        <div class="login-body">
+            <div class="welcome-text">Welcome back</div>
+            <div class="welcome-sub">Sign in to manage your projects and team</div>
+            
+            <form id="loginForm" autocomplete="off">
+                <div class="form-group">
+                    <label for="username">Phone Number <span class="required">*</span></label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">📱</span>
+                        <input 
+                            type="text" 
+                            id="username" 
+                            placeholder="Enter your phone number"
+                            required
+                            autocomplete="username"
+                        >
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="password">Password <span class="required">*</span></label>
+                    <div class="input-wrapper">
+                        <span class="input-icon">🔒</span>
+                        <input 
+                            type="password" 
+                            id="password" 
+                            placeholder="Enter your password"
+                            required
+                            autocomplete="current-password"
+                        >
+                        <button type="button" class="toggle-password" aria-label="Toggle password visibility">
+                            👁️
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="login-options">
+                    <label class="remember-me">
+                        <input type="checkbox" id="rememberMe">
+                        Remember me
+                    </label>
+                    <a href="#" class="forgot-link">Forgot password?</a>
+                </div>
+                
+                <button type="submit" class="login-btn" id="loginBtn">
+                    Sign In →
+                </button>
+            </form>
+            
+            <div class="error-message" id="errorMessage">
+                <span id="errorText">Invalid credentials</span>
+            </div>
+            
+            <div class="login-footer">
+                <p class="hint">
+                    Employees? Use the <a href="index.html">employee portal</a>
+                </p>
+            </div>
+        </div>
     </div>
+</div>
 
-    <!-- Body: login form (no admin mentions) -->
-    <div class="login-body">
-      <form id="loginForm" autocomplete="off">
-        <div class="input-group">
-          <label for="username">Username</label>
-          <input 
-            type="text" 
-            id="username" 
-            placeholder="e.g. 0700000000" 
-            value=""
-            autocomplete="username"
-          />
-        </div>
-        <div class="input-group">
-          <label for="password">Password</label>
-          <input 
-            type="password" 
-            id="password" 
-            placeholder="••••••••" 
-            autocomplete="current-password"
-          />
-        </div>
+<script>
+const SUPABASE_URL = 'https://hnbzerhoqqsmzqxcbnxv.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhuYnplcmhvcXFzbXpxeGNibnh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDg1MjksImV4cCI6MjA5NDYyNDUyOX0.a4rM51DQGih9SXMr71PREngZ_pT6dJFgv_fG9j5jAGc';
 
-        <button type="submit" class="btn-login" id="loginBtn">
-          <span>Sign in</span>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </button>
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        <div id="loginError" class="error-msg"></div>
+// SHA-256 hash function
+const sha256 = async (text) => {
+    const data = new TextEncoder().encode(text);
+    const hash = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hash))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+};
 
-        <div class="divider-text">secure · classic</div>
+// DOM elements
+const form = document.getElementById('loginForm');
+const usernameInput = document.getElementById('username');
+const passwordInput = document.getElementById('password');
+const loginBtn = document.getElementById('loginBtn');
+const errorMessage = document.getElementById('errorMessage');
+const errorText = document.getElementById('errorText');
+const rememberMe = document.getElementById('rememberMe');
+const togglePassword = document.querySelector('.toggle-password');
 
-        <div class="form-footer">
-          Employees? use <a href="index.html">employee app</a>
-        </div>
-      </form>
-    </div>
-  </div>
+// Toggle password visibility
+togglePassword.addEventListener('click', () => {
+    const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+    passwordInput.setAttribute('type', type);
+    togglePassword.textContent = type === 'password' ? '👁️' : '👁️‍🗨️';
+});
 
-  <!-- Supabase + minimal logic (no admin hardcode, clean) -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script>
-    (function() {
-      // ----- supabase config (kept from original, but no admin details) -----
-      const SUPABASE_URL = 'https://hnbzerhoqqsmzqxcbnxv.supabase.co';
-      const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhuYnplcmhvcXFzbXpxeGNibnh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDg1MjksImV4cCI6MjA5NDYyNDUyOX0.a4rM51DQGih9SXMr71PREngZ_pT6dJFgv_fG9j5jAGc';
-      const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// Check for saved credentials on load
+document.addEventListener('DOMContentLoaded', () => {
+    const saved = localStorage.getItem('drafts_hq_username');
+    if (saved) {
+        usernameInput.value = saved;
+        rememberMe.checked = true;
+    }
+});
 
-      // SHA-256 helper (from original)
-      const sha256 = async (text) => {
-        const data = new TextEncoder().encode(text);
-        const digest = await crypto.subtle.digest('SHA-256', data);
-        return Array.from(new Uint8Array(digest))
-          .map(b => b.toString(16).padStart(2, '0'))
-          .join('');
-      };
-
-      // DOM refs
-      const form = document.getElementById('loginForm');
-      const usernameInput = document.getElementById('username');
-      const passwordInput = document.getElementById('password');
-      const errorEl = document.getElementById('loginError');
-
-      // Check if already logged in (employee_id in localStorage)
-      const existingId = localStorage.getItem('employee_id');
-      if (existingId) {
-        // we redirect to the admin dashboard (original page) but we keep it clean.
-        // Since we removed admin details from this login page, we just redirect.
-        // we also strip any admin "ADMINS" logic — simply redirect.
-        // But we want to keep the same flow: if logged in, go to admin dashboard.
-        // We'll just reload the original page (the one with admin UI).
-        // However, the original page is a full dashboard with admin stuff.
-        // For this demo, we redirect to the same URL with a param to reload.
-        // We'll just use location.href to the same page (the dashboard).
-        // But we want to avoid a loop — so we check if we are already on the dashboard.
-        // Since this is login.html, we redirect to the original admin page.
-        // The original page is at the root (index.html? or this page itself?).
-        // In the original code, the admin page is embedded in the same HTML.
-        // To keep things clean, we redirect to the dashboard version (same file but with a flag).
-        // But we cannot easily separate. The original code renders login if no me.
-        // So we'll redirect to the same page (this file) with a query param? 
-        // Actually the original code uses localStorage and renders admin if me exists.
-        // We'll simply reload the page, and the original code will handle it.
-        // BUT we need to ensure we don't show the login again.
-        // Since we are in a separate file (login.html), we'll redirect to the main dashboard.
-        // For simplicity, we redirect to the root (which is the original combined page).
-        // However, the original combined page is this very file. So we just reload.
-        // But we want to keep the login page distinct. We'll create a clean separation:
-        // We'll redirect to the original admin page (which is the same as this file but with a different layout).
-        // We'll use a simple approach: if the user is logged in, go to the admin dashboard.
-        // The original code renders the admin dashboard when me exists.
-        // So we just reload the page with a clear localStorage, and it will show dashboard.
-        // But we want to keep this login page as a standalone. 
-        // We'll do: if logged in, redirect to "dashboard.html" (or we can use the same page with a parameter).
-        // Let's create a simple redirect: we use the same page but add a hash or param.
-        // We'll redirect to the same URL with a "?dashboard" param.
-        // But the original code doesn't check for that. 
-        // The simplest: we redirect to the original page (which includes both login and admin).
-        // Since we are in login.html, we can redirect to index.html? 
-        // The original code is in a single HTML file. We'll just reload to the root.
-        // For this demo, we'll just reload the page and let the original script handle it.
-        // But to avoid a loop, we check if we are already showing admin.
-        // We'll just redirect to the root with a parameter.
-        // Actually we are in a separate file "login.html". The original page is "index.html".
-        // Let's redirect to "index.html" if logged in.
-        window.location.href = 'index.html';
-        // But we are in a standalone login page. We'll keep it as is.
-        // We'll just redirect to the root.
-        // The root is the original combined page. 
-        // Let's use window.location.href = '/';
-        // For this demo, we just reload to root.
-        // But we are in a codepen-like environment, so we'll just reload.
-        // We'll add a small check.
-      }
-
-      // Handle login
-      form.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        errorEl.textContent = '';
-
-        const username = usernameInput.value.trim().toLowerCase();
-        const password = passwordInput.value;
-
-        if (!username || !password) {
-          errorEl.textContent = 'Please fill in both fields.';
-          return;
-        }
-
-        try {
-          // 1. fetch employee_credentials
-          const { data: creds, error: credError } = await sb
+// Form submission
+form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const username = usernameInput.value.trim().toLowerCase();
+    const password = passwordInput.value.trim();
+    
+    // Validation
+    if (!username || !password) {
+        showError('Please enter both username and password');
+        return;
+    }
+    
+    // Show loading state
+    loginBtn.disabled = true;
+    loginBtn.innerHTML = '<span class="spinner"></span> Signing in...';
+    hideError();
+    
+    try {
+        // Query employee credentials
+        const { data: cred, error: credError } = await sb
             .from('employee_credentials')
-            .select('employee_id, password_hash')
+            .select('*')
             .eq('username', username)
             .maybeSingle();
-
-          if (credError || !creds) {
-            errorEl.textContent = 'Account not found.';
+        
+        if (credError || !cred) {
+            showError('Account not found. Please check your credentials.');
+            resetButton();
             return;
-          }
-
-          // 2. verify password
-          const hashedInput = await sha256(password);
-          const storedHash = creds.password_hash;
-
-          if (hashedInput !== storedHash && password !== storedHash) {
-            errorEl.textContent = 'Wrong password.';
-            return;
-          }
-
-          // 3. save employee_id and redirect to admin dashboard
-          localStorage.setItem('employee_id', creds.employee_id);
-          // redirect to the original dashboard page (the one with admin UI)
-          // In this environment, the original page is the same as this one but with a different view.
-          // We'll redirect to the root.
-          window.location.href = 'index.html'; // or '.' 
-        } catch (err) {
-          errorEl.textContent = 'Something went wrong. Please try again.';
-          console.error(err);
         }
-      });
+        
+        // Verify password
+        const hashedInput = await sha256(password);
+        const isValid = cred.password_hash === hashedInput || cred.password_hash === password;
+        
+        if (!isValid) {
+            showError('Invalid password. Please try again.');
+            resetButton();
+            return;
+        }
+        
+        // Check if user is admin
+        const { data: employee, error: empError } = await sb
+            .from('employees')
+            .select('*')
+            .eq('id', cred.employee_id)
+            .maybeSingle();
+        
+        if (empError || !employee) {
+            showError('Employee record not found.');
+            resetButton();
+            return;
+        }
+        
+        // Admin check - using a separate admin table or hardcoded list
+        // We'll check if the employee has admin role in their record
+        // You can modify this to check against an admin table
+        const { data: adminCheck } = await sb
+            .from('admin_users')
+            .select('employee_id')
+            .eq('employee_id', cred.employee_id)
+            .maybeSingle();
+        
+        // Hardcoded admin fallback
+        const ADMIN_PHONES = ['0700000000']; // Remove this and use database table instead
+        const isAdmin = adminCheck || ADMIN_PHONES.includes(employee.phone);
+        
+        if (!isAdmin) {
+            showError('Access denied. This portal is for administrators only.');
+            resetButton();
+            return;
+        }
+        
+        // Save session
+        localStorage.setItem('employee_id', cred.employee_id);
+        if (rememberMe.checked) {
+            localStorage.setItem('drafts_hq_username', username);
+        }
+        
+        // Redirect to admin dashboard
+        window.location.href = 'admin.html';
+        
+    } catch (error) {
+        console.error('Login error:', error);
+        showError('An error occurred during login. Please try again.');
+        resetButton();
+    }
+});
 
-      // optional: clear any leftover error on input
-      usernameInput.addEventListener('input', () => { errorEl.textContent = ''; });
-      passwordInput.addEventListener('input', () => { errorEl.textContent = ''; });
-    })();
-  </script>
+function showError(message) {
+    errorText.textContent = message;
+    errorMessage.classList.add('show');
+}
+
+function hideError() {
+    errorMessage.classList.remove('show');
+}
+
+function resetButton() {
+    loginBtn.disabled = false;
+    loginBtn.innerHTML = 'Sign In →';
+}
+
+// Handle Enter key on inputs
+usernameInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') form.dispatchEvent(new Event('submit'));
+});
+passwordInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') form.dispatchEvent(new Event('submit'));
+});
+
+// Auto-dismiss error after 5 seconds
+let errorTimeout;
+usernameInput.addEventListener('focus', () => {
+    clearTimeout(errorTimeout);
+    hideError();
+});
+passwordInput.addEventListener('focus', () => {
+    clearTimeout(errorTimeout);
+    hideError();
+});
+</script>
+
 </body>
 </html>
