@@ -81,30 +81,12 @@
     .logo-wrapper {
       display: flex;
       justify-content: center;
-      margin-bottom: 12px;
+      margin-bottom: 0;
     }
 
     .logo-wrapper img {
-      height: 64px;
+      height: 72px;
       width: auto;
-    }
-
-    .login-title {
-      font-family: 'Playfair Display', serif;
-      color: #0b1526;
-      font-size: 1.8rem;
-      font-weight: 700;
-      letter-spacing: -0.5px;
-      margin-top: 4px;
-    }
-
-    .login-subtitle {
-      color: #c8a24a;
-      font-size: 0.7rem;
-      letter-spacing: 4px;
-      text-transform: uppercase;
-      font-weight: 600;
-      margin-top: 6px;
     }
 
     /* ── body ── */
@@ -418,11 +400,8 @@
       .login-body {
         padding: 24px 24px 28px;
       }
-      .login-title {
-        font-size: 1.5rem;
-      }
       .logo-wrapper img {
-        height: 50px;
+        height: 56px;
       }
       .login-options {
         flex-direction: column;
@@ -560,13 +539,11 @@
   <div class="login-container">
     <div class="login-card">
 
-      <!-- header -->
+      <!-- header: only logo, no text -->
       <div class="login-header">
         <div class="logo-wrapper">
           <img src="https://i.ibb.co/p6GCfY1x/Screenshot-2026-05-30-at-17-06-41.png" alt="Drafts HQ Logo">
         </div>
-        <div class="login-title">Drafts HQ</div>
-        <div class="login-subtitle">Employee Portal</div>
       </div>
 
       <!-- body -->
@@ -873,14 +850,13 @@
           return;
         }
 
-        // Create employee record (employee_code not required – we generate a fallback)
-        // Using phone as a unique identifier for the employee record.
+        // Create employee record (employee_code = phone as fallback)
         const { data: newEmployee, error: empError } = await sb
           .from('employees')
           .insert([{
             name: name,
             phone: phone,
-            employee_code: phone, // use phone as employee_code to satisfy schema (unique)
+            employee_code: phone,
             created_at: new Date().toISOString()
           }])
           .select()
