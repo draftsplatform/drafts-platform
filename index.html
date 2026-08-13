@@ -1,219 +1,248 @@
-<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Drafts Platform</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!doctype html><html lang="en"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Drafts — Employee Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-:root{--bg:#f8fafc;--surface:#fff;--border:#e2e8f0;--primary:#2563eb;--accent:#059669;--warning:#d97706;--danger:#dc2626;--text:#1e293b;--text-muted:#64748b;--radius:12px;--radius-sm:8px;--shadow:0 4px 24px rgba(0,0,0,.08)}
-*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;line-height:1.5}
-::-webkit-scrollbar{width:6px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
-.header{position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 2rem;height:88px;background:rgba(255,255,255,.95);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);box-shadow:0 1px 0 rgba(0,0,0,.02)}
-.logo{display:flex;align-items:center;gap:16px;cursor:pointer;user-select:none}.logo-img{height:64px;width:auto;object-fit:contain}.logo-text{font-size:1.6rem;font-weight:800;letter-spacing:-.3px;color:var(--text)}.logo-subtitle{font-size:.65rem;color:var(--text-muted);letter-spacing:2px;text-transform:uppercase;margin-top:-4px}
-.nav{display:flex;gap:4px}.nav-btn{position:relative;padding:10px 18px;border:none;background:transparent;color:#475569;font-size:.88rem;font-weight:500;border-radius:var(--radius-sm);cursor:pointer;transition:.2s;text-decoration:none}.nav-btn:hover,.nav-btn.active{background:rgba(37,99,235,.1);color:var(--primary);font-weight:600}
-.header-right{display:flex;align-items:center;gap:12px}.status-dot{width:8px;height:8px;background:var(--accent);border-radius:50%;box-shadow:0 0 8px rgba(5,150,105,.4)}.status-text{font-size:.75rem;color:var(--accent);font-weight:600}
-.main{padding:2rem;max-width:1440px;margin:0 auto}
-.page-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem}
-.page-title{font-size:1.5rem;font-weight:700;letter-spacing:-.3px;color:var(--text)}.page-desc{font-size:.85rem;color:var(--text-muted);margin-top:2px}
-.btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border:none;border-radius:var(--radius-sm);font-size:.85rem;font-weight:600;cursor:pointer;transition:.2s;text-decoration:none}.btn-primary{background:var(--primary);color:#fff;box-shadow:0 2px 8px rgba(37,99,235,.2)}.btn-primary:hover{background:#1d4ed8;transform:translateY(-1px)}.btn-outline{background:transparent;color:#475569;border:1px solid var(--border)}.btn-outline:hover{border-color:var(--primary);color:var(--primary);background:rgba(37,99,235,.1)}.btn-danger{background:var(--danger);color:#fff}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;transition:.2s;box-shadow:var(--shadow);margin-bottom:1rem}.card:hover{border-color:rgba(37,99,235,.3);box-shadow:0 8px 32px rgba(0,0,0,.12)}
-.grid{display:grid;gap:1rem}.grid-4{grid-template-columns:repeat(4,1fr)}.grid-3{grid-template-columns:repeat(3,1fr)}.grid-2{grid-template-columns:repeat(2,1fr)}
-.badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:.72rem;font-weight:600}.badge-green{background:rgba(5,150,105,.1);color:var(--accent)}.badge-blue{background:rgba(37,99,235,.1);color:var(--primary)}.badge-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
-.chip{display:inline-block;background:rgba(37,99,235,.1);color:var(--primary);border-radius:99px;padding:2px 8px;font-size:.7rem;margin:2px}
-.desc{background:#f1f5f9;border-radius:8px;padding:10px;font-size:.85rem;white-space:pre-wrap;margin:8px 0}
-.meta{font-size:.78rem;color:var(--text-muted);margin:4px 0}
-label{display:block;margin:8px 0;font-size:14px;color:#334155}
-input,select,textarea{width:100%;box-sizing:border-box;padding:8px;border:1px solid #cbd5e1;border-radius:8px;margin-top:4px;font-family:inherit;font-size:14px}
-.chk{display:flex;gap:6px;align-items:center;font-size:.85rem}.chk input{width:auto}
-.tabs{display:flex;gap:8px;margin-bottom:8px}.tabs button{flex:1;padding:8px;border:1px solid #cbd5e1;background:#fff;border-radius:8px;cursor:pointer}.tabs button.on{background:var(--primary);color:#fff}
-#msg{color:var(--danger);font-size:14px;margin-top:8px}
-table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;padding:8px;border-bottom:1px solid var(--border);vertical-align:top}
-.hint{font-size:12px;color:#64748b}
-.login-wrap{max-width:420px;margin:40px auto}
-a.wa{color:var(--accent);font-weight:600;text-decoration:none}
-.hidden{display:none}
-@media(max-width:1024px){.grid-4{grid-template-columns:repeat(2,1fr)}.grid-3{grid-template-columns:1fr}.header{padding:0 1rem;height:80px}.logo-img{height:52px}.nav{gap:0;flex-wrap:wrap}.nav-btn{padding:8px 12px;font-size:.78rem}.main{padding:1rem}}
-@media(max-width:768px){.header{padding:0 1rem;height:64px}.logo-img{height:44px}.logo-subtitle{display:none}.nav{display:none}.main{padding:1rem;padding-bottom:2rem}.grid-2,.grid-3,.grid-4{grid-template-columns:1fr}}
+:root{--navy:#0b1526;--navy2:#13223c;--gold:#c8a24a;--gold2:#e6c878;--primary:#2563eb;--accent:#059669;--warn:#d97706;--danger:#dc2626;--bg:#f6f8fb;--border:#e5eaf1;--text:#16233a;--muted:#64748b;--r:14px;--rs:9px}
+*{margin:0;padding:0;box-sizing:border-box}body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.5}button{font-family:inherit}
+.auth{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:radial-gradient(1100px 550px at 85% -10%,rgba(200,162,74,.16),transparent),radial-gradient(900px 500px at 5% 110%,rgba(37,99,235,.14),transparent),var(--navy)}
+.auth-card{width:100%;max-width:440px;background:#fff;border-radius:18px;overflow:hidden;box-shadow:0 30px 90px rgba(0,0,0,.5)}
+.auth-top{background:linear-gradient(135deg,var(--navy),var(--navy2));padding:32px 28px 24px;text-align:center;border-bottom:3px solid var(--gold)}
+.auth-top img{height:52px}.auth-title{font-family:'Playfair Display',serif;color:#fff;font-size:1.7rem;margin-top:8px}
+.auth-tag{color:var(--gold);font-size:.64rem;letter-spacing:3.5px;text-transform:uppercase;margin-top:4px}
+.auth-body{padding:24px 28px 28px}.gold-line{width:54px;height:3px;border-radius:2px;background:linear-gradient(90deg,var(--gold),var(--gold2));margin:0 auto 14px}
+.tabs{display:flex;gap:8px;margin-bottom:10px}.tabs button{flex:1;padding:10px;border:1px solid var(--border);background:#fbfcfe;border-radius:var(--rs);cursor:pointer;font-weight:600;font-size:.85rem;color:var(--muted)}
+.tabs button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+label{display:block;font-size:.78rem;font-weight:600;color:#33415c;margin:10px 0 4px}
+input,select,textarea{width:100%;padding:10px 12px;border:1px solid #cfd8e6;border-radius:var(--rs);font:inherit;font-size:.9rem}
+input:focus,select:focus,textarea:focus{outline:2px solid rgba(200,162,74,.35);border-color:var(--gold)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:var(--rs);padding:11px 18px;font-size:.88rem;font-weight:700;cursor:pointer}
+.btn-gold{background:linear-gradient(135deg,var(--gold),#b08d3e);color:#fff}.btn-blue{background:var(--primary);color:#fff}.btn-green{background:var(--accent);color:#fff}
+.btn-ghost{background:#fff;border:1px solid var(--border);color:var(--text)}.btn-block{width:100%}.btn-sm{padding:8px 12px;font-size:.78rem}
+.err{color:var(--danger);font-size:.82rem;margin-top:10px}.ok{color:var(--accent);font-size:.82rem;margin-top:10px}
+.top{position:sticky;top:0;z-index:50;background:#fff;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:10px 16px}
+.top img{height:40px}.who{text-align:right}.who b{font-size:.9rem}.who span{display:block;font-size:.68rem;color:var(--muted)}
+.nav{display:flex;gap:6px;overflow-x:auto;padding:10px 14px;background:#fff;border-bottom:1px solid var(--border)}
+.nav button{white-space:nowrap;padding:9px 14px;border-radius:99px;border:1px solid var(--border);background:#fbfcfe;font-size:.8rem;font-weight:600;color:var(--muted);cursor:pointer}
+.nav button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+.wrap{max-width:1100px;margin:0 auto;padding:16px}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.stat{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:14px}
+.stat .k{font-size:.66rem;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-weight:700}
+.stat .v{font-size:1.3rem;font-weight:800;margin-top:4px}.stat .s{font-size:.7rem;color:var(--muted)}
+.card{background:#fff;border:1px solid var(--border);border-radius:var(--r);padding:16px;margin-top:12px}
+.card h3{font-size:.95rem;margin-bottom:10px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+table{width:100%;border-collapse:collapse;font-size:.85rem}th,td{padding:8px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+.badge{display:inline-block;padding:3px 10px;border-radius:99px;font-size:.7rem;font-weight:700;color:#fff}
+.chip{display:inline-block;background:rgba(37,99,235,.08);color:var(--primary);border-radius:99px;padding:2px 9px;font-size:.7rem;margin:2px}
+.desc{background:#f2f5fa;border-radius:var(--rs);padding:10px;font-size:.85rem;white-space:pre-wrap}
+.meta{font-size:.76rem;color:var(--muted);margin:4px 0}.hint{font-size:.75rem;color:var(--muted)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+@media(max-width:800px){.stats{grid-template-columns:repeat(2,1fr)}.grid2{grid-template-columns:1fr}}
 </style></head><body>
 <div id="app"></div>
 <script>
-(function(){
-'use strict';
 const SUPABASE_URL='https://hnbzerhoqqsmzqxcbnxv.supabase.co';
 const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhuYnplcmhvcXFzbXpxeGNibnh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNDg1MjksImV4cCI6MjA5NDYyNDUyOX0.a4rM51DQGih9SXMr71PREngZ_pT6dJFgv_fG9j5jAGc';
-const USD_RATE=0.00027;
+const LOGO='https://i.ibb.co/p6GCfY1x/Screenshot-2026-05-30-at-17-06-41.png';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-const app=document.getElementById('app');
+const $=s=>document.querySelector(s);
+const UGX=n=>'UGX '+Number(n||0).toLocaleString();
+const USD=n=>'≈ $'+(Number(n||0)/3700).toFixed(2);
 const sha256=async t=>{const d=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(t));return[...new Uint8Array(d)].map(b=>b.toString(16).padStart(2,'0')).join('')};
-
-const ROLE_RATE_UGX=33000;
+const ROLE_RATE=33000;
 const SECTORS=[
-  {name:'Corporate / Enterprise',roles:['CEO','General Manager','Finance','HR','Admin','Staff']},
-  {name:'Schools & Education',roles:['Director','Principal','DOS','Bursar','Secretary','Teacher','Parent Portal']},
-  {name:'Churches & Mosques',roles:['Lead Pastor / Imam','Treasury','Admin','Ministry Leaders','Member Portal']},
-  {name:'Factories & Industry',roles:['Plant Manager','Production','Inventory','Maintenance','HR','QC']},
-  {name:'SACCOs & Investments',roles:['Board','Credit Officer','Treasurer','Auditor','Member Portal']},
-  {name:'NGOs & Non-Profits',roles:['Country Director','Project Mgr','M&E Officer','Grants Mgr']}
-];
+ {name:'Corporate / Enterprise',roles:['CEO','General Manager','Finance','HR','Admin','Staff']},
+ {name:'Schools & Education',roles:['Director','Principal','DOS','Bursar','Secretary','Teacher','Parent Portal']},
+ {name:'Churches & Mosques',roles:['Lead Pastor / Imam','Treasury','Admin','Ministry Leaders','Member Portal']},
+ {name:'Factories & Industry',roles:['Plant Manager','Production','Inventory','Maintenance','HR','QC']},
+ {name:'SACCOs & Investments',roles:['Board','Credit Officer','Treasurer','Auditor','Member Portal']},
+ {name:'NGOs & Non-Profits',roles:['Country Director','Project Mgr','M&E Officer','Grants Mgr']}];
+const BADGE={intake:['Intake','#2563eb'],building:['Building','#b45309'],active:['Active','#047857'],paused:['Paused','#b91c1c']};
+let ME=null,CH=[];
+function clearCharts(){CH.forEach(c=>c.destroy());CH=[];}
 
-const ADMIN_EMAILS=['admin@drafts.com','hq@drafts.com']; // Add your admin emails here
-
-async function checkAuth(){
-  const empId=localStorage.getItem('employee_id');
-  if(!empId)return null;
-  const {data:emp}=await sb.from('employees').select('*').eq('id',empId).maybeSingle();
-  return emp;
+async function boot(){
+  const id=localStorage.getItem('employee_id');
+  if(id){const {data}=await sb.from('employees').select('*').eq('id',id).maybeSingle();
+    if(data){ME=data;return renderApp();}}
+  renderLogin();
 }
 
-async function logout(){localStorage.clear();location.reload();}
-
-function fmt(n){if(!n&&n!==0)return'UGX 0';return'UGX '+Number(n).toLocaleString()+' (≈ $'+(n*USD_RATE).toFixed(2)+')';}
-
-async function renderLogin(){
-  app.innerHTML=`
-<header class="header">
-  <div class="logo"><img src="https://i.ibb.co/p6GCfY1x/Screenshot-2026-05-30-at-17-06-41.png" alt="Drafts" class="logo-img"></div>
-  <div class="header-right"><div class="status-dot"></div><span class="status-text">Online</span></div>
-</header>
-<div class="login-wrap"><div class="card">
-  <h2>Drafts Platform</h2>
-  <div class="tabs"><button id="t-login" class="on">Log in</button><button id="t-signup">Create account</button></div>
-  <div id="f-login"><label>Username (phone/email)<input id="li-user"></label><label>Password<input id="li-pw" type="password"></label></div>
-  <div id="f-signup" class="hidden"><label>Full name *<input id="su-name"></label><label>Phone (WhatsApp) *<input id="su-phone"></label><label>Password * (6+ chars)<input id="su-pw" type="password"></label></div>
-  <button class="btn btn-primary" style="width:100%;margin-top:12px" id="go">Continue</button>
-  <p id="msg"></p>
-</div></div>`;
-  let mode='login';
-  const $=id=>document.getElementById(id);
-  $('t-login').onclick=()=>{mode='login';$('t-login').classList.add('on');$('t-signup').classList.remove('on');$('f-login').classList.remove('hidden');$('f-signup').classList.add('hidden')};
-  $('t-signup').onclick=()=>{mode='signup';$('t-signup').classList.add('on');$('t-login').classList.remove('on');$('f-signup').classList.remove('hidden');$('f-login').classList.add('hidden')};
-  $('go').onclick=async()=>{$('msg').textContent='';
-    if(mode==='login'){
-      const u=$('li-user').value.trim().toLowerCase();
-      const {data:cred}=await sb.from('employee_credentials').select('*').eq('username',u).maybeSingle();
-      if(!cred){$('msg').textContent='Account not found.';return}
-      const h=await sha256($('li-pw').value);
-      if(cred.password_hash!==h&&cred.password_hash!==$('li-pw').value){$('msg').textContent='Wrong password.';return}
-      localStorage.setItem('employee_id',cred.employee_id);
-      location.reload();
-    }else{
-      const name=$('su-name').value.trim(),phone=$('su-phone').value.trim(),pw=$('su-pw').value;
-      if(!name||!phone||pw.length<6){$('msg').textContent='Name, phone and a 6+ char password are required.';return}
-      const {data:codes}=await sb.from('employees').select('employee_code').order('employee_code',{ascending:false}).limit(1);
-      const code='EMP-'+String((codes&&codes[0]?parseInt(codes[0].employee_code.replace('EMP-',''),10):0)+1).padStart(3,'0');
-      const {data:emp,error:e1}=await sb.from('employees').insert({name,phone,title:'Field Agent',employee_code:code}).select().single();
-      if(e1){$('msg').textContent='Signup error: '+e1.message;return}
-      const {error:e2}=await sb.from('employee_credentials').insert({employee_id:emp.id,username:phone.toLowerCase(),password_hash:await sha256(pw)});
-      if(e2){$('msg').textContent='Account created but login setup failed: '+e2.message;return}
-      localStorage.setItem('employee_id',emp.id);
-      location.reload();
+/* ============ LOGIN (modern + classic) ============ */
+function renderLogin(){
+ $('#app').innerHTML=`<div class="auth"><div class="auth-card">
+  <div class="auth-top"><img src="${LOGO}" alt="Drafts"><div class="auth-title">Drafts Platform</div><div class="auth-tag">Tracking Progress · Est. 2026</div></div>
+  <div class="auth-body"><div class="gold-line"></div>
+   <div class="tabs"><button id="t-login" class="on">Log in</button><button id="t-signup">Create account</button></div>
+   <div id="f-login"><label>Username (phone)</label><input id="li-user"><label>Password</label><input id="li-pw" type="password"></div>
+   <div id="f-signup" style="display:none"><label>Full name *</label><input id="su-name"><label>Phone (WhatsApp) *</label><input id="su-phone"><label>Password * (6+ chars)</label><input id="su-pw" type="password"></div>
+   <button class="btn btn-gold btn-block" style="margin-top:14px" id="go">Continue →</button>
+   <p class="hint" style="text-align:center;margin-top:12px">Headquarters? Use <a href="admin.html">admin.html</a></p>
+   <p id="msg"></p></div></div></div>`;
+ let mode='login';
+ $('#t-login').onclick=()=>{mode='login';$('#t-login').classList.add('on');$('#t-signup').classList.remove('on');$('#f-login').style.display='';$('#f-signup').style.display='none'};
+ $('#t-signup').onclick=()=>{mode='signup';$('#t-signup').classList.add('on');$('#t-login').classList.remove('on');$('#f-signup').style.display='';$('#f-login').style.display='none'};
+ $('#go').onclick=async()=>{$('#msg').className='err';$('#msg').textContent='';
+  if(mode==='login'){
+    const u=$('#li-user').value.trim().toLowerCase();
+    const {data:c}=await sb.from('employee_credentials').select('*').eq('username',u).maybeSingle();
+    if(!c)return $('#msg').textContent='Account not found.';
+    const h=await sha256($('#li-pw').value);
+    if(c.password_hash!==h&&c.password_hash!==$('#li-pw').value)return $('#msg').textContent='Wrong password.';
+    localStorage.setItem('employee_id',c.employee_id);location.reload();
+  }else{
+    const name=$('#su-name').value.trim(),phone=$('#su-phone').value.trim(),pw=$('#su-pw').value;
+    if(!name||!phone||pw.length<6)return $('#msg').textContent='Name, phone and a 6+ char password are required.';
+    const {data:codes}=await sb.from('employees').select('employee_code').order('employee_code',{ascending:false}).limit(1);
+    const code='EMP-'+String((codes&&codes[0]?parseInt(codes[0].employee_code.replace('EMP-',''),10):0)+1).padStart(3,'0');
+    const {data:emp,error:e1}=await sb.from('employees').insert({name,phone,title:'Field Agent',employee_code:code}).select().single();
+    if(e1)return $('#msg').textContent='Signup error: '+e1.message;
+    const {error:e2}=await sb.from('employee_credentials').insert({employee_id:emp.id,username:phone.toLowerCase(),password_hash:await sha256(pw)});
+    if(e2)return $('#msg').textContent='Login setup failed: '+e2.message;
+    localStorage.setItem('employee_id',emp.id);location.reload();
   }};
 }
 
-async function renderEmployeeDashboard(emp){
-  const {data:p=[]}=await sb.from('projects').select('*').eq('referred_employee_id',emp.id);
-  const {data:e=[]}=await sb.from('employee_earnings').select('*').eq('employee_id',emp.id);
-  const {data:sum}=await sb.from('employee_earnings_summary').select('*').eq('id',emp.id).maybeSingle();
-  const bal=sum?Number(sum.account_balance||0):e.reduce((s,r)=>s+Number(r.amount||0),0);
-  const BADGE={intake:['Intake','#2563eb'],building:['Building','#b45309'],active:['Active','#047857'],paused:['Paused','#b91c1c']};
-  app.innerHTML=`
-<header class="header">
-  <div class="logo"><img src="https://i.ibb.co/p6GCfY1x/Screenshot-2026-05-30-at-17-06-41.png" alt="Drafts" class="logo-img"><div><div class="logo-text">${emp.name}</div><div class="logo-subtitle">${emp.employee_code}</div></div></div>
-  <div class="header-right"><button class="btn btn-outline" onclick="window.__logout()">Log out</button></div>
-</header>
-<main class="main">
-  <div class="page-header"><div><h1 class="page-title">My Dashboard</h1><p class="page-desc">Your projects and earnings</p></div>
-  <button class="btn btn-primary" id="new">+ Bring in Project</button></div>
-  <div class="grid grid-3">
-    <div class="card"><div class="card-title" style="font-size:.8rem;color:var(--text-muted)">Balance (20% commissions)</div><h3 style="font-size:1.8rem;font-weight:800">${fmt(bal)}</h3></div>
-    <div class="card"><div class="card-title" style="font-size:.8rem;color:var(--text-muted)">Active projects</div><h3 style="font-size:1.8rem;font-weight:800">${p.filter(r=>r.status==='active').length}</h3></div>
-    <div class="card"><div class="card-title" style="font-size:.8rem;color:var(--text-muted)">In pipeline</div><h3 style="font-size:1.8rem;font-weight:800">${p.filter(r=>['intake','building'].includes(r.status)).length}</h3></div>
-  </div>
-  <div id="intake"></div>
-  <div class="card"><h3>My Projects</h3><table><tr><th>Project</th><th>Status</th><th>Monthly</th><th>Valid until</th></tr><tbody id="proj"></tbody></table></div>
-  <div class="card"><h3>Commission Earnings</h3><table><tr><th>Date</th><th>Amount (20%)</th></tr><tbody id="earn"></tbody></table></div>
-</main>`;
-  window.__logout=logout;
-  document.getElementById('new').onclick=()=>renderIntakeForm(document.getElementById('intake'),emp,()=>location.reload());
-  document.getElementById('proj').innerHTML=p.map(r=>{const b=BADGE[r.status]||[r.status,'#64748b'];const days=r.valid_until?` · ${Math.max(0,Math.ceil((new Date(r.valid_until)-Date.now())/864e5))}d left`:'';
-    return`<tr><td><b>${r.name}</b><br><span class="hint">${r.client||''}</span></td><td><span class="badge" style="background:${b[1]};color:#fff">${b[0]}</span>${days}</td><td>UGX ${Number(r.rate||0).toLocaleString()}</td><td>${r.valid_until?new Date(r.valid_until).toLocaleDateString():'—'}</td></tr>`}).join('')||'<tr><td colspan="4" class="hint">No projects yet — tap "+ Bring in Project".</td></tr>';
-  document.getElementById('earn').innerHTML=e.slice(0,15).map(r=>`<tr><td>${new Date(r.created_at||Date.now()).toLocaleDateString()}</td><td>UGX ${Number(r.amount||0).toLocaleString()}</td></tr>`).join('')||'<tr><td colspan="2" class="hint">You earn 20% of every payment on your projects.</td></tr>';
+/* ============ APP SHELL ============ */
+function renderApp(){
+ $('#app').innerHTML=`
+ <div class="top"><img src="${LOGO}" alt="Drafts"><div class="who"><b>${ME.name}</b><span>${ME.employee_code} · ${ME.title||'Field Agent'}</span></div></div>
+ <div class="nav" id="nav">
+  <button data-t="dash" class="on">📊 Dashboard</button>
+  <button data-t="projects">📁 My Projects</button>
+  <button data-t="intake">➕ Bring in Project</button>
+  <button data-t="earn">💰 Earnings</button>
+  <button data-t="acct">👤 My Account</button>
+ </div><div class="wrap" id="view"></div>`;
+ document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>{
+   document.querySelectorAll('#nav button').forEach(x=>x.classList.remove('on'));
+   b.classList.add('on');show(b.dataset.t);});
+ show('dash');
+}
+function show(t){clearCharts();
+ ({dash:renderDash,projects:renderProjects,intake:renderIntake,earn:renderEarn,acct:renderAcct})[t]();}
+
+async function fetchData(){
+ const [p,e,s]=await Promise.all([
+  sb.from('projects').select('*').eq('referred_employee_id',ME.id),
+  sb.from('employee_earnings').select('*').eq('employee_id',ME.id),
+  sb.from('employee_earnings_summary').select('*').eq('id',ME.id).maybeSingle()]);
+ return {P:p.data||[],E:e.data||[],S:s.data};
 }
 
-function renderIntakeForm(mount,emp,onDone){
-  mount.innerHTML=`<div class="card"><h3>Bring in a Project</h3>
-<label>Organisation / client name *<input id="in-org" placeholder="e.g. St. Mary's Church"></label>
-<label>Contact person *<input id="in-person" placeholder="Full name"></label>
-<label>WhatsApp / phone *<input id="in-phone" placeholder="07xx xxx xxx"></label>
-<label>Town / address<input id="in-town" placeholder="e.g. Kampala"></label>
-<label>Sector *<select id="in-sector"><option value="">— choose —</option>${SECTORS.map((s,i)=>`<option value="${i}">${s.name}</option>`).join('')}</select></label>
-<div id="in-roles"></div>
-<label>What should the system do? (HQ builds from this — be specific) *<textarea id="in-desc" rows="4" placeholder="e.g. Track members & donations, print receipts, monthly treasurer report…"></textarea></label>
-<label class="chk"><input type="checkbox" id="in-consent"> Client approves the price and description *</label>
-<div class="row" style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px"><strong id="in-total"></strong><button id="in-submit" class="btn btn-primary">Submit to HQ</button></div>
-<p id="in-msg" style="margin-top:8px"></p></div>`;
-  let chosen=[];
-  const rolesBox=mount.querySelector('#in-roles');
-  mount.querySelector('#in-sector').onchange=e=>{const s=SECTORS[+e.target.value];if(!s)return;
-    rolesBox.innerHTML=`<p class="hint">Dashboards included (un-tick to remove — 33,000 UGX / $9 each):</p>`+s.roles.map(r=>`<label class="chk"><input type="checkbox" value="${r}" checked> ${r}</label>`).join('');
-    rolesBox.querySelectorAll('input').forEach(cb=>cb.onchange=update);update()};
-  function update(){chosen=[...rolesBox.querySelectorAll('input:checked')].map(cb=>cb.value);
-    mount.querySelector('#in-total').textContent=chosen.length?`Monthly: UGX ${(chosen.length*ROLE_RATE_UGX).toLocaleString()} (≈ $${chosen.length*9}) · your 20% per payment: UGX ${(chosen.length*ROLE_RATE_UGX*0.2).toLocaleString()}`:''}
-  mount.querySelector('#in-submit').onclick=async()=>{
-    const v=id=>mount.querySelector(id).value.trim();
-    const sec=mount.querySelector('#in-sector');
-    if(!v('#in-org')||!v('#in-person')||!v('#in-phone')||sec.value===''||!chosen.length||!v('#in-desc')||!mount.querySelector('#in-consent').checked){
-      mount.querySelector('#in-msg').textContent='Please complete all required fields and tick consent.';return}
-    const {error}=await sb.from('projects').insert({name:v('#in-org')+' — '+SECTORS[+sec.value].name,client:v('#in-org'),rate:chosen.length*ROLE_RATE_UGX,
-      sector:SECTORS[+sec.value].name,roles:chosen,description:v('#in-desc'),contact_person:v('#in-person'),contact_phone:v('#in-phone'),town:v('#in-town'),status:'intake',referred_employee_id:emp.id});
-    mount.querySelector('#in-msg').textContent=error?'Error: '+error.message:'✔ Sent to HQ. You earn 20% of every payment on this project.';
-    if(!error&&onDone)setTimeout(onDone,1500)};
+/* ============ DASHBOARD ============ */
+async function renderDash(){
+ const {P,E,S}=await fetchData();
+ const bal=S?Number(S.account_balance||0):E.reduce((s,r)=>s+Number(r.amount||0),0);
+ const earned=S?Number(S.total_commissions||0)+Number(S.total_salary||0):E.reduce((s,r)=>s+Number(r.amount||0),0);
+ $('#view').innerHTML=`
+ <div class="card row" style="margin-top:0"><div><h3 style="margin:0">Welcome back, ${ME.name.split(' ')[0]} 👋</h3><p class="meta">Every payment on your projects earns you 20%.</p></div>
+ <button class="btn btn-blue" onclick="document.querySelector('[data-t=intake]').click()">➕ Bring in Project</button></div>
+ <div class="stats">
+  <div class="stat"><div class="k">Available balance</div><div class="v">${UGX(bal)}</div><div class="s">${USD(bal)}</div></div>
+  <div class="stat"><div class="k">Total earned</div><div class="v">${UGX(earned)}</div><div class="s">all time</div></div>
+  <div class="stat"><div class="k">Active projects</div><div class="v">${P.filter(r=>r.status==='active').length}</div><div class="s">earning for you</div></div>
+  <div class="stat"><div class="k">In pipeline</div><div class="v">${P.filter(r=>['intake','building'].includes(r.status)).length}</div><div class="s">intake / building</div></div>
+ </div>
+ <div class="grid2">
+  <div class="card"><h3>Project pipeline</h3><canvas id="c1"></canvas></div>
+  <div class="card"><h3>Commission trend</h3><canvas id="c2"></canvas></div>
+ </div>
+ <div class="card"><h3>Recent earnings</h3><table><tr><th>Date</th><th>Amount</th></tr>${E.slice(0,6).map(r=>`<tr><td>${new Date(r.created_at||Date.now()).toLocaleDateString()}</td><td><b style="color:var(--accent)">+${UGX(r.amount)}</b></td></tr>`).join('')||'<tr><td colspan=2 class="hint">No earnings yet.</td></tr>'}</table></div>`;
+ const by={};P.forEach(r=>by[r.status]=(by[r.status]||0)+1);
+ CH.push(new Chart($('#c1'),{type:'doughnut',data:{labels:Object.keys(by).length?Object.keys(by):['none'],datasets:[{data:Object.keys(by).length?Object.values(by):[1],backgroundColor:['#2563eb','#b45309','#047857','#b91c1c']}]},options:{maintainAspectRatio:false,plugins:{legend:{position:'bottom'}}}}));
+ const mo=new Array(12).fill(0);E.forEach(r=>{const d=new Date(r.created_at||Date.now());if(d.getFullYear()===new Date().getFullYear())mo[d.getMonth()]+=Number(r.amount||0)});
+ CH.push(new Chart($('#c2'),{type:'bar',data:{labels:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],datasets:[{data:mo,backgroundColor:'#c8a24a',borderRadius:5}]},options:{maintainAspectRatio:false,plugins:{legend:{display:false}}}}));
 }
 
-async function renderAdminDashboard(){
-  const {data:projects=[]}=await sb.from('projects').select('*');
-  const {data:payments=[]}=await sb.from('payments').select('*');
-  const {data:employees=[]}=await sb.from('employees').select('*');
-  const paid=payments.filter(p=>p.status==='paid');
-  const totalRevenue=paid.reduce((s,p)=>s+(p.amount||0),0);
-  const activeProjects=projects.filter(p=>p.status==='active').length;
-  const intakeProjects=projects.filter(p=>p.status==='intake');
-  const em={};employees.forEach(e=>em[e.id]=`${e.name} (${e.employee_code})`);
-  app.innerHTML=`
-<header class="header">
-  <div class="logo"><img src="https://i.ibb.co/p6GCfY1x/Screenshot-2026-05-30-at-17-06-41.png" alt="Drafts" class="logo-img"><div><div class="logo-text">Drafts HQ</div><div class="logo-subtitle">Admin Dashboard</div></div></div>
-  <div class="header-right"><button class="btn btn-outline" onclick="window.__logout()">Log out</button></div>
-</header>
-<main class="main">
-  <div class="page-header"><div><h1 class="page-title">Admin Dashboard</h1><p class="page-desc">Overview & intake queue</p></div></div>
-  <div class="grid grid-3">
-    <div class="card"><div class="card-title" style="font-size:.8rem;color:var(--text-muted)">Active Projects</div><h3 style="font-size:1.8rem;font-weight:800">${activeProjects}</h3></div>
-    <div class="card"><div class="card-title" style="font-size:.8rem;color:var(--text-muted)">Total Revenue</div><h3 style="font-size:1.8rem;font-weight:800">${fmt(totalRevenue)}</h3></div>
-    <div class="card"><div class="card-title" style="font-size:.8rem;color:var(--text-muted)">Intake Queue</div><h3 style="font-size:1.8rem;font-weight:800">${intakeProjects.length}</h3></div>
-  </div>
-  <div class="card"><h3>📥 Intake Queue — projects brought in by employees</h3><div id="intake-list"></div></div>
-  <div class="card"><h3>All Projects</h3><table><tr><th>Project</th><th>Client</th><th>Status</th><th>Referred by</th><th>Monthly</th></tr><tbody id="all-proj"></tbody></table></div>
-</main>`;
-  window.__logout=logout;
-  const BADGE={intake:['New intake','#2563eb'],building:['Building','#b45309'],active:['Active','#047857'],paused:['Paused','#dc2626']};
-  document.getElementById('intake-list').innerHTML=intakeProjects.map(r=>{
-    const b=BADGE[r.status]||[r.status||'—','#64748b'];
-    return`<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><b>${r.name}</b><span class="badge" style="background:${b[1]};color:#fff">${b[0]}</span></div>
-<p class="meta">Client: ${r.client||'—'} · ${r.sector||''} · Monthly UGX ${Number(r.rate||0).toLocaleString()}</p>
-<p class="meta">Brought in by: <b>${em[r.referred_employee_id]||'—'}</b> · Contact: ${r.contact_person||'—'} · <a class="wa" target="_blank" href="https://wa.me/${(r.contact_phone||'').replace(/\D/g,'')}">WhatsApp ${r.contact_phone||''}</a> · ${r.town||''}</p>
-<div>${(r.roles||[]).map(x=>`<span class="chip">${x}</span>`).join('')}</div>
-<div class="desc">${r.description||'No description.'}</div>
-<button class="btn btn-primary" onclick="window.__startBuild('${r.id}')">▶ Start building</button></div>`}).join('')||'<p class="hint">No intake projects yet.</p>';
-  document.getElementById('all-proj').innerHTML=projects.map(r=>{const b=BADGE[r.status]||[r.status||'—','#64748b'];
-    return`<tr><td>${r.name}</td><td>${r.client||'—'}</td><td><span class="badge" style="background:${b[1]};color:#fff">${b[0]}</span></td><td>${em[r.referred_employee_id]||'—'}</td><td>UGX ${Number(r.rate||0).toLocaleString()}</td></tr>`}).join('');
-  window.__startBuild=async id=>{await sb.from('projects').update({status:'building'}).eq('id',id);location.reload()};
+/* ============ MY PROJECTS ============ */
+async function renderProjects(){
+ const {P}=await fetchData();
+ $('#view').innerHTML=`<div class="card" style="margin-top:0"><h3>My Projects (${P.length})</h3>
+ <table><tr><th>Project</th><th>Status</th><th>Monthly</th><th>Valid until</th></tr>
+ ${P.map(r=>{const b=BADGE[r.status]||[r.status||'—','#64748b'];const d=r.valid_until?Math.max(0,Math.ceil((new Date(r.valid_until)-Date.now())/864e5)):null;
+  return `<tr><td><b>${r.name}</b><br><span class="hint">${r.client||''}</span></td><td><span class="badge" style="background:${b[1]}">${b[0]}</span>${d!==null&&r.status==='active'?`<br><span class="hint">${d}d left</span>`:''}</td><td>${UGX(r.rate)}</td><td>${r.valid_until?new Date(r.valid_until).toLocaleDateString():'—'}</td></tr>`}).join('')||'<tr><td colspan=4 class="hint">Nothing yet — bring in your first project!</td></tr>'}</table></div>`;
 }
 
-(async()=>{
-  const emp=await checkAuth();
-  if(!emp)return renderLogin();
-  if(ADMIN_EMAILS.includes(emp.email)||ADMIN_EMAILS.includes(emp.phone))return renderAdminDashboard();
-  return renderEmployeeDashboard(emp);
-})();
-})();
-</script>
-</body></html>
+/* ============ INTAKE ============ */
+async function renderIntake(){
+ $('#view').innerHTML=`<div class="card" style="margin-top:0"><h3>➕ Bring in a Project</h3>
+ <label>Organisation / client name *</label><input id="in-org" placeholder="e.g. St. Mary's Church">
+ <label>Contact person *</label><input id="in-person">
+ <label>WhatsApp / phone *</label><input id="in-phone" placeholder="07xx xxx xxx">
+ <label>Town / address</label><input id="in-town">
+ <label>Sector *</label><select id="in-sector"><option value="">— choose —</option>${SECTORS.map((s,i)=>`<option value="${i}">${s.name}</option>`).join('')}</select>
+ <div id="in-roles"></div>
+ <label>What should the system do? (HQ builds from this) *</label><textarea id="in-desc" rows="4"></textarea>
+ <label class="row" style="font-weight:500"><span style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="in-consent" style="width:auto"> Client approves price & description *</span></label>
+ <div class="row"><strong id="in-total"></strong><button class="btn btn-gold" id="in-submit">Submit to HQ</button></div>
+ <p id="in-msg"></p></div>`;
+ let chosen=[];
+ $('#in-sector').onchange=e=>{const s=SECTORS[+e.target.value];if(!s)return;
+  $('#in-roles').innerHTML=`<p class="hint" style="margin-top:8px">Dashboards included (33,000 UGX / $9 each — un-tick to remove):</p>`+s.roles.map(r=>`<label style="display:flex;gap:6px;align-items:center;font-weight:500"><input type="checkbox" value="${r}" checked style="width:auto"> ${r}</label>`).join('');
+  document.querySelectorAll('#in-roles input').forEach(cb=>cb.onchange=upd);upd();};
+ function upd(){chosen=[...document.querySelectorAll('#in-roles input:checked')].map(c=>c.value);
+  $('#in-total').textContent=chosen.length?`Monthly: ${UGX(chosen.length*ROLE_RATE)} · your 20%/payment: ${UGX(chosen.length*ROLE_RATE*0.2)}`:'';}
+ $('#in-submit').onclick=async()=>{const v=id=>$(id).value.trim();const sec=$('#in-sector');
+  $('#in-msg').className='err';
+  if(!v('#in-org')||!v('#in-person')||!v('#in-phone')||sec.value===''||!chosen.length||!v('#in-desc')||!$('#in-consent').checked)
+    return $('#in-msg').textContent='Complete all required fields and tick consent.';
+  const {error}=await sb.from('projects').insert({name:v('#in-org')+' — '+SECTORS[+sec.value].name,client:v('#in-org'),rate:chosen.length*ROLE_RATE,sector:SECTORS[+sec.value].name,roles:chosen,description:v('#in-desc'),contact_person:v('#in-person'),contact_phone:v('#in-phone'),town:v('#in-town'),status:'intake',referred_employee_id:ME.id});
+  if(error){$('#in-msg').textContent='Error: '+error.message;return;}
+  $('#in-msg').className='ok';$('#in-msg').textContent='✔ Sent to HQ. You earn 20% of every payment.';
+  setTimeout(()=>{document.querySelector('[data-t=projects]').click()},1200);};
+}
+
+/* ============ EARNINGS ============ */
+async function renderEarn(){
+ const {E}=await fetchData();
+ const tot=E.reduce((s,r)=>s+Number(r.amount||0),0);
+ $('#view').innerHTML=`<div class="stats" style="grid-template-columns:repeat(2,1fr)">
+  <div class="stat"><div class="k">Total commissions</div><div class="v">${UGX(tot)}</div><div class="s">${USD(tot)}</div></div>
+  <div class="stat"><div class="k">Transactions</div><div class="v">${E.length}</div><div class="s">20% per payment</div></div></div>
+ <div class="card"><h3>All earnings</h3><table><tr><th>Date</th><th>Project</th><th>Amount</th></tr>
+ ${E.map(r=>`<tr><td>${new Date(r.created_at||Date.now()).toLocaleDateString()}</td><td class="hint">${r.project_id?'payment on your project':'—'}</td><td><b style="color:var(--accent)">+${UGX(r.amount)}</b></td></tr>`).join('')||'<tr><td colspan=3 class="hint">No earnings yet.</td></tr>'}</table></div>`;
+}
+
+/* ============ MY ACCOUNT ============ */
+async function renderAcct(){
+ const {S}=await fetchData();
+ const bal=S?Number(S.account_balance||0):0;
+ const {data:W=[]}=await sb.from('withdrawal_requests').select('*').eq('employee_id',ME.id);
+ $('#view').innerHTML=`
+ <div class="card" style="margin-top:0"><h3>👤 Profile</h3>
+  <p class="meta">Name: <b>${ME.name}</b> · Code: <b>${ME.employee_code}</b></p>
+  <p class="meta">Phone: ${ME.phone||'—'} · Role: ${ME.title||'Field Agent'}</p>
+  <p class="meta">Referral code: <b>${ME.employee_code}</b> — clients mention this when they call HQ.</p></div>
+ <div class="card"><h3>💳 Funds</h3>
+  <div class="row"><div><div class="stat v" style="font-size:1.5rem">${UGX(bal)}</div><div class="s hint">${USD(bal)} available</div></div>
+  <button class="btn btn-green" id="wd-open">🏧 Withdraw</button></div>
+  <div id="wd-form" style="display:none;margin-top:12px">
+   <label>Amount (UGX) — max ${UGX(bal)}</label><input id="wd-amt" type="number">
+   <button class="btn btn-gold btn-block" style="margin-top:10px" id="wd-go">Request withdrawal</button></div>
+  <p id="wd-msg"></p>
+  <h3 style="margin-top:14px">Withdrawal history</h3>
+  <table><tr><th>Date</th><th>Amount</th><th>Status</th></tr>${W.map(w=>`<tr><td>${new Date(w.created_at||w.requested_at||Date.now()).toLocaleDateString()}</td><td>${UGX(w.amount)}</td><td><span class="badge" style="background:${w.status==='approved'||w.status==='paid'?'#047857':w.status==='rejected'?'#b91c1c':'#b45309'}">${w.status||'pending'}</span></td></tr>`).join('')||'<tr><td colspan=3 class="hint">No withdrawals yet.</td></tr>'}</table></div>
+ <div class="card"><h3>🔒 Security</h3>
+  <label>New password</label><input id="pw-new" type="password">
+  <button class="btn btn-ghost btn-sm" style="margin-top:8px" id="pw-go">Change password</button><p id="pw-msg"></p></div>
+ <div class="card"><button class="btn btn-ghost btn-block" id="lo">Log out</button></div>`;
+ $('#lo').onclick=()=>{localStorage.clear();location.reload();};
+ $('#wd-open').onclick=()=>{$('#wd-form').style.display=$('#wd-form').style.display==='none'?'':'none'};
+ $('#wd-go').onclick=async()=>{const a=Number($('#wd-amt').value);$('#wd-msg').className='err';
+  if(!a||a<=0)return $('#wd-msg').textContent='Enter a valid amount.';
+  if(a>bal)return $('#wd-msg').textContent='Amount exceeds available balance.';
+  const {error}=await sb.from('withdrawal_requests').insert({employee_id:ME.id,amount:a,status:'pending'});
+  if(error)return $('#wd-msg').textContent='Error: '+error.message;
+  $('#wd-msg').className='ok';$('#wd-msg').textContent='✔ Withdrawal requested — HQ will process it.';
+  setTimeout(renderAcct,1200);};
+ $('#pw-go').onclick=async()=>{const p=$('#pw-new').value;$('#pw-msg').className='err';
+  if(p.length<6)return $('#pw-msg').textContent='6+ characters.';
+  const {error}=await sb.from('employee_credentials').update({password_hash:await sha256(p)}).eq('employee_id',ME.id);
+  $('#pw-msg').className=error?'err':'ok';$('#pw-msg').textContent=error?error.message:'✔ Password updated.';};
+}
+boot();
+</script></body></html>
